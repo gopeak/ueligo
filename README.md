@@ -1,1 +1,1 @@
-#morego
+# gomore

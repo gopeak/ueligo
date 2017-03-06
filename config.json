@@ -1,0 +1,30 @@
+{
+	 
+    "app":{ "name":"zeromore server ", "enable":1, "status":"dev","version":"1.0" },
+	
+    "loglevel":"error",
+    "rpc_type":"go",
+    "pack_type":"bufferio",
+    
+    "connector": [
+      {"id": "connector-server-1", "port":7898 ,"socket_type":"websocket"  },
+      {"id": "connector-server-2", "port":7002 ,"socket_type":"socket" }
+    ],
+	
+    "worker":{
+         "language":"php",  "worker_num":10,"host": "127.0.0.1", "port":7102
+    },
+	 
+	"hub": {
+        "host": "127.0.0.1", "port":7302 
+    },
+	
+	"area": [ 
+		    "area-global", 
+            "area-global2",  
+            "area-global3",  
+            "area-global4", 
+            "area-global5"  
+          
+		] 
+}
