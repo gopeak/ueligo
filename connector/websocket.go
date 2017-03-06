@@ -3,17 +3,17 @@ package connector
 import (
 	"bufio"
 	"fmt"
-	"simple/area"
-	"simple/global"
+	"morego/area"
+	"morego/global"
 	"math/rand"
 	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
-	//"simple/protocol"
+	//"morego/protocol"
 	//"encoding/json"
-	"simple/lib/websocket"
-	"simple/golog"
+	"morego/lib/websocket"
+	"morego/golog"
 
 	//"strings"
 	//"io"
@@ -65,7 +65,10 @@ func WebsocketHandler(ws *websocket.Conn) {
 		r := rand.New(rand.NewSource(time.Now().UnixNano()))
 		sid := fmt.Sprintf("%d%d", r.Intn(99999), rand.Intn(999999))
 
-		tcpAddr, err := net.ResolveTCPAddr("tcp4", global.Config.WorkerAgent.Host+":"+string(global.Config.WorkerAgent.Port))
+
+		configAddr := global.GetRandWorkerAddr()
+		fmt.Println("ip_port:", configAddr)
+		tcpAddr, err := net.ResolveTCPAddr("tcp4", configAddr)
 		checkError(err)
 		req_conn, err := net.DialTCP("tcp", nil, tcpAddr)
 		//defer req_conn.Close()

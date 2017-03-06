@@ -7,15 +7,15 @@
 package area
 
 import (
-	"simple/global"
-	"simple/lib/websocket"
+	"morego/global"
+	"morego/lib/websocket"
 
-	"simple/golog"
-	//"simple/locks"
+	"morego/golog"
+	//"morego/locks"
 	"fmt"
 	"net"
-	"simple/lib/syncmap"
-	z_type "simple/type"
+	"morego/lib/syncmap"
+	z_type "morego/type"
 	"time"
 
 	//"strings"

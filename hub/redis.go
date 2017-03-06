@@ -2,8 +2,8 @@ package hub
 
 import (
 	"fmt"
-	"simple/global"
-	z_type "simple/type"
+	"morego/global"
+	z_type "morego/type"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -80,7 +80,7 @@ func Set(key string, args ...interface{}) (bool, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()
-	return redis.Bool(cc.Do("Set", `simple/`+key, args))
+	return redis.Bool(cc.Do("Set", `morego/`+key, args))
 
 }
 
@@ -88,7 +88,7 @@ func Get(key string) (string, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()
-	return redis.String(cc.Do("Get", `simple/`+key))
+	return redis.String(cc.Do("Get", `morego/`+key))
 
 }
 
@@ -96,6 +96,6 @@ func Delete(key string) (bool, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()
-	return redis.Bool(cc.Do("Delete", `simple/`+key))
+	return redis.Bool(cc.Do("Delete", `morego/`+key))
 
 }

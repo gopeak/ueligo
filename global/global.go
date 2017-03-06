@@ -8,11 +8,11 @@ package global
 import (
 	"fmt"
 	"net"
-	"simple/lib/antonholmquist/jason"
-	"simple/lib/robfig/cron"
-	"simple/lib/syncmap"
-	"simple/lib/websocket"
-	z_type "simple/type"
+	"morego/lib/antonholmquist/jason"
+	"morego/lib/robfig/cron"
+	"morego/lib/syncmap"
+	"morego/lib/websocket"
+	z_type "morego/type"
 	"strings"
 )
 
@@ -84,8 +84,6 @@ var PackSplitType string
 var SyncCrons *syncmap.SyncMap
 var Crons = map[string]*cron.Cron{}
 
-// workeragent连接对象
-//var WorkerAgentConns *syncmap.SyncMap
 //var ReqAgentConns *syncmap.SyncMap
 
 const (

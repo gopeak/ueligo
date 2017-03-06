@@ -3,7 +3,7 @@ package global
 import (
 	"fmt"
 	"math/rand"
-	"simple/lib/BurntSushi/toml"
+	"morego/lib/BurntSushi/toml"
 )
 
 type configType struct {
@@ -18,8 +18,6 @@ type configType struct {
 	Admin        admin        `toml:"admin"`
 	Connector    connector    `toml:"connector"`
 	Object       object       `toml:"object"`
-	Worker       worker       `toml:"worker"`
-	WorkerAgent  workerAgent  `toml:"worker_agent"`
 	WorkerServer workerServer `toml:"worker_server"`
 	Hub          hub          `toml:"hub"`
 	Area         area         `toml:"area"`
@@ -51,21 +49,6 @@ type object struct {
 	RedisPassword string `toml:"redis_password"`
 	MonogoHost    string `toml:"monogo_host"`
 	MonogoPort    int    `toml:"3306"`
-}
-
-type worker struct {
-	WorkerLanguage string `toml:"worker_language"`
-	PhpBinPath     string `toml:"php_bin_path"`
-	WorkerNum      int    `toml:"worker_num"`
-	AgentHost      string `toml:"agent_host"`
-	AgentPort      int    `toml:"agent_port"`
-	HubHost        string `toml:"hub_host"`
-	HubPort        int    `toml:"hub_port"`
-}
-
-type workerAgent struct {
-	Host string
-	Port string
 }
 
 type workerServer struct {

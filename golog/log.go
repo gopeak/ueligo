@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"os"
 	"runtime"
-	"simple/global"
+	"morego/global"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
@@ -122,18 +122,18 @@ func Warning(args ...interface{}) {
 
 // Error logs a message at level Error on the standard logger.
 func Error(args ...interface{}) {
-	log2Mongo("error", args...)
+	//log2Mongo("error", args...)
 	log.Error(args...)
 }
 
 // Panic logs a message at level Panic on the standard logger.
 func Panic(args ...interface{}) {
-	log2Mongo("panic", args...)
+	//log2Mongo("panic", args...)
 	log.Panic(args...)
 }
 
 // Fatal logs a message at level Fatal on the standard logger.
 func Fatal(args ...interface{}) {
-	log2Mongo("fatal", args...)
+	//log2Mongo("fatal", args...)
 	log.Fatal(args...)
 }

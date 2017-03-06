@@ -6,9 +6,9 @@ package main
 
 import (
 	"fmt"
-	"simple/global"
-	"simple/golog"
-	"simple/hub"
+	"morego/global"
+	"morego/golog"
+	"morego/hub"
 	//"strconv"
 	//"net"
 	//"net/http"
@@ -16,13 +16,13 @@ import (
 	"os"
 	"os/exec"
 	"runtime"
-	//"simple/admin"
-	"simple/area"
-	"simple/connector"
-	"simple/lib/syncmap"
-	"simple/worker"
+	//"morego/admin"
+	"morego/area"
+	"morego/connector"
+	"morego/lib/syncmap"
+	"morego/worker"
 	"time"
-	//z_type "simple/type"
+	//z_type "morego/type"
 )
 
 // 启动一个测试的php worker以处理业务流程

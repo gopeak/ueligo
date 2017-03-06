@@ -6,13 +6,13 @@ import (
 	"fmt"
 	//"math/rand"
 	"net"
-	//"simple/area"
-	"simple/global"
-	"simple/golog"
-	//"simple/lib/antonholmquist/jason"
+	//"morego/area"
+	"morego/global"
+	"morego/golog"
+	//"morego/lib/antonholmquist/jason"
 	//flatbuffers "github.com/google/flatbuffers/go"
-	"simple/protocol"
-	//"simple/worker"
+	"morego/protocol"
+	//"morego/worker"
 	"sync/atomic"
 	//"time"
 	//"encoding/json"
@@ -52,14 +52,10 @@ func listenAcceptTCP(listen *net.TCPListener) {
 
 		// 校验ip地址
 		conn.SetKeepAlive(true)
-		golog.Info("RemoteAddr:", conn.RemoteAddr().String())
 
-		//remoteAddr :=conn.RemoteAddr()
 		// 获取随机worker服务地址
-		ip_port := global.GetRandWorkerAddr()
-
-		//fmt.Println("ip_port:", ip_port)
-		tcpAddr, err := net.ResolveTCPAddr("tcp4", ip_port)
+		configAddr := global.GetRandWorkerAddr()
+		tcpAddr, err := net.ResolveTCPAddr("tcp4", configAddr)
 		if err != nil {
 			fmt.Println("req_conn tcpAddr :", err.Error())
 			return
@@ -71,9 +67,6 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			fmt.Println("req_conn net.DialTCP :", err.Error())
 			return
 		}
-
-		//fmt.Println("RemoteAddr:", conn.RemoteAddr().String(), "sid:", sid, " worker_idf:", "")
-
 		if( global.PackSplitType=="bufferio"){
 			go handleClientMsg(conn, req_conn, CreateSid())
 		}
@@ -108,15 +101,6 @@ func handleConnJson(conn *net.TCPConn, req_conn *net.TCPConn, sid string ) {
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-		/*
-		worker_json, errjson := jason.NewObjectFromBytes(buf)
-		checkError(errjson)
-		// do some thing
-		cmd, _ := worker_json.GetString("cmd")
-		// fmt.Printf(" worker_task logic cmd: %s\n", cmd)
-		json := fmt.Sprintf(`{"cmd":"%s","data":"%s"}`, cmd, sid)
-		golog.Info("handleConnJson json ", json )
-		*/
 		go reqWorker(buf, req_conn)
 
 	}

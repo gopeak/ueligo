@@ -4,11 +4,11 @@ package hub
 
 import (
 	"fmt"
-	"simple/global"
-	"simple/lib/syncmap"
+	"morego/global"
+	"morego/lib/syncmap"
 	"time"
 	//json2 "encoding/json"
-	z_type "simple/type"
+	z_type "morego/type"
 
 	"github.com/garyburd/redigo/redis"
 )
@@ -44,7 +44,7 @@ func TickSyncSession() {
 		js1, _ := json2.Marshal(UserSessions)
 		*/
 		if LastSessions != global.SyncUserSessions {
-			redisc.Do("Set", "simple/user_session", global.SyncUserSessions)
+			redisc.Do("Set", "morego/user_session", global.SyncUserSessions)
 			redisc.Flush()
 			LastSessions = global.SyncUserSessions
 		}
@@ -60,7 +60,7 @@ func LoadSessionFromRedis() {
 		fmt.Println(err)
 		return
 	}
-	reply, err_get := redisc.Do("Get", "simple/user_session")
+	reply, err_get := redisc.Do("Get", "morego/user_session")
 	if err_get != nil {
 		fmt.Println(err_get)
 		return
