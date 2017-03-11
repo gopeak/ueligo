@@ -7,7 +7,7 @@ use php\model as model;
 	 * 开发框架核心文件
 	 *
 	 */
-	class ittaphp
+	class xphp
 	{
 		private $_ctrl;
 		private $_action;

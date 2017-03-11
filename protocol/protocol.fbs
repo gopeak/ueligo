@@ -1,4 +1,4 @@
-// protocol.fbs
+// flatbuffer 协议文件protocol.fbs
 namespace protocol;
 
 
@@ -14,8 +14,8 @@ table Data {
 	_type:Type=Req;
 	cmd:string;
 	sid:string; 
-	req_id:int;
-	data:string; 
+	req_id:int;  
+	data:string;
 }
 
 root_type Data;

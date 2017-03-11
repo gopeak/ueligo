@@ -11,7 +11,7 @@
     version		=	"1.0"
     loglevel	=	"error"
     rpc_type	=	"go"  # string | flatbuffer 
-    pack_type	=	"json"
+    pack_type	=	"bufferio"
 	
 	[log]
 		log_level	=	"error"

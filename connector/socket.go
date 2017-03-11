@@ -16,6 +16,7 @@ import (
 	"sync/atomic"
 	//"time"
 	//"encoding/json"
+	"strings"
 )
 
 /**
@@ -67,6 +68,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			fmt.Println("req_conn net.DialTCP :", err.Error())
 			return
 		}
+		fmt.Println(  "PackSplitType: ", global.PackSplitType )
 		if( global.PackSplitType=="bufferio"){
 			go handleClientMsg(conn, req_conn, CreateSid())
 		}
@@ -144,18 +146,64 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 		}
 
 		str, err := reader.ReadString('\n')
-		//fmt.Println("handleConn ReadString: ", str)
 		if err != nil {
 			FreeConn(conn, sid)
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
+		msg_arr := strings.Split(str, "||")
+		if len(msg_arr) < 5 {
+			fmt.Println( "err: request data length error!" ,msg_arr )
+			conn.Close()
+			continue
+		}
+
+		_type:=int(msg_arr[0])
+		cmd := msg_arr[1];
+		req_sid :=  msg_arr[2]
+
+
+		if _type == protocol.TypeReq  {
+			if cmd == "socket.login" && req_sid=="" {
+				auth( sid ,conn )
+			}
+		}else{
+			//  sid 为空
+			if req_sid==""{
+				conn.Close()
+				break
+			}else{
+				check( req_sid,conn )
+			}
+
+			if _type==protocol.TypeReq{
+				buf := []byte(str)
+				go reqWorker(buf, req_conn)
+			}
+
+			if _type==protocol.TypePush{
+				to_sid:=""
+				push_data:=""
+				push( req_sid, to_sid, push_data,conn );
+			}
+
+			if _type==protocol.TypeBroadcast{
+				area_id:=""
+				push_data:=""
+				broadcast( req_sid, area_id, push_data,conn );
+			}
+
+		}
+
 		buf := []byte(str)
-		go reqWorker(buf, req_conn)
+		go conn.Write(buf)
+		//go reqWorker(buf, req_conn)
 
 	}
 
 }
+
+
 
 func reqWorker(buf []byte, req_conn *net.TCPConn) {
 
@@ -171,3 +219,40 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 	golog.Info("HandleConn data:", cmd, data, req_sid, req_id)
 
 }
+
+/**
+ * 认证
+ */
+func auth( token string, rconn *net.TCPConn ) bool {
+
+
+
+}
+
+/**
+ * 检查
+ */
+func check( token string, rconn *net.TCPConn ) bool {
+
+
+
+}
+
+/**
+ * 广播
+ */
+func broadcast( sid string, area_id string , data string , conn *net.TCPConn ) {
+
+
+
+}
+
+/**
+ * 推送消息
+ */
+func push( sid string ,to_sid string, data string, conn *net.TCPConn ) {
+
+
+
+}
+

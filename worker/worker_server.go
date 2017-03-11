@@ -43,7 +43,6 @@ func WorkerServer(host string, port int) {
 		//conn.SetNoDelay(false)
 		golog.Info("RemoteAddr:", conn.RemoteAddr().String())
 
-
 		if( global.PackSplitType=="bufferio"){
 			go handleWorker(conn)
 		}
@@ -78,7 +77,7 @@ func handleWorker(conn *net.TCPConn) {
 			req_sid := string(msg.Sid())
 			req_id := int(msg.ReqId())
 			golog.Info("handleWorker  ", cmd, data, req_sid, req_id)
-
+			//fmt.Println("cmd: ", cmd)
 			conn.Write(append(buf, '\n'))
 		}(buf, conn)
 
