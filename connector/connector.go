@@ -24,6 +24,17 @@ var SessionMlock *sync.RWMutex
 var UserChannelsMlock *sync.RWMutex
 
 
+/**
+ * 检查
+ */
+func CheckSid( sid string ) bool {
+
+	_, exist := global.SyncUserSessions.Get(sid)
+
+	return exist
+
+}
+
 func CreateSid() string{
 
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -91,6 +102,7 @@ func FreeWsConn(ws *websocket.Conn, sid string) {
 	golog.Info("UserConns length:", len(global.UserConns))
 
 }
+
 
 
 func checkError(err error) {

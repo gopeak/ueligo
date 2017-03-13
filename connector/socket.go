@@ -6,10 +6,10 @@ import (
 	"fmt"
 	//"math/rand"
 	"net"
-	//"morego/area"
+	"morego/area"
 	"morego/global"
 	"morego/golog"
-	//"morego/lib/antonholmquist/jason"
+	"morego/lib/antonholmquist/jason"
 	//flatbuffers "github.com/google/flatbuffers/go"
 	"morego/protocol"
 	//"morego/worker"
@@ -17,6 +17,7 @@ import (
 	//"time"
 	//"encoding/json"
 	"strings"
+	"errors"
 )
 
 /**
@@ -68,12 +69,12 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			fmt.Println("req_conn net.DialTCP :", err.Error())
 			return
 		}
-		fmt.Println(  "PackSplitType: ", global.PackSplitType )
-		if( global.PackSplitType=="bufferio"){
+		fmt.Println("PackSplitType: ", global.PackSplitType)
+		if ( global.PackSplitType == "bufferio") {
 			go handleClientMsg(conn, req_conn, CreateSid())
 		}
-		if( global.PackSplitType=="json"){
-			go handleConnJson(conn, req_conn,CreateSid())
+		if ( global.PackSplitType == "json") {
+			go handleConnJson(conn, req_conn, CreateSid())
 		}
 		go handleWorkerResponse(conn, req_conn)
 		//go handleConn(conn, sid, "")
@@ -85,7 +86,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 /**
  * 客户端通过json方式封包数据
  */
-func handleConnJson(conn *net.TCPConn, req_conn *net.TCPConn, sid string ) {
+func handleConnJson(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
@@ -106,8 +107,6 @@ func handleConnJson(conn *net.TCPConn, req_conn *net.TCPConn, sid string ) {
 		go reqWorker(buf, req_conn)
 
 	}
-
-
 
 }
 
@@ -151,59 +150,81 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-		msg_arr := strings.Split(str, "||")
-		if len(msg_arr) < 5 {
-			fmt.Println( "err: request data length error!" ,msg_arr )
-			conn.Close()
-			continue
-		}
 
-		_type:=int(msg_arr[0])
-		cmd := msg_arr[1];
-		req_sid :=  msg_arr[2]
-
-
-		if _type == protocol.TypeReq  {
-			if cmd == "socket.login" && req_sid=="" {
-				auth( sid ,conn )
+		ret, ret_err := dispatchMsg(str, conn, req_conn)
+		if ( ret_err != nil ) {
+			if ( ret < 0 ) {
+				fmt.Println(ret_err.Error(), str)
+				continue
 			}
-		}else{
-			//  sid 为空
-			if req_sid==""{
-				conn.Close()
+			if ( ret == 0 ) {
+				fmt.Println(ret_err.Error(), str)
 				break
-			}else{
-				check( req_sid,conn )
 			}
-
-			if _type==protocol.TypeReq{
-				buf := []byte(str)
-				go reqWorker(buf, req_conn)
-			}
-
-			if _type==protocol.TypePush{
-				to_sid:=""
-				push_data:=""
-				push( req_sid, to_sid, push_data,conn );
-			}
-
-			if _type==protocol.TypeBroadcast{
-				area_id:=""
-				push_data:=""
-				broadcast( req_sid, area_id, push_data,conn );
-			}
-
 		}
-
-		buf := []byte(str)
-		go conn.Write(buf)
-		//go reqWorker(buf, req_conn)
 
 	}
-
 }
 
+/**
+ * 根据消息类型分发处理
+ */
+func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
 
+	var err error
+	msg_arr := strings.Split(str, "||")
+	if len(msg_arr) < 5 {
+		conn.Close()
+		err = errors.New("request data length error")
+		return -1, err
+	}
+
+	_type := int(msg_arr[0])
+	cmd := msg_arr[1];
+	req_sid := msg_arr[2]
+	buf := []byte(str)
+
+	if _type == protocol.TypeReq {
+		if cmd == "socket.login" && req_sid == "" {
+			go req_conn.Write(buf)
+		}
+	} else {
+		//  认证检查
+		if ( !CheckSid(req_sid) ) {
+			FreeConn(conn, req_sid)
+			err = errors.New("认证失败")
+			return 0, err
+		}
+		// 请求
+		if _type == protocol.TypeReq {
+			go req_conn.Write(buf)
+		}
+		if _type == protocol.TypePush {
+			from_sid := msg_arr[2]
+			data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
+			if ( json_err != nil ) {
+				err = errors.New("push data json format error")
+				return -2, err
+			}
+			to_sid, _ := data_json.GetString("sid")
+			to_data, _ := data_json.GetString("data")
+			area.Push(to_sid, from_sid, to_data)
+		}
+		if _type == protocol.TypeBroadcast {
+			//from_sid := msg_arr[2]
+			data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
+			if ( json_err != nil ) {
+				err = errors.New("broatcast data json format error")
+				return -3, err
+			}
+			area_id, _ := data_json.GetString("area_id")
+			to_data, _ := data_json.GetString("data")
+			area.Broatcast( area_id,to_data )
+		}
+	}
+
+	return 1, nil
+}
 
 func reqWorker(buf []byte, req_conn *net.TCPConn) {
 
@@ -223,36 +244,17 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 /**
  * 认证
  */
-func auth( token string, rconn *net.TCPConn ) bool {
-
-
+func auth(token string, conn *net.TCPConn) bool {
 
 }
 
-/**
- * 检查
- */
-func check( token string, rconn *net.TCPConn ) bool {
 
-
-
-}
 
 /**
  * 广播
  */
-func broadcast( sid string, area_id string , data string , conn *net.TCPConn ) {
-
-
+func broadcast(sid string, area_id string, data string, conn *net.TCPConn) {
 
 }
 
-/**
- * 推送消息
- */
-func push( sid string ,to_sid string, data string, conn *net.TCPConn ) {
-
-
-
-}
 

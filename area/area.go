@@ -9,16 +9,14 @@ package area
 import (
 	"morego/global"
 	"morego/lib/websocket"
-
 	"morego/golog"
-	//"morego/locks"
 	"fmt"
 	"net"
 	"morego/lib/syncmap"
 	z_type "morego/type"
 	"time"
-
 	//"strings"
+	"morego_go_client/protocol"
 )
 
 // 预创建多个场景
@@ -36,7 +34,6 @@ func CreateChannel(id string, name string) {
 	global.SyncRpcChannelConns = append(global.SyncRpcChannelConns, syncmap.New())
 	global.SyncRpcChannelWsConns = append(global.SyncRpcChannelWsConns, syncmap.New())
 	//fmt.Println(global.RpcChannels)
-
 }
 
 // 删除一个RPC的场景
@@ -167,12 +164,12 @@ func UserUnSubscribeChannel(user_sid string) {
 /**
  *  在场景中广播消息
  */
-func Broatcast(id string, msg string) {
+func Broatcast( sid string,area_id string, msg string) {
 
-	golog.Info(id, msg)
+	golog.Info(area_id, msg)
 	index := 0
 	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == id {
+		if global.RpcChannels[index] == area_id {
 			break
 		}
 	}
@@ -181,7 +178,7 @@ func Broatcast(id string, msg string) {
 	for item := range channel_conns.IterItems() {
 		// fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
-		conn.Write([]byte(fmt.Sprintf("%s\r\n", msg)))
+		conn.Write([]byte( WrapBroatcastRespStr(sid,area_id,msg) ))
 	}
 
 	channel_wss := global.SyncRpcChannelWsConns[index]
@@ -189,9 +186,34 @@ func Broatcast(id string, msg string) {
 	for item := range channel_wss.IterItems() {
 		// fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go websocket.Message.Send(wsconn, msg)
+		go websocket.Message.Send(wsconn,WrapBroatcastRespStr(sid,area_id,msg))
 	}
+}
+/**
+ *  点对点发送消息
+ */
+func Push(  to_sid string ,from_sid string,to_data string) {
+	conn :=  GetConn(to_sid)
+	if( conn!=nil ) {
+		conn.Write([]byte(WrapPushRespStr( from_sid,to_data)))
+		return
+	}
+	wsconn:=GetWsConn(to_sid)
+	if( wsconn!=nil ) {
+		websocket.Message.Send(wsconn, []byte(WrapPushRespStr( from_sid,to_data)) )
+		return
+	}
+}
 
+
+func WrapPushRespStr(  from_sid string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s\r\n" ,protocol.TypePush, from_sid ,data) ;
+	return str
+}
+
+func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s\r\n" , protocol.TypeBroadcast,from_sid ,area_id,data) ;
+	return str
 }
 
 func GetConn(sid string) *net.TCPConn {
