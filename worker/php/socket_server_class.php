@@ -1,19 +1,20 @@
 <?php
     
-    // 定义项目主目录常量
-    define('CUR_PATH', realpath(dirname(__FILE__)).DIRECTORY_SEPARATOR );
-    require_once( CUR_PATH.'flatbuffer/ByteBuffer.php');
-    require_once( CUR_PATH.'flatbuffer/Constants.php');
-    require_once( CUR_PATH.'flatbuffer/FlatbufferBuilder.php');
-    require_once( CUR_PATH.'flatbuffer/Struct.php');
-    require_once( CUR_PATH.'flatbuffer/Table.php');
-    require_once( CUR_PATH.'protocol/Data.php');
-    require_once( CUR_PATH.'protocol/Type.php');
- 
+namespace php;
+
+    use    php\engine as engine;
     
-    $srv = new SocketServer('0.0.0.0',2000);
+    // 定义项目主目录常量
+    define('CUR_PATH', realpath(dirname(__FILE__)).DIRECTORY_SEPARATOR ); 
+    require_once CUR_PATH.'globals.php';
+    
+    
+    $srv = new SocketServer('0.0.0.0',8002);
+    
+    
+    
 	/*!	@class		SocketServer
-		@author		Navarr Barnier
+		@author		sven
 		@abstract 	A Framework for creating a multi-client server using the PHP language.
 	 */
 	class SocketServer
@@ -61,6 +62,8 @@
         
         public $data_obj = NULL;
         
+        public $ittaphp = NULL;
+        
 		/*!	@function	__construct
 			@abstract	Creates the socket and starts listening to it.
 			@param		string	- IP Address to bind to, NULL for default.
@@ -74,8 +77,7 @@
 
 			$this->config["ip"] = $bind_ip;
 			$this->config["port"] = $port; 
-            
-            $this->builder = new Google\FlatBuffers\FlatbufferBuilder(0);
+             
             
             $server_addr  = 'tcp://'.$this->config["ip"].':'.$this->config["port"];
             $this->socket = stream_socket_server ( $server_addr, $errno, $errstr);
@@ -86,6 +88,8 @@
             event_base_set($event, $base);
             event_add($event);
             event_base_loop($base);
+            
+            
  
 		}
         
@@ -111,7 +115,7 @@
         }
 
         function ev_error($buffer, $error, $id) {
-            var_dump( $error );
+            //var_dump( $error );
             event_buffer_disable($this->buffers[$id], EV_READ | EV_WRITE);
             event_buffer_free($this->buffers[$id]);
             fclose($this->connections[$id]);
@@ -122,59 +126,27 @@
         function ev_read($buffer, $id) {
             $ctx_data = '';
             while ($read = event_buffer_read($buffer, $this->max_read )) {
-                // var_dump($read); 
+                
                 $ctx_data .=$read ;  
                 
             }
-            list( $type, $cmd, $sid, $req_id,$data ) = explode( '||',$ctx_data );
-            $resp_type = \protocol\Type::Reply; 
-            $resp_data = "ok".time();
-            $cmd = "socket.getSession";
+            
+            $param_arr = array();
+            list( $type, $cmd, $sid, $req_id,$data ) = explode( '||',$ctx_data ); 
+            $resp_data = $this->dispatch( $sid, $cmd, $req_id, $buffer, $data  );  
+            $resp_type = 2;   
             $response_str = "{$resp_type}||{$cmd}||{$sid}||{$req_id}||{$resp_data}\n";
+            //var_dump($response_str); 
             event_buffer_write( $buffer , $response_str ,strlen($response_str));
  
         }
         
-        function ev_read2($buffer, $id) {
-            $ctx_data = '';
-            while ($read = event_buffer_read($buffer, 1024 )) {
-                // var_dump($read); 
-                $ctx_data .=$read ;  
-                
-            }
-            $bb = Google\FlatBuffers\ByteBuffer::wrap( $ctx_data );
-            $data_obj = \protocol\Data::getRootAsData( $bb ); 
-           
-            $builder  = new Google\FlatBuffers\FlatbufferBuilder(1024);
-            $cmd = $builder->createString("user.login");
-            $sid = $builder->createString("sid");
-            $req_id = 1;
-            $data = $builder->createString("user.login");
-            $token = $builder->createString("token");
+        
+        function dispatch( $sid, $cmd, $req_id, $buffer, $data ){ 
             
-            \protocol\Data::startData( $builder ); 
-            \protocol\Data::add_type( $builder, \protocol\Type::Req );
-            \protocol\Data::addCmd( $builder,$cmd );
-            \protocol\Data::addSid( $builder,$sid );
-            \protocol\Data::addReqId( $builder, $req_id );
-            \protocol\Data::addData( $builder,$data );
-            \protocol\Data::addToken( $builder, $token );  
-            $orc =  \protocol\Data::endData( $builder );
-           
-           
-            $builder->finish( $orc );
-           
-            $buf = $builder->dataBuffer(); 
-           
-            $bb2 = Google\FlatBuffers\ByteBuffer::wrap( $buf->data() );
-            $data_obj2 = \protocol\Data::getRootAsData( $bb2 ); 
-            var_dump( $data_obj2->getCmd() );
-            var_dump( $data_obj2->getSid() );
-            //fwrite($this->connections[$id],$buf->data()."\n" , $buf->length()); 
-            $str  =  str_replace ( "\n" ,  '' ,  $buf->data()  );
-            //file_put_contents( './append.log', $str."||||\r\n", FILE_APPEND );
-            event_buffer_write( $buffer , $str."\n"  );
- 
+            $this->ittaphp = new engine\ittaphp(); 
+            return json_encode($this->ittaphp->route( $sid, $cmd, $req_id, $buffer, $data ));
+            
         }
  
 

@@ -50,7 +50,7 @@ func hubListen(listen *net.TCPListener) {
 		}
 		// 校验ip地址
 		conn.SetKeepAlive(true)
-		defer conn.Close()
+		///defer conn.Close()
 		conn.SetNoDelay(false)
 
 		//go handleWorkerWithJson( conn  )
@@ -257,10 +257,10 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	}
 
 	if cmd == "broatcast" {
-
+		sid, _ := ret_json.GetString("sid")
 		channel, _ := ret_json.GetString("id")
 		data, _ := ret_json.GetString("data")
-		area.Broatcast(channel, data)
+		area.Broatcast( sid,channel, data)
 		golog.Debug("hub_worker broadcast to :", channel, "   ", data)
 		conn.Write([]byte(`ok`))
 	}

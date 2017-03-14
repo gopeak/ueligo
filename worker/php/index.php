@@ -18,11 +18,13 @@ require_once realpath( dirname(__FILE__) ).'/globals.php';
 
 $ittaphp = new engine\ittaphp(); 
 
-$obj = json_decode( '{"token":"session_token","cmd":"user.getUser","params":1}');
-
-v($obj);
+$obj = "1";
  
-$ret = $ittaphp->route( $obj );
+$cmd = "user.getUser"; 
+$sid = md5(time()); 
+$req_id = time(); 
+$conn = NULL; 
+$ret = $ittaphp->route( $sid, $cmd, $req_id, $conn, $obj );
 
 
 print_r( $ret );

@@ -15,43 +15,25 @@ namespace php\service {
 	class user  extends   BaseService  {
 
 
-	 
-		
-		
-		public function getUserByToken( $token )
-		{
-			 
-			$userTokenModel = new model\UserTokenModel();
-			$tokenRow = $userTokenModel->getRowByToken( $token );
-			
-			//var_dump($uid);
-			$userModel = new  model\UserModel( $tokenRow['uid'] ,true );
-			$userModel->uid = $uid; 
-			$user = $userModel->getUser();
-			if( isset($user['password']) ) unset($user['password']);
-				
-			return  $user;
-
-		}
+         
 
 		/**
 		 * 获取单个用户信息
 		 * @param string $uid
 		 * @return array
 		 */
-		public function getUser( $arg )
+		public function getUser( $uid )
 		{
-			$uid = 	$arg->params;		 
+            	 
 			if( empty($uid ) ) { 
-				throw new GameException(array('user_id_err','没有uid'));
+				throw new \php\engine\GameException('没有uid', 500);
 			}
 			//var_dump($uid);
 			$userModel = new  model\UserModel( $uid ,true );
 			$userModel->uid = $uid;
 
 			$user = $userModel->getUser();
-			if( isset($user['password']) ) unset($user['password']);
-				
+			 
 			return  $user;
 
 		}
@@ -94,31 +76,7 @@ namespace php\service {
 	 
 		public function disconnect(  $arg  )
 		{
-			$params   = $arg->params;
-			$username = $params->user; 	
-			$room_id  = $params->channel;
-			unset( $arg,$params );
-			$final['msg'] = '';  
-			$final['code']  = 1; 
-			if( !function_exists('apc_fetch') ) {
-				$final['msg']   = 'server error ,apc extension not installed!';
-				$final['userlist']   = $userlist;
-				$final['code']  = 2;
-				return $final;
-			}
-			$key = 'rooms_'.$room_id;
-			$cache_data = apc_fetch( $key ); 
-			if( $cache_data === false  ) {
-				$userlist = [];
-			}else{
-				$userlist = json_decode( $cache_data, true);	
-				if( $key= array_search( $username , $userlist   )!==false ) {
-					unset($userlist[$key]);
-				}
-			} 		
-			$ret = apc_store( $key , json_encode( $userlist ) ); 
 			 
-			$final['msg']   = 'logout ok';
 			
 			return $final;
 		}

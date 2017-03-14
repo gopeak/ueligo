@@ -7,7 +7,7 @@ use php\model as model;
 	 * 开发框架核心文件
 	 *
 	 */
-	class xphp
+	class ittaphp
 	{
 		private $_ctrl;
 		private $_action;
@@ -25,15 +25,15 @@ use php\model as model;
 		 * @throws \Exception
 		 *
 		 */
-		public function route( $args )
+		public function route( $sid, $cmd, $req_id, $conn ,$data )
 		{
 		 
 			$debugs = array();
 			$final = array();
 			
 			// 处理API接口的请求
-		  
-			$this->_cmd = $args['cmd'];
+           
+            $this->_cmd =  $cmd; 
 			$final['cmd'] = $this->_cmd ;
 			try {
 					
@@ -42,24 +42,19 @@ use php\model as model;
 					throw new \Exception('接口调用错误!无效的参数调用!', 500);
 				}
 				list($service, $method) = explode( '.', $this->_cmd );
-				 
-				 
+				  
 				$service_class = 'php\\service\\' . $service; 
-				$service_obj = new $service_class;
+				$service_obj = new $service_class($sid, $cmd, $req_id, $conn);
 				
 				if( !method_exists($service_obj, $method) )
 				{
 					throw new \Exception( $method.'方法不存在;', 500);
 					die();
-				} 
-				//f( APP_PATH.'/tmp/request.log' ,date('Y-m-d:H:i:s').': '.var_export( $args,true ),FILE_APPEND );
-				
+				}  
 
 				//开始执行业务逻辑流程
-				$result=  $service_obj->$method( $args );
-				unset( $args ); 
-				//f( APP_PATH.'/tmp/reponse.log' ,date('Y-m-d:H:i:s').': '.var_export( $result,true )."\n\n",FILE_APPEND );
-			 
+				$result=  $service_obj->$method( $data );
+				unset( $data );  
 	  
 				$final['data'] = $result ;
 				$final['code'] = 200;
@@ -68,15 +63,15 @@ use php\model as model;
 				return $final;
 				 
 				//捕获游戏异常
-			}catch (mmophp\engine\GameException $e){
+			}catch (\php\engine\GameException $e){
 				$final = array(
 						'code'=>$e->getCode(),
 						'time'=>time(),
-						'data'=>$e->languages,
+						'data'=>$e->getMessage(),
 				);
 				return $final;
 				//捕获数据库异常
-			}catch (PDO\Exception $e){
+			}catch (\PDO\Exception $e){
 				  
 				$final =   array(
 						'code'=>$e->getCode(),
@@ -87,8 +82,7 @@ use php\model as model;
 			}
 			//捕获全局异常
 			catch (\Exception $e)
-			{ 
-			
+			{  
 				$final =  array(
 						'code'=>$e->getCode(),
 						'time'=>time(),

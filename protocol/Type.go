@@ -7,4 +7,5 @@ const (
 	TypeReply = 2
 	TypePush = 3
 	TypeBroadcast = 4
+	TypeError = 4
 )

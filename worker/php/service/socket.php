@@ -223,7 +223,7 @@ namespace php\service {
     //              
 	public function user_login( $params =array()  ){
 			
-		//print_r( $params );
+		print_r( $params );
        // $userTokenModel = new model\UserTokenModel();
 
 
@@ -236,7 +236,7 @@ namespace php\service {
        // }
   
 
-        return $params['client_idf'];
+        return $params;
 
 		
 	}

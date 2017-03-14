@@ -410,21 +410,7 @@ class BaseDBModel extends BaseModel
      */
     public function setTable()
     {
-       // v($this->dbConfig);
-	   
-	    if( !$this->dbConfig['enable_parttion'] ) 
-        {
-        	return;
-        }
-        if( !empty($this->table) )
-        {
-            $partition = 50;
-            if( isset($this->dbConfig['table_partition'][$this->table]) )
-            {
-                $partition = $GLOBALS['table_partition'][$this->table];
-            }
-            $this->table = self::partitionByHash($this->pid,$partition);
-        } 
+        
         
     }
     

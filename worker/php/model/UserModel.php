@@ -13,13 +13,13 @@ namespace php\model {
 	class UserModel extends BaseCacheDbModel
 	{
 
-		public  $table = 'user_account';
+		public  $table = 'user';
 
 
 		public $fields = ' * ';
 
 
-		const  DATA_KEY = 'user_account/';
+		const  DATA_KEY = 'user/';
 
 		const  REG_RETURN_CODE_OK    = 1;
 		const  REG_RETURN_CODE_EXIST = 2;
@@ -53,18 +53,12 @@ namespace php\model {
 			$fileds	=	'*';
 			$where	=	" WHERE uid='$uid'";
 			$key	=	self::DATA_KEY.$uid;
-
-			if($noCache==false)
-			{
-				$finally = $this->getRowByKey($this->table,$fileds,$where,$key);
-			}
-			else
-			{
-				//必须从数据库中查询以取得数据
-				$sql = "SELECT  {$fileds} FROM {$this->table} $where ";
-				$finally = $this->masterDB->getRow($sql);
-			}
-
+ 
+            //必须从数据库中查询以取得数据
+            $sql = "SELECT  {$fileds} FROM {$this->table} $where ";
+         
+            $finally = $this->masterDB->getRow($sql); 
+    
 			return  $finally;
 		}
 		/**
