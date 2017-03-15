@@ -70,13 +70,9 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			fmt.Println("req_conn net.DialTCP :", err.Error())
 			return
 		}
-		//fmt.Println("PackSplitType: ", global.PackSplitType)
-		if ( global.PackSplitType == "bufferio") {
-			go handleClientMsg(conn, req_conn, CreateSid())
-		}
-		if ( global.PackSplitType == "json") {
-			go handleConnJson(conn, req_conn, CreateSid())
-		}
+
+		go handleClientMsg(conn, req_conn, CreateSid())
+
 		go handleWorkerResponse(conn, req_conn)
 		//go handleConn(conn, sid, "")
 
@@ -84,32 +80,6 @@ func listenAcceptTCP(listen *net.TCPListener) {
 
 }
 
-/**
- * 客户端通过json方式封包数据
- */
-func handleConnJson(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
-
-	//声明一个管道用于接收解包的数据
-	reader := bufio.NewReader(conn)
-	for {
-		if !global.Config.Enable {
-			conn.Write([]byte(fmt.Sprintf("%s\n", global.DISBALE_RESPONSE)))
-			conn.Close()
-			break
-		}
-
-		buf, err := reader.ReadBytes('\n')
-		//fmt.Println(  "handleConn ReadString: ", string(buf) )
-		if err != nil {
-			FreeConn(conn, sid)
-			//fmt.Println( "HandleConn connection error: ", err.Error())
-			break
-		}
-		go reqWorker(buf, req_conn)
-
-	}
-
-}
 
 func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 

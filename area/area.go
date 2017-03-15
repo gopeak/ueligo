@@ -151,7 +151,6 @@ func UnSubscribeChannel(id string, sid string) {
 	if !ok {
 		channel_wss.Delete(sid)
 	}
-
 }
 
 func UserUnSubscribeChannel(user_sid string) {

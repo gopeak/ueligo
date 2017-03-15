@@ -27,28 +27,22 @@ var UserChannelsMlock *sync.RWMutex
 /**
  * 检查
  */
-func CheckSid( sid string ) bool {
-
+func CheckSid(sid string) bool {
 	_, exist := global.SyncUserSessions.Get(sid)
-
 	return exist
-
 }
 
-func CreateSid() string{
-
+func CreateSid() string {
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	sid := fmt.Sprintf("%d%d", r.Intn(99999), rand.Intn(999999))
 	return sid
 }
 
 func CloseWsConn(sid string) {
-
 	_, conn_exist := global.SyncUserWebsocketConns.Get(sid)
 	if conn_exist {
 		global.SyncUserWebsocketConns.Delete(sid)
 	}
-
 }
 
 func CloseConn(sid string) {
@@ -103,15 +97,13 @@ func FreeWsConn(ws *websocket.Conn, sid string) {
 
 }
 
-
-
 func checkError(err error) {
 	if err != nil {
 		golog.Error(os.Stderr, "Fatal error: %s", err.Error())
 	}
 }
 
-func stat_kick() {
+func stat_tick() {
 
 	timer := time.Tick(1000 * time.Millisecond)
 	for _ = range timer {
@@ -120,7 +112,7 @@ func stat_kick() {
 	}
 }
 
-func user_kick(conn *net.TCPConn) {
+func user_tick(conn *net.TCPConn) {
 
 	timer := time.Tick(5000 * time.Millisecond)
 	for _ = range timer {

@@ -87,7 +87,7 @@ func main() {
 
 	init_global()
 	go connector.SocketConnector("", global.Config.Connector.SocketPort)
-	//go connector.WebsocketConnector("", global.Config.Connector.WebsocketPort)
+	go connector.WebsocketConnector("", global.Config.Connector.WebsocketPort)
 
 
 	// 开启hub服务器
