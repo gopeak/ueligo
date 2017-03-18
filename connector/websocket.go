@@ -13,7 +13,7 @@ import (
 	"morego/protocol"
 	//"encoding/json"
 	"morego/lib/antonholmquist/jason"
-	"morego/lib/websocket"
+	"github.com/gorilla/websocket"
 	"morego/golog"
 
 	//"strings"
@@ -21,36 +21,47 @@ import (
 	//sync"
 	"strings"
 	"strconv"
+	"log"
+	"flag"
 )
+
+var upgrader = websocket.Upgrader{
+	CheckOrigin: func(r *http.Request) bool { return true },
+
+} // use default options
 
 func WebsocketConnector(ip string, port int) {
 
-	http.Handle("/", websocket.Handler(WebsocketHandle))
+
 	golog.Info("Websocket Connetor bind :", ip, port)
 
-	if err := http.ListenAndServe(fmt.Sprintf(":%d", port), nil); err != nil {
-		golog.Error("ListenAndServe:", err)
-	}
+	var addr = flag.String("addr", fmt.Sprintf(":%d", port), "http service address")
+	http.HandleFunc("/", WebsocketHandle)
+	log.Fatal(http.ListenAndServe(*addr, nil))
 
 }
+
 
 /**
  *  处理客户端连接
  */
-func WebsocketHandle( wsconn *websocket.Conn ) {
+func WebsocketHandle( writer http.ResponseWriter, request *http.Request ) {
+	wsconn, err := upgrader.Upgrade(writer, request, nil)
 
-	var err error
+	if err != nil {
+		log.Print("upgrade:", err)
+		return
+	}
 	var max_conns int32
 	fmt.Println(" websocke client connect:" ,wsconn.RemoteAddr() )
 	user_sid:=""
 	//remoteAddr :=conn.RemoteAddr()
-
-
 	atomic.AddInt32(&global.SumConnections, 1)
 
 	max_conns = int32(global.Config.Connector.MaxConections)
 	if max_conns > 0 && global.SumConnections > max_conns {
-		wsconn.Write([]byte(global.ERROR_MAX_CONNECTIONS + "\n"))
+
+		wsconn.WriteMessage( websocket.TextMessage,[]byte(global.ERROR_MAX_CONNECTIONS ) )
 		return
 	}
 
@@ -70,18 +81,16 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 
 	for {
 		var str string
-
-		if err = websocket.Message.Receive(wsconn, &str); err != nil {
-
+		_, buf, err := wsconn.ReadMessage()
+		if err != nil {
 			fmt.Println(" websocket.Message.Receive error:" ,user_sid,"  -->", err.Error() )
-
 			wsconn.Close()
 			break
-
 		}
+		str = string(buf)
 
 		fmt.Println("Client Request: " + str)
-		//websocket.Message.Send(ws,str)
+
 		go func(sid string, str string, wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 			ret, ret_err := wsDspatchMsg(str, wsconn, req_conn)
@@ -106,9 +115,7 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 }
 
 
-
-
-func wsHandleWorkerResponse(conn *websocket.Conn, req_conn *net.TCPConn) {
+func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
 	for {
@@ -126,76 +133,10 @@ func wsHandleWorkerResponse(conn *websocket.Conn, req_conn *net.TCPConn) {
 		if string(msg) == "\n" {
 			continue
 		}
-		conn.Write(msg)
+		wsconn.WriteMessage(websocket.BinaryMessage,msg)
 	}
 }
 
-func wsHandleClientMsg(conn *websocket.Conn, req_conn *net.TCPConn, sid string ) {
-
-	// 发包频率判断
-	range_count := 1
-	limit_date := global.Config.Connector.MaxPacketRate
-	var now int64
-	var start_time int64
-	var range_times int64
-	start_time = time.Now().Unix()
-	range_times = int64(global.Config.Connector.MaxPacketRateUnit)
-
-	//声明一个管道用于接收解包的数据
-	reader := bufio.NewReader(conn)
-	for {
-		if !global.Config.Enable {
-			conn.Write([]byte(fmt.Sprintf("%s\r\n", global.DISBALE_RESPONSE)))
-			conn.Close()
-			break
-		}
-
-		// 区间范围内的计数
-		if limit_date > 0 {
-			now = time.Now().Unix()
-			if (now - start_time) <= range_times {
-				range_count++
-			} else {
-				start_time = now
-				range_count = 1
-			}
-			// 判断发包频率是否超过限制
-			if range_count > limit_date {
-				conn.Write([]byte(global.ERROR_PACKET_RATES + "\n"))
-				conn.Close()
-				break
-			}
-		}
-
-		str, err := reader.ReadString('\n')
-		//fmt.Println(  "handleConn ReadString: ", string(msg) )
-		if err != nil {
-			FreeWsConn(conn, sid)
-			//fmt.Println( "HandleConn connection error: ", err.Error())
-			break
-		}
-		if str == "" {
-			continue
-		}
-		go func(sid string, str string, conn *websocket.Conn, req_conn *net.TCPConn) {
-
-			ret, ret_err := wsDspatchMsg(str, conn, req_conn)
-			if ( ret_err != nil ) {
-				if ( ret < 0 ) {
-					fmt.Println(ret_err.Error(), str)
-					return
-				}
-				if ( ret == 0 ) {
-					fmt.Println(ret_err.Error(), str)
-					return
-				}
-			}
-
-		}(sid, str,conn, req_conn)
-
-	}
-
-}
 
 /**
  * 根据消息类型分发处理

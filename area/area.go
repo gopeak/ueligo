@@ -8,7 +8,7 @@ package area
 
 import (
 	"morego/global"
-	"morego/lib/websocket"
+	"github.com/gorilla/websocket"
 	"morego/golog"
 	"fmt"
 	"net"
@@ -16,7 +16,7 @@ import (
 	z_type "morego/type"
 	"time"
 	//"strings"
-	"morego_go_client/protocol"
+	"morego/protocol"
 )
 
 // 预创建多个场景
@@ -185,7 +185,8 @@ func Broatcast( sid string,area_id string, msg string) {
 	for item := range channel_wss.IterItems() {
 		// fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go websocket.Message.Send(wsconn,WrapBroatcastRespStr(sid,area_id,msg))
+		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,area_id,msg)) )
+
 	}
 }
 /**
@@ -199,7 +200,7 @@ func Push(  to_sid string ,from_sid string,to_data string) {
 	}
 	wsconn:=GetWsConn(to_sid)
 	if( wsconn!=nil ) {
-		websocket.Message.Send(wsconn, []byte(WrapPushRespStr( from_sid,to_data)) )
+		wsconn.WriteMessage(websocket.TextMessage, []byte(WrapPushRespStr( from_sid,to_data)) )
 		return
 	}
 }

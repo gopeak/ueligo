@@ -11,7 +11,7 @@ import (
 	"morego/lib/antonholmquist/jason"
 	"morego/lib/robfig/cron"
 	"morego/lib/syncmap"
-	"morego/lib/websocket"
+	"github.com/gorilla/websocket"
 	z_type "morego/type"
 	"strings"
 )

@@ -14,7 +14,7 @@ import (
 	"morego/global"
 	"morego/golog"
 	"morego/lib/antonholmquist/jason"
-	"morego/lib/websocket"
+	"github.com/gorilla/websocket"
 	z_type "morego/type"
 	"strconv"
 	"time"
@@ -231,7 +231,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		user_wsconn := area.GetWsConn(sid)
 		if user_wsconn != nil {
 			// 发送消息退出
-			websocket.Message.Send(user_wsconn, `{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`)
+			//websocket.Message.Send(user_wsconn, `{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`)
+			go user_wsconn.WriteMessage(websocket.TextMessage, []byte(`{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`) )
 			area.DeleteWsConn(sid)
 		}
 		area.UserUnSubscribeChannel(sid)
@@ -249,7 +250,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		}
 		user_wsconn := area.GetWsConn(sid)
 		if user_wsconn != nil {
-			websocket.Message.Send(user_wsconn, fmt.Sprintf("%s\r\n", push_data))
+			//websocket.Message.Send(user_wsconn, fmt.Sprintf("%s\r\n", push_data))
+			go user_wsconn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s\r\n", push_data)) )
 		}
 
 		golog.Debug("hub_worker push to  --------------->:", sid, push_data)

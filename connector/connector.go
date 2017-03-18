@@ -10,7 +10,7 @@ import (
 	"sync/atomic"
 	"time"
 	//"morego/protocol"
-	"morego/lib/websocket"
+	"github.com/gorilla/websocket"
 	"morego/golog"
 	//"strings"
 	//"io"
@@ -85,7 +85,8 @@ func FreeConn(conn *net.TCPConn, sid string) {
 
 func FreeWsConn(ws *websocket.Conn, sid string) {
 
-	ws.Write([]byte{'E', 'O', 'F'})
+	//ws.Write([]byte{'E', 'O', 'F'})
+	ws.WriteMessage(websocket.CloseMessage,[]byte{'E', 'O', 'F'})
 	ws.Close()
 	golog.Warn("Sid closing:", sid)
 	CloseWsConn(sid)
