@@ -1,4 +1,4 @@
-﻿<html>
+<html>
  
  
     <input type="button" name="send" value="send" onclick="send()">
@@ -24,7 +24,7 @@ function send()
     socket.onopen = function(event) {
         console.log('Client connected');
         // ("%d||%s||%x||%d||%d",type_, cmd, sid, req_id, req_data )
-        socket.send('1||user.getUser||xxxxx||111||1"');
+        socket.send('1||user.getUser||xxxxx||111||1');
     }
  
  

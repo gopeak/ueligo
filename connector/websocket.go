@@ -3,35 +3,34 @@ package connector
 import (
 	"bufio"
 	"fmt"
+	"math/rand"
 	"morego/area"
 	"morego/global"
-	"math/rand"
+	"morego/protocol"
 	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
-	"morego/protocol"
 	//"encoding/json"
-	"morego/lib/antonholmquist/jason"
-	"github.com/gorilla/websocket"
 	"morego/golog"
+	"morego/lib/antonholmquist/jason"
+
+	"github.com/gorilla/websocket"
 
 	//"strings"
 	"errors"
 	//sync"
-	"strings"
-	"strconv"
-	"log"
 	"flag"
+	"log"
+	"strconv"
+	"strings"
 )
 
 var upgrader = websocket.Upgrader{
 	CheckOrigin: func(r *http.Request) bool { return true },
-
 } // use default options
 
 func WebsocketConnector(ip string, port int) {
-
 
 	golog.Info("Websocket Connetor bind :", ip, port)
 
@@ -41,11 +40,10 @@ func WebsocketConnector(ip string, port int) {
 
 }
 
-
 /**
  *  处理客户端连接
  */
-func WebsocketHandle( writer http.ResponseWriter, request *http.Request ) {
+func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 	wsconn, err := upgrader.Upgrade(writer, request, nil)
 
 	if err != nil {
@@ -53,15 +51,15 @@ func WebsocketHandle( writer http.ResponseWriter, request *http.Request ) {
 		return
 	}
 	var max_conns int32
-	fmt.Println(" websocke client connect:" ,wsconn.RemoteAddr() )
-	user_sid:=""
+	fmt.Println(" websocke client connect:", wsconn.RemoteAddr())
+	user_sid := ""
 	//remoteAddr :=conn.RemoteAddr()
 	atomic.AddInt32(&global.SumConnections, 1)
 
 	max_conns = int32(global.Config.Connector.MaxConections)
 	if max_conns > 0 && global.SumConnections > max_conns {
 
-		wsconn.WriteMessage( websocket.TextMessage,[]byte(global.ERROR_MAX_CONNECTIONS ) )
+		wsconn.WriteMessage(websocket.TextMessage, []byte(global.ERROR_MAX_CONNECTIONS))
 		return
 	}
 
@@ -75,7 +73,7 @@ func WebsocketHandle( writer http.ResponseWriter, request *http.Request ) {
 	req_conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	//defer req_conn.Close()
 	checkError(err)
-	go wsHandleWorkerResponse( wsconn, req_conn )
+	go wsHandleWorkerResponse(wsconn, req_conn)
 
 	// 监听客户端发送的数据
 
@@ -83,37 +81,33 @@ func WebsocketHandle( writer http.ResponseWriter, request *http.Request ) {
 		var str string
 		_, buf, err := wsconn.ReadMessage()
 		if err != nil {
-			fmt.Println(" websocket.Message.Receive error:" ,user_sid,"  -->", err.Error() )
+			fmt.Println(" websocket.Message.Receive error:", user_sid, "  -->", err.Error())
 			wsconn.Close()
 			break
 		}
 		str = string(buf)
 
-		fmt.Println("Client Request: " + str)
+		//fmt.Println("Client Request: " + str)
 
 		go func(sid string, str string, wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 			ret, ret_err := wsDspatchMsg(str, wsconn, req_conn)
-			if ( ret_err != nil ) {
-				if ( ret < 0 ) {
+			if ret_err != nil {
+				if ret < 0 {
 					fmt.Println(ret_err.Error(), str)
 					return
 				}
-				if ( ret == 0 ) {
+				if ret == 0 {
 					fmt.Println(ret_err.Error(), str)
 					return
 				}
 			}
 
-		}(sid, str,wsconn, req_conn)
-
+		}(sid, str, wsconn, req_conn)
 
 	}
 
-
-
 }
-
 
 func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
@@ -133,10 +127,9 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 		if string(msg) == "\n" {
 			continue
 		}
-		wsconn.WriteMessage(websocket.BinaryMessage,msg)
+		wsconn.WriteMessage(websocket.TextMessage, msg)
 	}
 }
-
 
 /**
  * 根据消息类型分发处理
@@ -150,14 +143,14 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 		err = errors.New("request data length error")
 		return -1, err
 	}
-	_type,_ := strconv.Atoi(msg_arr[0])
-	cmd := msg_arr[1];
+	_type, _ := strconv.Atoi(msg_arr[0])
+	cmd := msg_arr[1]
 	req_sid := msg_arr[2]
 	buf := []byte(str)
-	buf = append( buf, '\n')
+	buf = append(buf, '\n')
 
 	//  认证检查
-	if ( cmd!="user.getUser" && !CheckSid(req_sid) ) {
+	if cmd != "user.getUser" && !CheckSid(req_sid) {
 		FreeWsConn(wsconn, req_sid)
 		err = errors.New("认证失败")
 		return 0, err
@@ -169,7 +162,7 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 	if _type == protocol.TypePush {
 		from_sid := msg_arr[2]
 		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
-		if ( json_err != nil ) {
+		if json_err != nil {
 			err = errors.New("push data json format error")
 			return -2, err
 		}
@@ -181,16 +174,14 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 		//from_sid := msg_arr[2]
 		from_sid := msg_arr[2]
 		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
-		if ( json_err != nil ) {
+		if json_err != nil {
 			err = errors.New("broatcast data json format error")
 			return -3, err
 		}
 		area_id, _ := data_json.GetString("area_id")
 		to_data, _ := data_json.GetString("data")
-		area.Broatcast( from_sid, area_id,to_data )
+		area.Broatcast(from_sid, area_id, to_data)
 	}
-
 
 	return 1, nil
 }
-

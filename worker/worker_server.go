@@ -13,9 +13,9 @@ import (
 	"fmt"
 	"net"
 	//"os"
-	"time"
 	"encoding/json"
 	"morego/lib/antonholmquist/jason"
+	"time"
 )
 
 // 初始化worker服务
@@ -29,14 +29,13 @@ func InitWorkerServer() {
 		port, _ := strconv.Atoi(port_str)
 		global.WorkerServers = append(global.WorkerServers, []string{host, port_str})
 		fmt.Println("worker_language:", worker_language)
-		if ( worker_language == "go" ) {
+		if worker_language == "go" {
 			go WorkerServer(host, port)
 		}
 
 	}
 	//fmt.Println("global.WorkerServers:", global.WorkerServers)
 }
-
 
 /**
  * 监听客户端连接
@@ -63,10 +62,10 @@ func WorkerServer(host string, port int) {
 		//conn.SetNoDelay(false)
 		golog.Info("RemoteAddr:", conn.RemoteAddr().String())
 
-		if ( global.PackSplitType == "bufferio") {
+		if global.PackSplitType == "bufferio" {
 			go handleWorkerStrSplit(conn)
 		}
-		if ( global.PackSplitType == "json") {
+		if global.PackSplitType == "json" {
 			go handleWorkerJson(conn)
 		}
 
@@ -82,7 +81,7 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 		str, err := reader.ReadString('\n')
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())
-			conn.Write([]byte( WrapRespErrStr(err.Error())))
+			conn.Write([]byte(WrapRespErrStr(err.Error())))
 			continue
 		}
 		//fmt.Println( "HandleWorkerStr str: ",str)
@@ -93,12 +92,12 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
 				return
 			}
-			cmd := "socket.getSession" //msg_arr[1];
+			cmd := "user.getSession" //msg_arr[1];
 			req_sid := msg_arr[2]
 			req_id, _ := strconv.Atoi(msg_arr[3])
 			data := msg_arr[4]
 			resp_str := WrapRespStr(cmd, req_sid, req_id, data)
-			conn.Write([]byte( resp_str))
+			conn.Write([]byte(resp_str))
 
 		}(str, conn)
 	}
@@ -173,19 +172,18 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 }
 
-
 /**
  * 封包返回错误的消息
  */
 func WrapRespErrStr(err string) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s", protocol.TypeError, "", "", 0, err);
+	str := fmt.Sprintf("%d||%s||%s||%d||%s", protocol.TypeError, "", "", 0, err)
 	return str
 }
+
 /**
  * 封包返回数据
  */
 func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s", protocol.TypeReply, cmd, from_sid, req_id, data);
+	str := fmt.Sprintf("%d||%s||%s||%d||%s", protocol.TypeReply, cmd, from_sid, req_id, data)
 	return str
 }
-
