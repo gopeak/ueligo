@@ -12,7 +12,7 @@ import (
 	"morego/lib/antonholmquist/jason"
 	//flatbuffers "github.com/google/flatbuffers/go"
 	"morego/protocol"
-	//"morego/worker"
+	"morego/worker"
 	"sync/atomic"
 	//"time"
 	//"encoding/json"
@@ -101,6 +101,36 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 		}
 		conn.Write(msg)
 
+	}
+}
+
+func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
+
+	//声明一个管道用于接收解包的数据
+	reader := bufio.NewReader(conn)
+	for {
+		if !global.Config.Enable {
+			//conn.Write([]byte(fmt.Sprintf("%s\r\n", global.DISBALE_RESPONSE)))
+			conn.Close()
+			break
+		}
+
+		str, _ := reader.ReadString('\n')
+		go func(str string, conn *net.TCPConn) {
+
+			msg_arr := strings.Split(str, "||")
+			if len(msg_arr) < 5 {
+				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
+				return
+			}
+			cmd := "user.getSession" //msg_arr[1];
+			req_sid := msg_arr[2]
+			req_id, _ := strconv.Atoi(msg_arr[3])
+			data := msg_arr[4]
+			resp_str := worker.WrapRespStr(cmd, req_sid, req_id, data)
+			conn.Write([]byte(resp_str))
+
+		}(str, conn)
 	}
 }
 
