@@ -57,6 +57,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 		conn.SetKeepAlive(true)
 
 		// 获取随机worker服务地址
+
 		configAddr := global.GetRandWorkerAddr()
 		tcpAddr, err := net.ResolveTCPAddr("tcp4", configAddr)
 		if err != nil {
@@ -72,9 +73,10 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			return
 		}
 
-		//go handleClientMsg(conn, req_conn, CreateSid())
-		//go handleWorkerResponse(conn, req_conn)
-		go handleClientMsgSingle( conn ,CreateSid() )
+
+		go handleClientMsg(conn, req_conn, CreateSid())
+		go handleWorkerResponse(conn, req_conn)
+		//go handleClientMsgSingle( conn ,CreateSid() )
 
 
 	} //end for {
@@ -237,25 +239,32 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		err = errors.New("request data length error")
 		return -1, err
 	}
-	_type,_ := strconv.Atoi(msg_arr[0])
-	cmd := msg_arr[1];
-	req_sid := msg_arr[2]
+	_type,_ := strconv.Atoi(msg_arr[protocol.MSG_TYPE_INDEX])
+	cmd := msg_arr[protocol.MSG_CMD_INDEX];
+	req_sid := msg_arr[protocol.MSG_SID_INDEX]
+	req_id :=msg_arr[protocol.MSG_REQID_INDEX]
+	req_data := msg_arr[protocol.MSG_DATA_INDEX]
 	buf := []byte(str)
 	buf = append( buf, '\n')
 
 	//  认证检查
-	if ( cmd!="user.getUser" && !CheckSid(req_sid) ) {
+	if ( cmd!=global.AuthCcmd && !CheckSid(req_sid) ) {
 		FreeConn(conn, req_sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
 	// 请求
 	if _type == protocol.TypeReq {
-		go req_conn.Write(buf)
+		// 如果是单机模式,则直接调用
+		if( global.SingleMode ){
+			go worker.Invoker( conn,cmd, req_sid,req_id,req_data )
+		}else{
+			go req_conn.Write(buf)
+		}
 	}
 	if _type == protocol.TypePush {
-		from_sid := msg_arr[2]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
+		from_sid := msg_arr[protocol.MSG_SID_INDEX]
+		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[protocol.MSG_DATA_INDEX]))
 		if ( json_err != nil ) {
 			err = errors.New("push data json format error")
 			return -2, err
@@ -266,8 +275,8 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 	}
 	if _type == protocol.TypeBroadcast {
 		//from_sid := msg_arr[2]
-		from_sid := msg_arr[2]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
+		from_sid := msg_arr[protocol.MSG_SID_INDEX]
+		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[protocol.MSG_DATA_INDEX]))
 		if ( json_err != nil ) {
 			err = errors.New("broatcast data json format error")
 			return -3, err
@@ -276,7 +285,6 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		to_data, _ := data_json.GetString("data")
 		area.Broatcast( from_sid, area_id,to_data )
 	}
-
 
 	return 1, nil
 }

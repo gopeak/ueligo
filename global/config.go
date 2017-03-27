@@ -14,6 +14,7 @@ type configType struct {
 	Loglevel     string
 	RpcType      string
 	PackType     string       `toml:"pack_type"`
+	SingleMode   bool	  `toml:"single_mode"`
 	Log          log          `toml:"log"`
 	Admin        admin        `toml:"admin"`
 	Connector    connector    `toml:"connector"`
@@ -40,6 +41,7 @@ type connector struct {
 	MaxConntionsIp    int `toml:"max_conntions_ip"`
 	MaxPacketRate     int `toml:"max_packet_rate"`
 	MaxPacketRateUnit int `toml:"max_packet_rate_unit"`
+	AuthCcmd	string `toml:"auth_cmd"`
 }
 
 type object struct {

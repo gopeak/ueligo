@@ -16,6 +16,7 @@ import (
 	"encoding/json"
 	"morego/lib/antonholmquist/jason"
 	"time"
+	"reflect"
 )
 
 // 初始化worker服务
@@ -92,12 +93,12 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
 				return
 			}
-			cmd := "user.getSession" //msg_arr[1];
-			req_sid := msg_arr[2]
-			req_id, _ := strconv.Atoi(msg_arr[3])
-			data := msg_arr[4]
-			resp_str := WrapRespStr(cmd, req_sid, req_id, data)
-			conn.Write([]byte(resp_str))
+			cmd := msg_arr[protocol.MSG_CMD_INDEX];
+			req_sid := msg_arr[protocol.MSG_SID_INDEX]
+			req_id, _ := strconv.Atoi(msg_arr[protocol.MSG_REQID_INDEX])
+			req_data := msg_arr[protocol.MSG_DATA_INDEX]
+			Invoker( conn,cmd,req_sid,req_id,req_data)
+
 
 		}(str, conn)
 	}
@@ -137,7 +138,6 @@ func handleWorkerFlatBuffer(conn *net.TCPConn) {
 func handleWorkerJson(conn *net.TCPConn) {
 
 	//声明一个管道用于接收解包的数据
-
 	d := json.NewDecoder(conn)
 	for {
 
@@ -170,6 +170,43 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 	}
 
+}
+
+func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data string ) string {
+
+
+	ret:=InvokeObjectMethod( new(ReturnType), conn, cmd, req_sid, req_id,req_data )
+	data:= ""
+	typeof := reflect.TypeOf(ret)
+	if( reflect.TypeOf(ret) ==reflect.String) {
+		data = ret
+	}else{
+		if( typeof==reflect.Int || typeof==reflect.Int8 ||typeof==reflect.Int16 || typeof==reflect.Int32 || typeof==reflect.Int64 || typeof==reflect.Uint  || typeof==reflect.Uint8 || typeof==reflect.Uint16 || typeof==reflect.Uint32 || typeof==reflect.Uint64 ){
+			data = fmt.Sprintf("%d",ret)
+		}
+
+		if( typeof==reflect.Float32 || typeof==reflect.Float64 ){
+			data = fmt.Sprintf("%f",ret)
+		}
+		if( typeof==reflect.Array){
+			data = string( ret )
+		}
+	}
+	resp_str := WrapRespStr(cmd, req_sid, req_id, data)
+	conn.Write([]byte(resp_str))
+	return data
+
+
+}
+
+
+func InvokeObjectMethod(object interface{}, methodName string, args ...interface{}) string{
+
+	inputs := make([]reflect.Value, len(args))
+	for i, _ := range args {
+		inputs[i] = reflect.ValueOf(args[i])
+	}
+	return  reflect.ValueOf(object).MethodByName(methodName).Call(inputs)
 }
 
 /**

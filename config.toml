@@ -12,6 +12,7 @@
     loglevel	=	"error"
     rpc_type	=	"go"  # string | flatbuffer 
     pack_type	=	"bufferio"
+    single_mode	=	true
 	
 	[log]
 		log_level	=	"error"
@@ -28,7 +29,8 @@
     	max_conections 	= 5024
     	max_packet_rate	= 100
     	max_conntions_ip= 100
-      	max_packet_rate_unit = 10  
+      	max_packet_rate_unit = 10
+      	auth_cmd = "user.auth"
       	
     [object]
     	data_type 	= "redis"  #  Mysql| redis | monogo  

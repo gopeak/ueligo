@@ -23,12 +23,15 @@ const (
 	DISBALE_RESPONSE      = `{"cmd":"error_","data":{"ret":501,"msg":"Server has been stopped!" }}` //
 )
 
+
 const (
 	DATA_REQ_CONNECT    = `1`
 	DATA_REQ_MSG        = `2`
 	DATA_WORKER_CONNECT = `3`
 	DATA_WORKER_REPLY   = `4`
 )
+
+
 
 // 服务器当前状态
 var AppConfig = &z_type.Appconfig{}
@@ -79,7 +82,9 @@ var SyncUserWebsocketConns *syncmap.SyncMap
 
 var RpcType string
 
+var SingleMode bool
 var PackSplitType string
+var AuthCcmd string
 
 var SyncCrons *syncmap.SyncMap
 var Crons = map[string]*cron.Cron{}

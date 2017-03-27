@@ -69,8 +69,9 @@ func init_global() {
 	global.SyncUserWebsocketConns = syncmap.New()
 	global.SyncUserJoinedChannels = syncmap.New()
 	global.SyncCrons = syncmap.New()
-
 	global.PackSplitType = global.Config.PackType
+	global.SingleMode = global.Config.SingleMode
+	global.AuthCcmd = global.Config.Connector.AuthCcmd
 
 }
 
