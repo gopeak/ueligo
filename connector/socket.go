@@ -19,6 +19,7 @@ import (
 	"strings"
 	"errors"
 	"strconv"
+
 )
 
 /**
@@ -33,7 +34,7 @@ func SocketConnector(ip string, port int) {
 	}
 	// 初始化
 	golog.Debug("Game Connetor Server :", ip, port)
-
+	go stat_tick()
 	listenAcceptTCP(listen)
 }
 
@@ -44,12 +45,11 @@ func listenAcceptTCP(listen *net.TCPListener) {
 
 	for {
 		conn, err := listen.AcceptTCP()
+		defer conn.Close()
 		if err != nil {
 			golog.Error("AcceptTCP Exception::", err.Error())
 			continue
 		}
-
-		//defer conn.Close()
 		atomic.AddInt32(&global.SumConnections, 1)
 		conn.SetNoDelay(false)
 
@@ -64,17 +64,18 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			return
 		}
 		fmt.Println("tcpAddr: ", tcpAddr)
+
 		req_conn, err := net.DialTCP("tcp", nil, tcpAddr)
-		//defer req_conn.Close()
+		defer req_conn.Close()
 		if err != nil {
 			fmt.Println("req_conn net.DialTCP :", err.Error())
 			return
 		}
 
-		go handleClientMsg(conn, req_conn, CreateSid())
+		//go handleClientMsg(conn, req_conn, CreateSid())
+		//go handleWorkerResponse(conn, req_conn)
+		go handleClientMsgSingle( conn ,CreateSid() )
 
-		go handleWorkerResponse(conn, req_conn)
-		//go handleConn(conn, sid, "")
 
 	} //end for {
 
@@ -104,10 +105,54 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 	}
 }
 
+func  ReadBytes(delim byte) (line []byte, err error) {
+	// Use ReadSlice to look for array,
+	// accumulating full buffers.
+	var b *bufio.Reader
+
+	var frag []byte
+	var full [][]byte
+
+	for {
+		var e error
+		frag, e = b.ReadSlice(delim)
+		if e == nil { // got final fragment
+			break
+		}
+		if e != bufio.ErrBufferFull { // unexpected error
+			err = e
+			break
+		}
+
+		// Make a copy of the buffer.
+		buf := make([]byte, len(frag))
+		copy(buf, frag)
+		full = append(full, buf)
+	}
+
+	// Allocate new buffer to hold the full pieces and the fragment.
+	n := 0
+	for i := range full {
+		n += len(full[i])
+	}
+	n += len(frag)
+
+	// Copy full pieces and fragment in.
+	buf := make([]byte, n)
+	n = 0
+	for i := range full {
+		n += copy(buf[n:], full[i])
+	}
+	copy(buf[n:], frag)
+	return buf, err
+}
+
 func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 
 	//声明一个管道用于接收解包的数据
-	reader := bufio.NewReader(conn)
+	qps := 0;// make(chan int64, 0)
+	reader := bufio.NewReader(  conn  )
+
 	for {
 		if !global.Config.Enable {
 			//conn.Write([]byte(fmt.Sprintf("%s\r\n", global.DISBALE_RESPONSE)))
@@ -115,22 +160,33 @@ func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 			break
 		}
 
-		str, _ := reader.ReadString('\n')
-		go func(str string, conn *net.TCPConn) {
+		buf,err := reader.ReadBytes('\n')
+		if err != nil {
+			//fmt.Println("err ReadString:", err.Error())
+			conn.Close()
+			break
+		}
+		qps++
+		if( qps%100==0){
+			fmt.Println( "qps: ", qps )
+		}
+		atomic.AddInt64(&global.Qps, 1)
+		str := string(buf)
+		//fmt.Println( "HandleConn str: ",str)
 
-			msg_arr := strings.Split(str, "||")
-			if len(msg_arr) < 5 {
-				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
-				return
-			}
-			cmd := "user.getSession" //msg_arr[1];
-			req_sid := msg_arr[2]
-			req_id, _ := strconv.Atoi(msg_arr[3])
-			data := msg_arr[4]
-			resp_str := worker.WrapRespStr(cmd, req_sid, req_id, data)
-			conn.Write([]byte(resp_str))
+		msg_arr := strings.Split(str, "||")
+		if len(msg_arr) < 5 {
+			conn.Write([]byte(worker.WrapRespErrStr("request data length error-->"+str)))
+			continue
+		}
+		cmd := "user.getSession" //msg_arr[1];
+		req_sid := msg_arr[2]
+		req_id, _ := strconv.Atoi(msg_arr[3])
+		data := msg_arr[4]
+		resp_str := worker.WrapRespStr(cmd, req_sid, req_id, data)
 
-		}(str, conn)
+		conn.Write([]byte(resp_str))
+
 	}
 }
 

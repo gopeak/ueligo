@@ -100,6 +100,7 @@ func main() {
 	//go start_php_worker()
 	go worker.InitWorkerServer()
 
+
 	golog.Info("Server started!")
 
 	// C:\gopath\mongodb\bin\mongod.exe --dbpath=C:\gopath\mongodb\data

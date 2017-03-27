@@ -86,7 +86,6 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 			break
 		}
 		str = string(buf)
-
 		//fmt.Println("Client Request: " + str)
 
 		go func(sid string, str string, wsconn *websocket.Conn, req_conn *net.TCPConn) {
