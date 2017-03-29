@@ -4,6 +4,7 @@ import (
 	"morego/golog"
 	"morego/lib/antonholmquist/jason"
 	"morego/lib/robfig/cron"
+	json_orgin "encoding/json"
 	//"fmt"
 	"morego/area"
 	"morego/global"
@@ -93,9 +94,19 @@ func Set(key string, value string) bool {
 
 }
 
-func GetSession(sid string) *z_type.Session {
+func GetSession(sid string) *z_type.Session  {
+	session, _ := global.SyncUserSessions.Get(sid)
+	return session.(*z_type.Session)
+}
 
-	return nil
+func GetSessionStr(sid string)  string {
+
+	user_session, exist := global.SyncUserSessions.Get(sid)
+	js1 := []byte(`{}`)
+	if exist {
+		js1, _ = json_orgin.Marshal(user_session)
+	}
+	return string(js1)
 
 }
 

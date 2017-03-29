@@ -28,6 +28,8 @@ var UserChannelsMlock *sync.RWMutex
  * 检查
  */
 func CheckSid(sid string) bool {
+
+	return true
 	_, exist := global.SyncUserSessions.Get(sid)
 	return exist
 }

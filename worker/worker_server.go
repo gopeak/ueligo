@@ -17,6 +17,8 @@ import (
 	"morego/lib/antonholmquist/jason"
 	"time"
 	"reflect"
+	"os/exec"
+	"os"
 )
 
 // 初始化worker服务
@@ -29,7 +31,7 @@ func InitWorkerServer() {
 		worker_language, _ := data[2].(string)
 		port, _ := strconv.Atoi(port_str)
 		global.WorkerServers = append(global.WorkerServers, []string{host, port_str})
-		fmt.Println("worker_language:", worker_language)
+		//fmt.Println("worker_language:", worker_language)
 		if worker_language == "go" {
 			go WorkerServer(host, port)
 		}
@@ -71,6 +73,34 @@ func WorkerServer(host string, port int) {
 		}
 
 	} //end for {
+}
+
+// 启动一个测试的php worker以处理业务流程
+func stop_php_worker() {
+
+	c := exec.Command("/bin/sh", "-c", `ps -ef |grep "worker/php/workers.php"  |awk \'{print $2}\' |xargs -i kill -9 {} `)
+	d, _ := c.Output()
+
+	golog.Info("Stop_php_worker: ", string(d))
+
+	time.Sleep(time.Second * 1)
+
+}
+
+// 启动一个测试的php worker以处理业务流程
+func start_php_worker() {
+
+	stop_php_worker()
+	wd, _ := os.Getwd()
+	work_num, _ := global.ConfigJson.GetString("worker", "worker_num")
+	argv := []string{fmt.Sprintf("%s/worker/php/workers.php", wd), "start", work_num}
+	golog.Info("Argv:", argv)
+	c := exec.Command("/usr/bin/php", argv...)
+	d, _ := c.Output()
+	golog.Info("Start_php_worker: ", string(d))
+
+	time.Sleep(time.Second * 1)
+
 }
 
 func handleWorkerStrSplit(conn *net.TCPConn) {
@@ -174,28 +204,12 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data string ) string {
 
+	data:=InvokeObjectMethod( new(ReturnType),cmd, conn, cmd,  req_sid, req_id,req_data )
 
-	ret:=InvokeObjectMethod( new(ReturnType), conn, cmd, req_sid, req_id,req_data )
-	data:= ""
-	typeof := reflect.TypeOf(ret)
-	if( reflect.TypeOf(ret) ==reflect.String) {
-		data = ret
-	}else{
-		if( typeof==reflect.Int || typeof==reflect.Int8 ||typeof==reflect.Int16 || typeof==reflect.Int32 || typeof==reflect.Int64 || typeof==reflect.Uint  || typeof==reflect.Uint8 || typeof==reflect.Uint16 || typeof==reflect.Uint32 || typeof==reflect.Uint64 ){
-			data = fmt.Sprintf("%d",ret)
-		}
-
-		if( typeof==reflect.Float32 || typeof==reflect.Float64 ){
-			data = fmt.Sprintf("%f",ret)
-		}
-		if( typeof==reflect.Array){
-			data = string( ret )
-		}
-	}
 	resp_str := WrapRespStr(cmd, req_sid, req_id, data)
-	conn.Write([]byte(resp_str))
+	fmt.Println( "resp_str:", resp_str )
+	conn.Write(append( []byte(resp_str),'\n'))
 	return data
-
 
 }
 
@@ -206,7 +220,24 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	return  reflect.ValueOf(object).MethodByName(methodName).Call(inputs)
+	fmt.Println( "methodName:",methodName )
+	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
+
+	data:=""
+	value := reflect.ValueOf(&ret)
+	value = reflect.Indirect(value)
+	switch value.Kind(){      //多选语句switch
+	case reflect.String:
+		data = fmt.Sprintf("%s",ret)
+	case reflect.Int ,reflect.Int8,reflect.Int16,reflect.Int32,reflect.Int64,reflect.Uint,reflect.Uint8,reflect.Uint16,reflect.Uint32,reflect.Uint64:
+		data = fmt.Sprintf("%d",ret)
+	case reflect.Float32,reflect.Float64:
+		data = fmt.Sprintf("%f",ret)
+	default:
+		//data  = ret.String()
+	}
+
+	return data
 }
 
 /**

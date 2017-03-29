@@ -34,7 +34,7 @@ func SocketConnector(ip string, port int) {
 	}
 	// 初始化
 	golog.Debug("Game Connetor Server :", ip, port)
-	go stat_tick()
+	//go stat_tick()
 	listenAcceptTCP(listen)
 }
 
@@ -204,7 +204,7 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 		}
 
 		str, err := reader.ReadString('\n')
-		//fmt.Println( "HandleConn str: ",str)
+		fmt.Println( "HandleConn str: ",str)
 		if err != nil {
 			FreeConn(conn, sid)
 			//fmt.Println( "HandleConn connection error: ", err.Error())
@@ -239,11 +239,11 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		err = errors.New("request data length error")
 		return -1, err
 	}
-	_type,_ := strconv.Atoi(msg_arr[protocol.MSG_TYPE_INDEX])
-	cmd := msg_arr[protocol.MSG_CMD_INDEX];
-	req_sid := msg_arr[protocol.MSG_SID_INDEX]
-	req_id :=msg_arr[protocol.MSG_REQID_INDEX]
-	req_data := msg_arr[protocol.MSG_DATA_INDEX]
+
+	msg_err,_type,cmd,req_sid,req_id,req_data := protocol.ParseData(str)
+	if msg_err!=nil {
+		return -1, msg_err
+	}
 	buf := []byte(str)
 	buf = append( buf, '\n')
 

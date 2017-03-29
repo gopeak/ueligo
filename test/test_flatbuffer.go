@@ -44,7 +44,7 @@ func ReadUser(buf []byte) (name []byte, id uint64) {
 }
 
 // main.go part 4 of 4
-func main() {
+func main12() {
 	b := flatbuffers.NewBuilder(0)
 	buf := MakeUser(b, []byte("Arthur Dent"), 42)
 	name, id := ReadUser(buf)

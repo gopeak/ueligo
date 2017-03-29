@@ -2,6 +2,7 @@ package worker
 
 import (
 	"net"
+
 )
 
 
@@ -15,9 +16,16 @@ type ReturnType struct {
 
 
 
-func (this ReturnType)auth( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+func (this ReturnType)Auth( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
 
 	return "ok";
+
+}
+
+
+func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+
+	return GetSessionStr( req_sid )
 
 }

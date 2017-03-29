@@ -5,7 +5,7 @@
 package main
 
 import (
-	"fmt"
+
 	"morego/global"
 	"morego/golog"
 	"morego/hub"
@@ -13,45 +13,16 @@ import (
 	//"net"
 	//"net/http"
 	_ "net/http/pprof"
-	"os"
-	"os/exec"
 	"runtime"
 	//"morego/admin"
 	"morego/area"
 	"morego/connector"
 	"morego/lib/syncmap"
 	"morego/worker"
-	"time"
 	//z_type "morego/type"
 )
 
-// 启动一个测试的php worker以处理业务流程
-func stop_php_worker() {
 
-	c := exec.Command("/bin/sh", "-c", `ps -ef |grep "worker/php/workers.php"  |awk \'{print $2}\' |xargs -i kill -9 {} `)
-	d, _ := c.Output()
-
-	golog.Info("Stop_php_worker: ", string(d))
-
-	time.Sleep(time.Second * 1)
-
-}
-
-// 启动一个测试的php worker以处理业务流程
-func start_php_worker() {
-
-	stop_php_worker()
-	wd, _ := os.Getwd()
-	work_num, _ := global.ConfigJson.GetString("worker", "worker_num")
-	argv := []string{fmt.Sprintf("%s/worker/php/workers.php", wd), "start", work_num}
-	golog.Info("Argv:", argv)
-	c := exec.Command("/usr/bin/php", argv...)
-	d, _ := c.Output()
-	golog.Info("Start_php_worker: ", string(d))
-
-	time.Sleep(time.Second * 1)
-
-}
 
 // 初始化全局变量
 func init_global() {

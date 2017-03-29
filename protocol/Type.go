@@ -2,6 +2,12 @@
 
 package protocol
 
+import (
+	"strings"
+	"strconv"
+	"errors"
+)
+
 
 // 使用字符串分割时数据块定义
 const (
@@ -21,3 +27,20 @@ const (
 	TypeError = 4
 )
 
+func ParseData(str string) ( error ,int ,string,string,int,string){
+
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 5 {
+		err = errors.New("request data length error")
+		return err,0,"","",0,""
+	}
+	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
+	cmd := msg_arr[MSG_CMD_INDEX];
+	req_sid := msg_arr[MSG_SID_INDEX]
+	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
+	req_data := msg_arr[MSG_DATA_INDEX]
+
+	return err,_type,cmd,req_sid,req_id,req_data
+}
