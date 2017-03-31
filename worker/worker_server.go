@@ -8,7 +8,7 @@ import (
 	"strings"
 	//"sync/atomic"
 	"morego/protocol"
-	//sync"
+	"morego/area"
 	"bufio"
 	"fmt"
 	"net"
@@ -205,10 +205,16 @@ func handleWorkerJson(conn *net.TCPConn) {
 func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data string ) string {
 
 	data:=InvokeObjectMethod( new(ReturnType),cmd, conn, cmd,  req_sid, req_id,req_data )
-
+	fmt.Println( "Invoker:", data )
 	resp_str := WrapRespStr(cmd, req_sid, req_id, data)
 	fmt.Println( "resp_str:", resp_str )
 	conn.Write(append( []byte(resp_str),'\n'))
+	if( global.SingleMode ){
+		if cmd==global.AuthCcmd && data=="ok" {
+			area.ConnRegister( conn,req_sid)
+		}
+	}
+
 	return data
 
 }
@@ -222,7 +228,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	}
 	fmt.Println( "methodName:",methodName )
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
-
+	fmt.Println( "ret:" ,ret)
 	data:=""
 	value := reflect.ValueOf(&ret)
 	value = reflect.Indirect(value)
@@ -234,7 +240,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	case reflect.Float32,reflect.Float64:
 		data = fmt.Sprintf("%f",ret)
 	default:
-		//data  = ret.String()
+		data = fmt.Sprintf("%s",ret)
 	}
 
 	return data

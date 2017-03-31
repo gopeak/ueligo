@@ -10,15 +10,18 @@ import (
 	"runtime"
 	"strconv"
 	"time"
+	"strings"
 )
 
-//var Conns = make([]*net.TCPConn, 1000)
+var Conns   []*net.TCPConn
+var Sids []string
 
-func createReqConns(num int64) []*net.TCPConn {
 
-	var conns []*net.TCPConn
-	conns = make([]*net.TCPConn, 0)
+func createReqConns(num int64)  {
 
+
+	Conns = make([]*net.TCPConn, 0)
+	Sids = make([]string, 0)
 	for i := 0; i < int(num); i++ {
 		service := os.Args[1]
 		tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
@@ -26,11 +29,26 @@ func createReqConns(num int64) []*net.TCPConn {
 			fmt.Println(err.Error())
 		}
 		conn, err := net.DialTCP("tcp", nil, tcpAddr)
-		defer conn.Close()
-		conns = append(conns, conn)
+		//defer conn.Close()
+		Conns = append(Conns, conn)
 		time.Sleep(100 * time.Millisecond)
+		srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10) )
+		data := fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
+		conn.Write([]byte(data))
+		r := bufio.NewReader(conn)
+		for {
+			str, _ := r.ReadString('\n')
+			fmt.Println( "Auth:", str )
+			msg_err,_type,cmd,req_sid,req_id,msg_data := protocol.ParseRplyData(str)
+			if msg_err != nil {
+				fmt.Println("msg auth error: ", msg_err.Error(),_type,cmd,req_sid,req_id,msg_data)
+				continue
+			}
+			Sids  = append(  Sids, req_sid )
+			break
+		}
 	}
-	return conns
+
 
 } //
 
@@ -69,31 +87,24 @@ func main() {
 	conn_num, _ := strconv.ParseInt(os.Args[2], 10, 32)
 	fmt.Println("Connections and  times:", conn_num, times)
 
-	//conns := createReqConns(conn_num)
+	createReqConns(conn_num)
 	//ch_success := make(chan int64, 0)
 
 	var i int64
 
 	for i = 0; i < conn_num; i++ {
 
-		service := os.Args[1]
-		tcpAddr, err := net.ResolveTCPAddr("tcp4", service)
-		if err != nil {
-			fmt.Println(err.Error())
-		}
-		conn, err := net.DialTCP("tcp", nil, tcpAddr)
-		srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10) )
-		data := fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
-		//getReqStrData(conn_num)
-		_, errw := conn.Write([]byte(data))
-		if err != nil {
-			fmt.Println(errw.Error())
-		}
-		go func(conn *net.TCPConn ,times int64, conn_num int64) {
+		conn := Conns[i]
 
+		go func(conn *net.TCPConn ,times int64, conn_num int64 ,i int) {
+			fmt.Println( conn )
 			reader := bufio.NewReader(conn)
 			var success int64
 			success = 0
+			req_sid := Sids[i]
+			data := fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "GetUserSession", req_sid, 0, req_sid)
+			conn.Write([]byte( data ))
+
 			for {
 				str, err := reader.ReadString('\n')
 				if err != nil {
@@ -102,35 +113,64 @@ func main() {
 				}
 				success++
 				fmt.Println("recv msg: ", str)
-				msg_err,_type,cmd,req_sid,req_id,msg_data := protocol.ParseData(str)
-				if err != nil {
-					fmt.Println("msg error: ", msg_err.Error(),_type,cmd,req_sid,req_id,msg_data)
+				msg_arr := strings.Split(str, "||")
+
+				if len(msg_arr) <3 {
+					fmt.Println(" recv msg length error: ", msg_arr )
 					continue
 				}
-				fmt.Printf( " cmd: %s\n", cmd )
-				// 登录认证,然后获取用户信息
-				if cmd=="Auth" {
-					//fmt.Printf( " sid: %s\n", sid )
-					//str=fmt.Sprintf( `{ "cmd":"socket.getSession","params":{"sid":"%s"} }` ,req_sid )
-					data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "GetUserSession", req_sid, req_id+1, req_sid)
-				 	conn.Write([]byte( data ))
-				}
-				// 获取当前信息后 发送点对点信息
-				if cmd=="GetUserSession"  {
+				_type ,_ :=strconv.Atoi(msg_arr[protocol.MSG_TYPE_INDEX])
+				if( _type==protocol.TypeReply ){
+					msg_err,_,cmd,req_sid,req_id,msg_data := protocol.ParseRplyData(str)
+					if err != nil {
+						fmt.Println("msg error: ", msg_err.Error(),msg_arr)
+						continue
+					}
+					fmt.Printf( " cmd: %s data: %s\n", cmd ,msg_data)
+					// 登录认证,然后获取用户信息
 
-					to_sid:=""
-					data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypePush, "Push", req_sid, req_id+1, to_sid)
-					conn.Write([]byte( data ))
+					// 获取当前信息后 发送点对点信息
+					if cmd=="GetUserSession"  {
 
-					i++
-					if( i>=times ){
-						fmt.Println( " i : ", i )
-						fmt.Println( " conn close! " ,i ,"\n" )
-						break
+						to_sid_index := i-1
+						if to_sid_index<0 {
+							to_sid_index = 0
+						}
+						to_sid:= Sids[to_sid_index]
+						push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`,to_sid,"md55555555555")
+						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypePush, "Push", req_sid,req_id+1, push_data)
+						conn.Write([]byte( data ))
+
+						// 发送点对点发送消息后 加入场景
+						time.Sleep(100 * time.Millisecond)
+						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "JoinChannel", req_sid,req_id+1, "area-global")
+						conn.Write([]byte( data ))
+
+
+					}
+
+					if cmd=="JoinChannel"  {
+
+						push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
+						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeBroadcast, "Broadcast", req_sid,req_id+1, push_data)
+						conn.Write([]byte( data ))
+
 					}
 				}
-				// 发送点对点发送消息后 发送广播
 
+				// 发送广播
+				if _type==protocol.TypeBroadcast  {
+
+					//fmt.Println("Broadcast:",msg_data)
+					msg_err,form_sid,area_id,data := protocol.ParseRplyBrodcastData( str )
+					if msg_err != nil {
+						fmt.Println("broadcast reply error: ", msg_err.Error(),msg_arr)
+						continue
+					}
+					fmt.Println( "broadcast reply:", form_sid,area_id,data  )
+					conn.Close()
+					return
+				}
 
 
 
@@ -139,7 +179,7 @@ func main() {
 
 			return
 
-		}(conn,  times, conn_num)
+		}( conn,  times, conn_num , int(i))
 
 
 	}

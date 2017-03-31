@@ -63,11 +63,11 @@ func CheckChannelExist(name string) bool {
 /**
  *  socket连接 加入到场景中
  */
-func SubscribeChannel(id string, conn *net.TCPConn, sid string) {
+func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
 
 	index := 0
 	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == id {
+		if global.RpcChannels[index] == area_id {
 			break
 		}
 	}
@@ -77,7 +77,9 @@ func SubscribeChannel(id string, conn *net.TCPConn, sid string) {
 	if !ok {
 		channel_conns.Set(sid, conn)
 	}
-	golog.Info("sid ", sid, "join ", id, global.SyncRpcChannelConns)
+	fmt.Println("Joined SyncRpcChannelConns size :", global.SyncRpcChannelConns[index].Size() )
+
+	golog.Error( ok, " sid ", sid, " join ", area_id, global.SyncRpcChannelConns)
 
 }
 
@@ -165,25 +167,27 @@ func UserUnSubscribeChannel(user_sid string) {
  */
 func Broatcast( sid string,area_id string, msg string) {
 
-	golog.Info(area_id, msg)
+
 	index := 0
 	for index = range global.RpcChannels {
 		if global.RpcChannels[index] == area_id {
 			break
 		}
 	}
-	channel_conns := global.SyncRpcChannelConns[index]
+	fmt.Println( area_id ,"  index  :", index )
+	fmt.Println("SyncRpcChannelConns size :", len(global.SyncRpcChannelConns) )
 	var conn *net.TCPConn
-	for item := range channel_conns.IterItems() {
-		// fmt.Println("key:", item.Key, "value:", item.Value)
+	for item := range global.SyncRpcChannelConns[index].IterItems() {
+		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
+		fmt.Println( WrapBroatcastRespStr(sid,area_id,msg) )
 		conn.Write([]byte( WrapBroatcastRespStr(sid,area_id,msg) ))
 	}
 
 	channel_wss := global.SyncRpcChannelWsConns[index]
 	var wsconn *websocket.Conn
 	for item := range channel_wss.IterItems() {
-		// fmt.Println("key:", item.Key, "value:", item.Value)
+		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
 		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,area_id,msg)) )
 
@@ -255,7 +259,7 @@ func DeleteUserssion(sid string) {
 
 func ConnRegister(conn *net.TCPConn, user_sid string) {
 
-	SubscribeChannel("area-global", conn, user_sid)
+	//SubscribeChannel("area-global", conn, user_sid)
 
 	_, ok := global.SyncUserConns.Get(user_sid)
 	if !ok {
@@ -281,7 +285,7 @@ func ConnRegister(conn *net.TCPConn, user_sid string) {
 func WsConnRegister(ws *websocket.Conn, user_sid string) {
 
 	golog.Debug("user_sid: ", user_sid)
-	SubscribeWsChannel("area-global", ws, user_sid)
+	//SubscribeWsChannel("area-global", ws, user_sid)
 
 	_, ok := global.SyncUserWebsocketConns.Get(user_sid)
 	if !ok {

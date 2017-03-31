@@ -166,7 +166,6 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 			// 如果还没有加入场景,则订阅
 			if !have_joined {
-
 				user_conn := area.GetConn(sid)
 				channel_host := global.Channels[name]
 				golog.Debug(" join_channel ", user_conn, channel_host, sid)

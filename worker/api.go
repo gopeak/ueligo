@@ -13,6 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 	//"net"
+	"fmt"
 )
 
 // 获取服务器的根路径
@@ -138,7 +139,45 @@ func GetSidsByChannel(channel_id string) bool {
 
 }
 
-func ChannelAddSid(sid string, id string) bool {
+func ChannelAddSid(sid string, area_id string) bool {
+
+
+	exist := area.CheckChannelExist(area_id)
+	if !exist {
+
+		return false
+	}
+
+	// 检查会话用户是否加入过此场景
+	have_joined := area.CheckUserJoinChannel(area_id, sid)
+	fmt.Println( "have_joined:", have_joined )
+	// 如果还没有加入场景,则订阅
+	if !have_joined {
+		user_conn := area.GetConn(sid)
+		channel_host := global.Channels[area_id]
+		golog.Debug(" join_channel ", user_conn, channel_host, sid)
+		user_wsconn := area.GetWsConn(sid)
+		fmt.Println( "user_conn:", user_conn )
+		// 会话如果属于socket
+		if user_conn != nil {
+			fmt.Println( "area_id:", area_id )
+			area.SubscribeChannel(area_id, user_conn, sid)
+		}
+		// 会话如果属于websocket
+		if user_wsconn != nil {
+			area.SubscribeWsChannel(area_id, user_wsconn, sid)
+		}
+		// 该用户加入过的场景列表
+		var userJoinedChannels = make([]string, 0, 1000)
+		tmp, ok := global.SyncUserJoinedChannels.Get(sid)
+		if ok {
+			userJoinedChannels = tmp.([]string)
+		}
+		userJoinedChannels = append(userJoinedChannels, area_id)
+		global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
+	}
+
+
 
 	return true
 

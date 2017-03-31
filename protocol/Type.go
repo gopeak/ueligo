@@ -27,7 +27,7 @@ const (
 	TypeError = 4
 )
 
-func ParseData(str string) ( error ,int ,string,string,int,string){
+func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 
 	msg_arr := strings.Split(str, "||")
 	var err error
@@ -43,4 +43,37 @@ func ParseData(str string) ( error ,int ,string,string,int,string){
 	req_data := msg_arr[MSG_DATA_INDEX]
 
 	return err,_type,cmd,req_sid,req_id,req_data
+}
+
+func ParseRplyPushData(str string) ( error , string, string ){
+
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 3 {
+		err = errors.New("request data length error")
+		return err,"",""
+	}
+
+	from_sid := msg_arr[1]
+	push_data := msg_arr[2]
+
+	return err,from_sid,push_data
+}
+
+func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
+
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 4 {
+		err = errors.New("request data length error")
+		return err,"","",""
+	}
+
+	from_sid := msg_arr[1]
+	area_id := msg_arr[2]
+	broadcast_data := msg_arr[3]
+
+	return err,from_sid,area_id,broadcast_data
 }

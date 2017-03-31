@@ -88,21 +88,20 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
 	for {
-		msg, err := reader.ReadBytes('\n')
+		buf, err := reader.ReadBytes('\n')
 		//fmt.Println("worker_task response:", msg)
 		if err != nil {
 			fmt.Println("handleWorkerResponse ", "error: ", err.Error())
 			req_conn.Close()
 			break
 		}
-		if msg == nil {
-			continue
-		}
+		_,_,cmd,req_sid,_,msg_data := protocol.ParseRplyData(string(buf))
+		fmt.Println( "handleWorkerResponse",string(buf) )
+		if cmd==global.AuthCcmd && msg_data=="ok" {
 
-		if string(msg) == "\n" {
-			continue
+			area.ConnRegister( conn,req_sid)
 		}
-		conn.Write(msg)
+		conn.Write(buf)
 
 	}
 }
@@ -240,7 +239,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		return -1, err
 	}
 
-	msg_err,_type,cmd,req_sid,req_id,req_data := protocol.ParseData(str)
+	msg_err,_type,cmd,req_sid,req_id,req_data := protocol.ParseRplyData(str)
 	if msg_err!=nil {
 		return -1, msg_err
 	}
@@ -259,6 +258,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		if( global.SingleMode ){
 			go worker.Invoker( conn,cmd, req_sid,req_id,req_data )
 		}else{
+
 			go req_conn.Write(buf)
 		}
 	}

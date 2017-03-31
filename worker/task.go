@@ -3,6 +3,7 @@ package worker
 import (
 	"net"
 
+	"fmt"
 )
 
 
@@ -26,6 +27,21 @@ func (this ReturnType)Auth( conn *net.TCPConn, cmd string, req_sid string ,req_i
 
 func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	return GetSessionStr( req_sid )
+	this.Data=GetSessionStr( req_sid )
+	fmt.Println( this.Data )
+	return this.Data
 
 }
+
+func (this ReturnType)JoinChannel( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+
+	if(   ChannelAddSid( req_sid ,req_data) ){
+		return "ok"
+	}else{
+		return "failed"
+	}
+
+}
+
+
+
