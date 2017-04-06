@@ -6,6 +6,7 @@ import (
 	"strings"
 	"strconv"
 	"errors"
+	"fmt"
 )
 
 
@@ -24,8 +25,37 @@ const (
 	TypeReply = 2
 	TypePush = 3
 	TypeBroadcast = 4
-	TypeError = 4
+	TypeError = 5
+	TypeJoinChannel = 6
 )
+
+
+/**
+ * 封包返回错误的消息
+ */
+func WrapRespErrStr(err string) string {
+	str := fmt.Sprintf("%d||%s||%s||%d||%s", TypeError, "", "", 0, err)
+	return str
+}
+
+/**
+ * 封包返回数据
+ */
+func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
+	str := fmt.Sprintf("%d||%s||%s||%d||%s", TypeReply, cmd, from_sid, req_id, data)
+	return str
+}
+
+
+func WrapPushRespStr(  from_sid string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s\n" ,TypePush, from_sid ,data) ;
+	return str
+}
+
+func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s\n" , TypeBroadcast,from_sid ,area_id,data) ;
+	return str
+}
 
 func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 
@@ -41,7 +71,8 @@ func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 	req_sid := msg_arr[MSG_SID_INDEX]
 	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
 	req_data := msg_arr[MSG_DATA_INDEX]
-
+	// 去除换行符
+	req_data = strings.Replace(req_data, "\n", "", -1)
 	return err,_type,cmd,req_sid,req_id,req_data
 }
 
@@ -57,7 +88,8 @@ func ParseRplyPushData(str string) ( error , string, string ){
 
 	from_sid := msg_arr[1]
 	push_data := msg_arr[2]
-
+	// 去除换行符
+	push_data = strings.Replace(push_data, "\n", "", -1)
 	return err,from_sid,push_data
 }
 
@@ -74,6 +106,7 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 	from_sid := msg_arr[1]
 	area_id := msg_arr[2]
 	broadcast_data := msg_arr[3]
-
+	// 去除换行符
+	broadcast_data = strings.Replace(broadcast_data, "\n", "", -1)
 	return err,from_sid,area_id,broadcast_data
 }

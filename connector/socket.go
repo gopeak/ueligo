@@ -106,47 +106,6 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 	}
 }
 
-func  ReadBytes(delim byte) (line []byte, err error) {
-	// Use ReadSlice to look for array,
-	// accumulating full buffers.
-	var b *bufio.Reader
-
-	var frag []byte
-	var full [][]byte
-
-	for {
-		var e error
-		frag, e = b.ReadSlice(delim)
-		if e == nil { // got final fragment
-			break
-		}
-		if e != bufio.ErrBufferFull { // unexpected error
-			err = e
-			break
-		}
-
-		// Make a copy of the buffer.
-		buf := make([]byte, len(frag))
-		copy(buf, frag)
-		full = append(full, buf)
-	}
-
-	// Allocate new buffer to hold the full pieces and the fragment.
-	n := 0
-	for i := range full {
-		n += len(full[i])
-	}
-	n += len(frag)
-
-	// Copy full pieces and fragment in.
-	buf := make([]byte, n)
-	n = 0
-	for i := range full {
-		n += copy(buf[n:], full[i])
-	}
-	copy(buf[n:], frag)
-	return buf, err
-}
 
 func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 
@@ -177,15 +136,14 @@ func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 
 		msg_arr := strings.Split(str, "||")
 		if len(msg_arr) < 5 {
-			conn.Write([]byte(worker.WrapRespErrStr("request data length error-->"+str)))
+			conn.Write([]byte(protocol.WrapRespErrStr("request data length error-->"+str)))
 			continue
 		}
 		cmd := "user.getSession" //msg_arr[1];
 		req_sid := msg_arr[2]
 		req_id, _ := strconv.Atoi(msg_arr[3])
 		data := msg_arr[4]
-		resp_str := worker.WrapRespStr(cmd, req_sid, req_id, data)
-
+		resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 		conn.Write([]byte(resp_str))
 
 	}
@@ -264,7 +222,9 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 	}
 	if _type == protocol.TypePush {
 		from_sid := msg_arr[protocol.MSG_SID_INDEX]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[protocol.MSG_DATA_INDEX]))
+		req_data =msg_arr[protocol.MSG_DATA_INDEX]
+		req_data = strings.Replace(req_data, "\n", "", -1)
+		data_json, json_err := jason.NewObjectFromBytes([]byte(req_data))
 		if ( json_err != nil ) {
 			err = errors.New("push data json format error")
 			return -2, err
@@ -273,17 +233,25 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		to_data, _ := data_json.GetString("data")
 		area.Push(to_sid, from_sid, to_data)
 	}
+
 	if _type == protocol.TypeBroadcast {
 		//from_sid := msg_arr[2]
 		from_sid := msg_arr[protocol.MSG_SID_INDEX]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[protocol.MSG_DATA_INDEX]))
+		req_data =msg_arr[protocol.MSG_DATA_INDEX]
+		req_data = strings.Replace(req_data, "\n", "", -1)
+		data_json, json_err := jason.NewObjectFromBytes([]byte(req_data))
 		if ( json_err != nil ) {
 			err = errors.New("broatcast data json format error")
 			return -3, err
 		}
 		area_id, _ := data_json.GetString("area_id")
 		to_data, _ := data_json.GetString("data")
-		area.Broatcast( from_sid, area_id,to_data )
+		if( area_id=="global" ) {
+			area.BroatcastGlobal( from_sid,to_data )
+		}else{
+			area.Broatcast( from_sid, area_id,to_data )
+		}
+
 	}
 
 	return 1, nil
@@ -304,20 +272,6 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 
 }
 
-/**
- * 认证
- */
-func auth(token string, conn *net.TCPConn)   {
 
-}
-
-
-
-/**
- * 广播
- */
-func broadcast(sid string, area_id string, data string, conn *net.TCPConn) {
-
-}
 
 

@@ -28,11 +28,11 @@ func InitArea() {
 }
 
 // 创建一个RPC的场景
-func CreateChannel(id string, name string) {
-	golog.Info(id, name)
-	global.RpcChannels = append(global.RpcChannels, id)
-	global.SyncRpcChannelConns = append(global.SyncRpcChannelConns, syncmap.New())
-	global.SyncRpcChannelWsConns = append(global.SyncRpcChannelWsConns, syncmap.New())
+func CreateChannel(area_id string, name string) {
+	golog.Info(area_id, name)
+	global.RpcChannels = append(global.RpcChannels, area_id)
+	global.SyncRpcChannelConns.Set(area_id,syncmap.New())
+	global.SyncRpcChannelWsConns.Set(area_id,syncmap.New())
 	//fmt.Println(global.RpcChannels)
 }
 
@@ -44,19 +44,15 @@ func RemovChannel(id string) {
 }
 
 // 检查是否已经创建了场景
-func CheckChannelExist(name string) bool {
-	//请使用快速查找法
-	exist := 0
-	for exist = range global.RpcChannels {
-		if global.RpcChannels[exist] == name {
-			break
-		}
-	}
-	if exist == 0 {
-		return false
-	} else {
+func CheckChannelExist(area_id string) bool {
+
+	if ( global.SyncRpcChannelConns.Has(area_id) ) {
 		return true
 	}
+	if ( global.SyncRpcChannelWsConns.Has(area_id) ) {
+		return true
+	}
+	return false
 
 }
 
@@ -65,101 +61,160 @@ func CheckChannelExist(name string) bool {
  */
 func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
 
-	index := 0
-	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == area_id {
-			break
+	// tcp部分
+	var channels *syncmap.SyncMap
+	_item,ok := global.SyncRpcChannelConns.Get(area_id)
+	if( !ok ) {
+		fmt.Println("Channel  ",area_id," no exist! "  )
+		golog.Error( "Channel  ",area_id," no exist! "  )
+		return
+	}else{
+		channels = _item.(*syncmap.SyncMap)
+		if( channels.Size()<=0 ){
+			channels = syncmap.New()
 		}
+		if  !channels.Has(sid) {
+			channels.Set(sid, conn)
+		}
+		global.SyncRpcChannelConns.Set( area_id, channels )
+		fmt.Println("Joined  ",area_id," size :", channels.Size() )
 	}
 
-	channel_conns := global.SyncRpcChannelConns[index]
-	_, ok := channel_conns.Get(sid)
-	if !ok {
-		channel_conns.Set(sid, conn)
-	}
-	fmt.Println("Joined SyncRpcChannelConns size :", global.SyncRpcChannelConns[index].Size() )
-
-	golog.Error( ok, " sid ", sid, " join ", area_id, global.SyncRpcChannelConns)
 
 }
 
 /**
- *  socket连接 加入到场景中
+ *  websocket连接 加入到场景中
  */
-func CheckUserJoinChannel(id string, sid string) bool {
+func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 
-	index := 0
-	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == id {
-			break
+
+	_item,ok := global.SyncRpcChannelWsConns.Get(area_id)
+	if( !ok ) {
+		//fmt.Println("Channel  ",area_id," no exist! "  )
+		golog.Error( "Channel  ",area_id," no exist! "  )
+		return
+	}else{
+		var channels *syncmap.SyncMap
+		channels = _item.(*syncmap.SyncMap)
+		if( channels.Size()<=0 ){
+			channels = syncmap.New()
+		}
+		if  !channels.Has(sid) {
+			channels.Set(sid, ws)
+		}
+		global.SyncRpcChannelWsConns.Set( area_id, channels )
+		fmt.Println("Joined  ",area_id," size :", channels.Size() )
+	}
+
+}
+
+
+
+/**
+ *  socket连接 加入到全局场景中
+ */
+func SubscribeGlobalChannel( conn *net.TCPConn, sid string) {
+
+
+	if  !global.SyncGlobalChannelConns.Has(sid) {
+		global.SyncGlobalChannelConns.Set(sid, conn)
+		fmt.Println("global_channel_conns.Set:", sid, conn )
+	}else{
+		fmt.Println("global_channel_conns exist:", sid )
+
+	}
+	fmt.Println("Joined SyncRpcChannelConns size :", global.SyncGlobalChannelConns.Size() )
+
+
+
+	//golog.Error(  " sid ", sid, " join ", area_id, global.SyncRpcChannelConns)
+
+}
+
+
+/**
+ *  websocket连接 加入到全局场景中
+ */
+func SubscribeGlobalChannelWs( ws *websocket.Conn, sid string) {
+
+
+	if  !global.SyncGlobalChannelWsConns.Has(sid) {
+		global.SyncGlobalChannelWsConns.Set(sid, ws)
+		fmt.Println("global_channel_conns.Set:", sid, ws )
+	}else{
+		fmt.Println("global_channel_conns exist:", sid )
+
+	}
+	fmt.Println("Joined SyncRpcChannelConns size :", global.SyncGlobalChannelWsConns.Size() )
+
+
+
+}
+
+/**
+ *  检查用户是否加入到场景中
+ */
+func CheckUserJoinChannel(area_id string, sid string) bool {
+
+	// tcp部分
+	_item,ok := global.SyncRpcChannelConns.Get(area_id)
+	if( ok ) {
+		var channel_conns *syncmap.SyncMap
+		channel_conns = _item.(*syncmap.SyncMap)
+		if  channel_conns.Has(sid) {
+			return true
 		}
 	}
 
-	channel_conns := global.SyncRpcChannelConns[index]
-	_, ok := channel_conns.Get(sid)
-	if ok {
-		return true
-	}
-
-	channel_wss := global.SyncRpcChannelWsConns[index]
-	_, ok = channel_wss.Get(sid)
-	if ok {
-		return true
+	// websocket部分
+	_item_ws,okws := global.SyncRpcChannelWsConns.Get(area_id)
+	if( okws ) {
+		var channel_wsconns *syncmap.SyncMap
+		channel_wsconns = _item_ws.(*syncmap.SyncMap)
+		if  channel_wsconns.Has(sid) {
+			return true
+		}
 	}
 	return false
-}
-
-/**
- *  socket连接 加入到场景中
- */
-func SubscribeWsChannel(id string, ws *websocket.Conn, sid string) {
-
-	golog.Info(id, ws, sid)
-	index := 0
-	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == id {
-			break
-		}
-	}
-	channel_wss := global.SyncRpcChannelWsConns[index]
-	_, ok := channel_wss.Get(sid)
-	if !ok {
-		channel_wss.Set(sid, ws)
-	}
 
 }
 
+
 /**
- *  离开到场景
+ *  用户推出某个场景
  */
-func UnSubscribeChannel(id string, sid string) {
+func UnSubscribeChannel(area_id string, sid string) {
 
-	golog.Info(id, sid)
-	index := 0
-	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == id {
-			break
-		}
-	}
 
-	channel_conns := global.SyncRpcChannelConns[index]
-	_, ok := channel_conns.Get(sid)
-	if !ok {
+	// tcp部分
+	_item,ok := global.SyncRpcChannelConns.Get(area_id)
+	if( ok ) {
+		var channel_conns *syncmap.SyncMap
+		channel_conns = _item.(*syncmap.SyncMap)
 		channel_conns.Delete(sid)
+		global.SyncRpcChannelConns.Set( area_id,channel_conns )
+
 	}
 
-	channel_wss := global.SyncRpcChannelWsConns[index]
-	_, ok = channel_wss.Get(sid)
-	if !ok {
-		channel_wss.Delete(sid)
+	// websocket部分
+	_item_ws,okws := global.SyncRpcChannelWsConns.Get(area_id)
+	if( okws ) {
+		var channel_wsconns *syncmap.SyncMap
+		channel_wsconns = _item_ws.(*syncmap.SyncMap)
+		channel_wsconns.Delete(sid)
+		global.SyncRpcChannelWsConns.Set( area_id,channel_wsconns )
+
 	}
 }
 
+// 用户退出所有场景
 func UserUnSubscribeChannel(user_sid string) {
 
 	for index, _ := range global.RpcChannels {
 		UnSubscribeChannel(global.RpcChannels[index], user_sid)
 	}
+	UnSubGlobalChannel( user_sid )
 }
 
 /**
@@ -167,32 +222,71 @@ func UserUnSubscribeChannel(user_sid string) {
  */
 func Broatcast( sid string,area_id string, msg string) {
 
-
-	index := 0
-	for index = range global.RpcChannels {
-		if global.RpcChannels[index] == area_id {
-			break
-		}
+	// tcp部分
+	var channel_conns *syncmap.SyncMap
+	_item,ok := global.SyncRpcChannelConns.Get(area_id)
+	if( !ok ) {
+		return
 	}
-	fmt.Println( area_id ,"  index  :", index )
-	fmt.Println("SyncRpcChannelConns size :", len(global.SyncRpcChannelConns) )
+	channel_conns = _item.(*syncmap.SyncMap)
 	var conn *net.TCPConn
-	for item := range global.SyncRpcChannelConns[index].IterItems() {
+	fmt.Println("广播里有:", channel_conns.Size(),"个连接")
+
+	for item := range channel_conns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
 		fmt.Println( WrapBroatcastRespStr(sid,area_id,msg) )
 		conn.Write([]byte( WrapBroatcastRespStr(sid,area_id,msg) ))
 	}
 
-	channel_wss := global.SyncRpcChannelWsConns[index]
+	// websocket部分
+	var channel_wsconns *syncmap.SyncMap
+	_item_ws,ok := global.SyncRpcChannelWsConns.Get(area_id)
+	if( !ok ) {
+		return
+	}
+	channel_wsconns = _item_ws.(*syncmap.SyncMap)
+
+	fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
 	var wsconn *websocket.Conn
-	for item := range channel_wss.IterItems() {
+	for item := range channel_wsconns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
 		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,area_id,msg)) )
 
 	}
 }
+
+/**
+ *  在场景中广播消息
+ */
+func BroatcastGlobal( sid string, msg string) {
+
+	var conn *net.TCPConn
+	fmt.Println("广播里有:", global.SyncGlobalChannelConns.Size(),"个连接")
+
+	for item := range global.SyncGlobalChannelConns.IterItems() {
+		fmt.Println("key:", item.Key, "value:", item.Value)
+		conn = item.Value.(*net.TCPConn)
+		//fmt.Println( WrapBroatcastRespStr(sid,"global",msg) )
+		conn.Write([]byte( WrapBroatcastRespStr(sid,"global",msg) ))
+	}
+
+	var wsconn *websocket.Conn
+	for item := range global.SyncGlobalChannelWsConns.IterItems() {
+		fmt.Println("key:", item.Key, "value:", item.Value)
+		wsconn = item.Value.(*websocket.Conn)
+		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,"global",msg)) )
+
+	}
+}
+
+func UnSubGlobalChannel( sid string ) {
+
+	global.SyncGlobalChannelConns.Delete(sid)
+	global.SyncGlobalChannelWsConns.Delete(sid)
+}
+
 /**
  *  点对点发送消息
  */
@@ -211,12 +305,12 @@ func Push(  to_sid string ,from_sid string,to_data string) {
 
 
 func WrapPushRespStr(  from_sid string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s\r\n" ,protocol.TypePush, from_sid ,data) ;
+	str:=fmt.Sprintf("%d||%s||%s\n" ,protocol.TypePush, from_sid ,data) ;
 	return str
 }
 
 func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s\r\n" , protocol.TypeBroadcast,from_sid ,area_id,data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%s\n" , protocol.TypeBroadcast,from_sid ,area_id,data) ;
 	return str
 }
 

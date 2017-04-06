@@ -50,11 +50,15 @@ var Channels = map[string]string{}
 
 var RpcChannels = make([]string, 0, 1000)
 
-var SyncRpcChannelConns = make([]*syncmap.SyncMap, 0, 10000)
+var SyncRpcChannelConns  *syncmap.SyncMap
 
-var SyncRpcChannelWsConns = make([]*syncmap.SyncMap, 0, 10000)
+var SyncRpcChannelWsConns   *syncmap.SyncMap
 
 var SyncRpcChannelSids = make([][]string, 0, 10090)
+
+// 全局场景
+var SyncGlobalChannelConns *syncmap.SyncMap
+var SyncGlobalChannelWsConns *syncmap.SyncMap
 
 // 会话用户的加入的场景列表
 var UserChannels = map[string][]string{}

@@ -37,8 +37,14 @@ func init_global() {
 
 	global.SyncUserConns = syncmap.New()
 	global.SyncUserSessions = syncmap.New()
+	global.SyncRpcChannelConns =  syncmap.New()
+	global.SyncRpcChannelWsConns =  syncmap.New()
+
 	global.SyncUserWebsocketConns = syncmap.New()
 	global.SyncUserJoinedChannels = syncmap.New()
+	global.SyncGlobalChannelConns = syncmap.New()
+	global.SyncGlobalChannelWsConns = syncmap.New()
+
 	global.SyncCrons = syncmap.New()
 	global.PackSplitType = global.Config.PackType
 	global.SingleMode = global.Config.SingleMode

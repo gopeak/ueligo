@@ -32,7 +32,8 @@ func createReqConns(num int64)  {
 		//defer conn.Close()
 		Conns = append(Conns, conn)
 		time.Sleep(100 * time.Millisecond)
-		srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10) )
+		srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)  )
+
 		data := fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
 		conn.Write([]byte(data))
 		r := bufio.NewReader(conn)
@@ -123,10 +124,10 @@ func main() {
 				if( _type==protocol.TypeReply ){
 					msg_err,_,cmd,req_sid,req_id,msg_data := protocol.ParseRplyData(str)
 					if err != nil {
-						fmt.Println("msg error: ", msg_err.Error(),msg_arr)
+						fmt.Println("msg error: ", msg_err.Error(),msg_arr, msg_data)
 						continue
 					}
-					fmt.Printf( " cmd: %s data: %s\n", cmd ,msg_data)
+					//fmt.Printf( " cmd: %s data: %s\n", cmd ,msg_data)
 					// 登录认证,然后获取用户信息
 
 					// 获取当前信息后 发送点对点信息
@@ -145,6 +146,7 @@ func main() {
 						time.Sleep(100 * time.Millisecond)
 						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "JoinChannel", req_sid,req_id+1, "area-global")
 						conn.Write([]byte( data ))
+						time.Sleep(5 * time.Second)
 
 
 					}

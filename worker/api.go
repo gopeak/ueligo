@@ -143,8 +143,8 @@ func ChannelAddSid(sid string, area_id string) bool {
 
 
 	exist := area.CheckChannelExist(area_id)
+	fmt.Println( area_id," CheckChannelExist:", exist )
 	if !exist {
-
 		return false
 	}
 
