@@ -16,6 +16,7 @@ const (
 	MSG_CMD_INDEX     = 1
 	MSG_SID_INDEX =  2
 	MSG_REQID_INDEX   = 3
+	MSG_CHANNEL_INDEX   = 3
 	MSG_DATA_INDEX   = 4
 )
 
@@ -27,6 +28,7 @@ const (
 	TypeBroadcast = 4
 	TypeError = 5
 	TypeJoinChannel = 6
+	TypePing = 7
 )
 
 
@@ -48,12 +50,12 @@ func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
 
 
 func WrapPushRespStr(  from_sid string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s\n" ,TypePush, from_sid ,data) ;
+	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
 	return str
 }
 
 func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s\n" , TypeBroadcast,from_sid ,area_id,data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"",from_sid ,area_id,data) ;
 	return str
 }
 
@@ -86,8 +88,8 @@ func ParseRplyPushData(str string) ( error , string, string ){
 		return err,"",""
 	}
 
-	from_sid := msg_arr[1]
-	push_data := msg_arr[2]
+	from_sid := msg_arr[MSG_SID_INDEX]
+	push_data := msg_arr[MSG_DATA_INDEX]
 	// 去除换行符
 	push_data = strings.Replace(push_data, "\n", "", -1)
 	return err,from_sid,push_data
@@ -103,9 +105,9 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 		return err,"","",""
 	}
 
-	from_sid := msg_arr[1]
-	area_id := msg_arr[2]
-	broadcast_data := msg_arr[3]
+	from_sid := msg_arr[MSG_SID_INDEX]
+	area_id := msg_arr[MSG_CHANNEL_INDEX]
+	broadcast_data := msg_arr[MSG_DATA_INDEX]
 	// 去除换行符
 	broadcast_data = strings.Replace(broadcast_data, "\n", "", -1)
 	return err,from_sid,area_id,broadcast_data

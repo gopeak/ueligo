@@ -39,7 +39,7 @@ var AppConfig = &z_type.Appconfig{}
 // worker连接数组
 var WorkerNbrs []string
 
-var WorkerServers = make([][]string, 0, 1000)
+var WorkerServers = make([]string, 0, 1000)
 
 var SumConnections int32
 
@@ -77,13 +77,9 @@ var UserSessions = map[string]*z_type.Session{}
 
 // 安全的用户会话对象
 var SyncUserSessions *syncmap.SyncMap
-
 var SyncUserJoinedChannels *syncmap.SyncMap
-
 var UserWebsocketConns = map[string]*websocket.Conn{}
-
 var SyncUserWebsocketConns *syncmap.SyncMap
-
 var RpcType string
 
 var SingleMode bool

@@ -24,8 +24,8 @@ func RedisInit() {
 		return
 	}
 
-	n, err := RedisConn.Do("Set", "aaa", "vvvvvvvvv")
-	fmt.Println(n, err)
+	//n, err := RedisConn.Do("Set", "aaa", "vvvvvvvvv")
+	//fmt.Println(n, err)
 
 	data := &z_type.Session{
 		``,
@@ -55,7 +55,7 @@ func RedisInit() {
 func NewPool(server, password string) *redis.Pool {
 	return &redis.Pool{
 		MaxIdle:     3,
-		IdleTimeout: 240 * time.Second,
+		IdleTimeout: 30 * time.Second,
 		Dial: func() (redis.Conn, error) {
 			c, err := redis.Dial("tcp", server)
 			if err != nil {

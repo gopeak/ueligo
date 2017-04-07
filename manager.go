@@ -50,6 +50,8 @@ func init_global() {
 	global.SingleMode = global.Config.SingleMode
 	global.AuthCcmd = global.Config.Connector.AuthCcmd
 
+	global.InitWorkerAddr()
+
 }
 
 /**
@@ -77,6 +79,9 @@ func main() {
 	// 启动worker
 	//go start_php_worker()
 	go worker.InitWorkerServer()
+
+	// 监控
+	go hub.TickWorkerServer()
 
 
 	golog.Info("Server started!")

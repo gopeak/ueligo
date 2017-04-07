@@ -79,9 +79,15 @@ func InitConfig() {
 
 func GetRandWorkerAddr() string  {
 	rand_index := rand.Intn(len(WorkerServers))
-	data :=  Config.WorkerServer.Servers[rand_index]
-	worker_host, _ := data[0].(string)
-	worker_port_str, _ := data[1].(string)
-	ip_port := worker_host + ":" + worker_port_str
-	return ip_port;
+	return  WorkerServers[rand_index]
 }
+
+func InitWorkerAddr()   {
+
+	for _,data := range Config.WorkerServer.Servers{
+		worker_host, _ := data[0].(string)
+		worker_port_str, _ := data[1].(string)
+		WorkerServers = append( WorkerServers ,worker_host + ":" + worker_port_str )
+	}
+}
+

@@ -154,13 +154,9 @@ func ChannelAddSid(sid string, area_id string) bool {
 	// 如果还没有加入场景,则订阅
 	if !have_joined {
 		user_conn := area.GetConn(sid)
-		channel_host := global.Channels[area_id]
-		golog.Debug(" join_channel ", user_conn, channel_host, sid)
 		user_wsconn := area.GetWsConn(sid)
-		fmt.Println( "user_conn:", user_conn )
 		// 会话如果属于socket
 		if user_conn != nil {
-			fmt.Println( "area_id:", area_id )
 			area.SubscribeChannel(area_id, user_conn, sid)
 		}
 		// 会话如果属于websocket
@@ -177,37 +173,35 @@ func ChannelAddSid(sid string, area_id string) bool {
 		global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
 	}
 
-
-
 	return true
 
 }
 
-func ChannelKickSid(sid string, id string) bool {
+func ChannelKickSid(sid string, area_id string) bool {
 
+	area.UnSubscribeChannel( area_id,sid)
 	return true
 
 }
 
-func Push(sid string, msg string) bool {
+func Push(from_sid string, to_sid string, msg string) bool {
 
+	area.Push(to_sid, from_sid, msg)
 	return true
 
 }
 
-func PushBySids(sids []string, msg string) bool {
+func PushBySids(from_sid string,to_sids []string, msg string) bool {
 
+	for _,to_sid:=   range to_sids {
+		area.Push(to_sid, from_sid, msg)
+	}
 	return true
 
 }
 
-func PushAll(msg string) bool {
 
-	return true
-
-}
-
-func Broadcast(msg string) bool {
+func BroadcastAll(msg string) bool {
 
 	return true
 

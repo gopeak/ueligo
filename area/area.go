@@ -126,8 +126,6 @@ func SubscribeGlobalChannel( conn *net.TCPConn, sid string) {
 	}
 	fmt.Println("Joined SyncRpcChannelConns size :", global.SyncGlobalChannelConns.Size() )
 
-
-
 	//golog.Error(  " sid ", sid, " join ", area_id, global.SyncRpcChannelConns)
 
 }
@@ -230,13 +228,13 @@ func Broatcast( sid string,area_id string, msg string) {
 	}
 	channel_conns = _item.(*syncmap.SyncMap)
 	var conn *net.TCPConn
-	fmt.Println("广播里有:", channel_conns.Size(),"个连接")
+	//fmt.Println("广播里有:", channel_conns.Size(),"个连接")
 
 	for item := range channel_conns.IterItems() {
-		fmt.Println("key:", item.Key, "value:", item.Value)
+		//fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
-		fmt.Println( WrapBroatcastRespStr(sid,area_id,msg) )
-		conn.Write([]byte( WrapBroatcastRespStr(sid,area_id,msg) ))
+		//fmt.Println( protocol.WrapBroatcastRespStr(sid,area_id,msg) )
+		conn.Write([]byte( protocol.WrapBroatcastRespStr(sid,area_id,msg) ))
 	}
 
 	// websocket部分
@@ -247,12 +245,12 @@ func Broatcast( sid string,area_id string, msg string) {
 	}
 	channel_wsconns = _item_ws.(*syncmap.SyncMap)
 
-	fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
+	//fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
 	var wsconn *websocket.Conn
 	for item := range channel_wsconns.IterItems() {
-		fmt.Println("key:", item.Key, "value:", item.Value)
+		//fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,area_id,msg)) )
+		go wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
 
 	}
 }
@@ -269,14 +267,14 @@ func BroatcastGlobal( sid string, msg string) {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
 		//fmt.Println( WrapBroatcastRespStr(sid,"global",msg) )
-		conn.Write([]byte( WrapBroatcastRespStr(sid,"global",msg) ))
+		conn.Write([]byte( protocol.WrapBroatcastRespStr(sid,"global",msg) ))
 	}
 
 	var wsconn *websocket.Conn
 	for item := range global.SyncGlobalChannelWsConns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go wsconn.WriteMessage(websocket.TextMessage, []byte(WrapBroatcastRespStr(sid,"global",msg)) )
+		go wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,"global",msg)) )
 
 	}
 }
@@ -293,26 +291,18 @@ func UnSubGlobalChannel( sid string ) {
 func Push(  to_sid string ,from_sid string,to_data string) {
 	conn :=  GetConn(to_sid)
 	if( conn!=nil ) {
-		conn.Write([]byte(WrapPushRespStr( from_sid,to_data)))
+		conn.Write([]byte(protocol.WrapPushRespStr( from_sid,to_data)))
 		return
 	}
 	wsconn:=GetWsConn(to_sid)
 	if( wsconn!=nil ) {
-		wsconn.WriteMessage(websocket.TextMessage, []byte(WrapPushRespStr( from_sid,to_data)) )
+		wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapPushRespStr( from_sid,to_data)) )
 		return
 	}
 }
 
 
-func WrapPushRespStr(  from_sid string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s\n" ,protocol.TypePush, from_sid ,data) ;
-	return str
-}
 
-func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s\n" , protocol.TypeBroadcast,from_sid ,area_id,data) ;
-	return str
-}
 
 func GetConn(sid string) *net.TCPConn {
 

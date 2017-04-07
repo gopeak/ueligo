@@ -98,7 +98,7 @@ func main() {
 		conn := Conns[i]
 
 		go func(conn *net.TCPConn ,times int64, conn_num int64 ,i int) {
-			fmt.Println( conn )
+			//fmt.Println( conn )
 			reader := bufio.NewReader(conn)
 			var success int64
 			success = 0
@@ -156,7 +156,17 @@ func main() {
 						push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
 						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeBroadcast, "Broadcast", req_sid,req_id+1, push_data)
 						conn.Write([]byte( data ))
+					}
 
+					if cmd=="LeaveChannel"  {
+
+						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "KickSelf", req_sid, 0, req_sid)
+						conn.Write([]byte( data ))
+					}
+					if cmd=="KickSelf"  {
+
+						conn.Close()
+						return
 					}
 				}
 
@@ -169,9 +179,11 @@ func main() {
 						fmt.Println("broadcast reply error: ", msg_err.Error(),msg_arr)
 						continue
 					}
-					fmt.Println( "broadcast reply:", form_sid,area_id,data  )
-					conn.Close()
-					return
+					fmt.Println( "broadcast recvice:", form_sid,area_id,data  )
+
+					data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "LeaveChannel", req_sid, 0, "area-global")
+					conn.Write([]byte( data ))
+
 				}
 
 

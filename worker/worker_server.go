@@ -30,7 +30,6 @@ func InitWorkerServer() {
 		port_str, _ := data[1].(string)
 		worker_language, _ := data[2].(string)
 		port, _ := strconv.Atoi(port_str)
-		global.WorkerServers = append(global.WorkerServers, []string{host, port_str})
 		//fmt.Println("worker_language:", worker_language)
 		if worker_language == "go" {
 			go WorkerServer(host, port)
@@ -111,9 +110,10 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 	for {
 		str, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("HandleConn connection error: ", err.Error())
+			fmt.Println("HandleWork connection error: ", err.Error())
 			conn.Write([]byte(protocol.WrapRespErrStr(err.Error())))
-			continue
+			conn.Close()
+			break
 		}
 		//fmt.Println( "HandleWorkerStr str: ",str)
 		go func(str string, conn *net.TCPConn) {
@@ -123,11 +123,18 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
 				return
 			}
-			cmd := msg_arr[protocol.MSG_CMD_INDEX];
-			req_sid := msg_arr[protocol.MSG_SID_INDEX]
-			req_id, _ := strconv.Atoi(msg_arr[protocol.MSG_REQID_INDEX])
-			req_data := msg_arr[protocol.MSG_DATA_INDEX]
-			Invoker( conn,cmd,req_sid,req_id,req_data)
+			_type,_:=  strconv.Atoi(msg_arr[protocol.MSG_TYPE_INDEX])
+			if( _type==protocol.TypePing ) {
+				conn.Write([]byte(protocol.WrapRespStr("Ping","",0,"")))
+				conn.Close()
+			}else{
+				cmd := msg_arr[protocol.MSG_CMD_INDEX];
+				req_sid := msg_arr[protocol.MSG_SID_INDEX]
+				req_id, _ := strconv.Atoi(msg_arr[protocol.MSG_REQID_INDEX])
+				req_data := msg_arr[protocol.MSG_DATA_INDEX]
+				Invoker( conn,cmd,req_sid,req_id,req_data)
+			}
+
 
 
 		}(str, conn)

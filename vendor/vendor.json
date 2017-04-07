@@ -2,11 +2,7 @@
 	"comment": "",
 	"ignore": "test",
 	"package": [
-		{
-			"checksumSHA1": "JjzJaBq35Paqo71nESPavkakROo=",
-			"path": "code.google.com/p/go.net/websocket",
-			"revision": ""
-		},
+
 		{
 			"checksumSHA1": "7YHBDrGrtpWlJHx2wL6qCmgQdVk=",
 			"path": "github.com/BurntSushi/toml",
