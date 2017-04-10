@@ -55,6 +55,7 @@ type object struct {
 
 type workerServer struct {
 	Servers [][]interface{} `toml:"servers"`
+	ToHub []string  `toml:"to_hub"`
 }
 
 type hub struct {

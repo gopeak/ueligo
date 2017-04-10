@@ -76,7 +76,7 @@ func NewPool(server, password string) *redis.Pool {
 	}
 }
 
-func Set(key string, args ...interface{}) (bool, error) {
+func _Set(key string, args ...interface{}) (bool, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()
@@ -84,7 +84,7 @@ func Set(key string, args ...interface{}) (bool, error) {
 
 }
 
-func Get(key string) (string, error) {
+func _Get(key string) (string, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()
@@ -92,7 +92,7 @@ func Get(key string) (string, error) {
 
 }
 
-func Delete(key string) (bool, error) {
+func _Delete(key string) (bool, error) {
 
 	Pool = NewPool(global.Config.Object.RedisHost+":"+string(global.Config.Object.RedisPort), global.Config.Object.RedisPassword)
 	cc := Pool.Get()

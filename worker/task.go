@@ -27,7 +27,8 @@ func (this ReturnType)Auth( conn *net.TCPConn, cmd string, req_sid string ,req_i
 
 func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	this.Data=GetSessionStr( req_sid )
+	sdk:= new(Sdk)
+	this.Data=sdk.GetSessionStr( req_sid )
 	fmt.Println( this.Data )
 	return this.Data
 
