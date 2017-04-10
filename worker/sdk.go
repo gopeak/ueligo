@@ -19,12 +19,31 @@ import (
 	"container/list"
 	"net"
 	"strconv"
+	"morego/protocol"
+	"runtime"
+	"log"
+	"morego/hub"
+	"bufio"
 )
 
 
 type Sdk struct {
 
 
+
+	Connected bool
+
+	HubConn *net.TCPConn
+
+	Cmd string
+
+	Sid string
+
+	Reqid int
+
+	Data string
+
+	/*
 	GetBase func() (string)
 
 	GetConfig func() (*jason.Object)
@@ -67,48 +86,79 @@ type Sdk struct {
 
 	Broadcast func( area_id string,msg string) bool
 
-	Connected bool
+	*/
 
-	HubConn *net.TCPConn
 
 
 
 }
 
-func (s *Sdk) connect() bool{
+// 数据连接
+func (this *Sdk) connect() bool{
 
+	if this.HubConn!=nil {
+		return true
+	}
 	data :=  global.Config.WorkerServer.ToHub
 	hub_host := data[0]
 	hub_port_str := data[1]
-	ip_port := worker_host + ":" + worker_port_str
-
+	ip_port := hub_host + ":" + hub_port_str
 
 	hubconn, err_req := net.DialTimeout("tcp", ip_port, 5 * time.Second)
 	if( err_req!=nil ){
+		this.HubConn=nil
 		return false
 	}
-	s.HubConn = hubconn
+	this.HubConn = hubconn
+	return true
 
 }
 
 // 获取服务器的根路径
-func (s *Sdk)  GetBase() string {
+func (this *Sdk)  GetBase() string {
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
-	if err != nil {
-		golog.Error("GetBase Error ", err.Error())
+	// 单机模式直接返回内存中数据
+	if( global.SingleMode ) {
+		return hub.GetBase()
 	}
-	return strings.Replace(dir, "\\", "/", -1)
+	this.connect()
+	req_str := protocol.WrapReqStr("GetBase",this.Sid,this.Reqid,this.Data)
+	this.HubConn.Write([]byte(req_str))
+	reader := bufio.NewReader(this.HubConn)
+	chan_ret := make(chan string)
+	// 监听返回
+	go func ( ) {
+		for {
+			buf, err := reader.ReadBytes('\n')
+			//fmt.Println("worker_task response:", msg)
+			if err != nil {
+				this.HubConn.Close()
+				chan_ret <- ""
+				break
+			}
+			_, _, cmd, _, _, msg_data := protocol.ParseRplyData(string(buf))
+
+			if cmd == "GetBase" {
+				this.HubConn.Close()
+				chan_ret <- msg_data
+				break
+			}
+		}
+	}()
+
+	select {
+	case ret := <- chan_ret:
+		return ret
+	case <- time.After(5 * time.Second):
+		return ""
+	}
+
+	return
 
 }
 
-func (s *Sdk) GetConfig() *jason.Object {
 
-	return global.ConfigJson
-
-}
-
-func (s *Sdk) GetEnableStatus() bool {
+func (this *Sdk) GetEnableStatus() bool {
 	if global.AppConfig.Enable <= 0 {
 		return false
 	} else {
@@ -117,21 +167,21 @@ func (s *Sdk) GetEnableStatus() bool {
 
 }
 
-func (s *Sdk) Enable() bool {
+func (this *Sdk) Enable() bool {
 
 	global.AppConfig.Enable = 1
 	return true
 
 }
 
-func (s *Sdk) Disable() bool {
+func (this *Sdk) Disable() bool {
 
 	global.AppConfig.Enable = 0
 	return true
 
 }
 
-func (s *Sdk) AddCron(expression string, exefnc func()) bool {
+func (this *Sdk) AddCron(expression string, exefnc func()) bool {
 
 	if cron, ok := global.Crons[expression]; ok {
 		golog.Info("cron exist :", cron)
@@ -145,7 +195,7 @@ func (s *Sdk) AddCron(expression string, exefnc func()) bool {
 
 }
 
-func (s *Sdk) RemoveCron(expression string) bool {
+func (this *Sdk) RemoveCron(expression string) bool {
 
 	if cron, ok := global.Crons[expression]; ok {
 		delete(global.Crons, expression)
@@ -158,24 +208,24 @@ func (s *Sdk) RemoveCron(expression string) bool {
 
 }
 
-func (s *Sdk) Get(key string) bool {
+func (this *Sdk) Get(key string) bool {
 
 	return true
 
 }
 
-func (s *Sdk) Set(key string, value string) bool {
+func (this *Sdk) Set(key string, value string) bool {
 
 	return true
 
 }
 
-func (s *Sdk) GetSession(sid string) *z_type.Session  {
+func (this *Sdk) GetSession(sid string) *z_type.Session  {
 	session, _ := global.SyncUserSessions.Get(sid)
 	return session.(*z_type.Session)
 }
 
-func (s *Sdk) GetSessionStr(sid string)  string {
+func (this *Sdk) GetSessionStr(sid string)  string {
 
 
 	user_session, exist := global.SyncUserSessions.Get(sid)
@@ -187,35 +237,35 @@ func (s *Sdk) GetSessionStr(sid string)  string {
 
 }
 
-func (s *Sdk) Kick(sid string) bool {
+func (this *Sdk) Kick(sid string) bool {
 
 	return true
 
 }
 
-func (s *Sdk) CreateChannel(id string, name string) bool {
+func (this *Sdk) CreateChannel(id string, name string) bool {
 
 	area.CreateChannel(id, name)
 	return true
 }
 
-func (s *Sdk) RemoveChannel(id string) bool {
+func (this *Sdk) RemoveChannel(id string) bool {
 
 	return true
 }
 
-func (s *Sdk) GetChannels() bool {
+func (this *Sdk) GetChannels() bool {
 
 	return true
 }
 
-func (s *Sdk) GetSidsByChannel(channel_id string) bool {
+func (this *Sdk) GetSidsByChannel(channel_id string) bool {
 
 	return true
 
 }
 
-func (s *Sdk) ChannelAddSid(sid string, area_id string) bool {
+func (this *Sdk) ChannelAddSid(sid string, area_id string) bool {
 
 
 	exist := area.CheckChannelExist(area_id)
@@ -253,21 +303,21 @@ func (s *Sdk) ChannelAddSid(sid string, area_id string) bool {
 
 }
 
-func (s *Sdk) ChannelKickSid(sid string, area_id string) bool {
+func (this *Sdk) ChannelKickSid(sid string, area_id string) bool {
 
 	area.UnSubscribeChannel( area_id,sid)
 	return true
 
 }
 
-func (s *Sdk) Push(from_sid string, to_sid string, msg string) bool {
+func (this *Sdk) Push(from_sid string, to_sid string, msg string) bool {
 
 	area.Push(to_sid, from_sid, msg)
 	return true
 
 }
 
-func (s *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
+func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 	for _,to_sid:=   range to_sids {
 		area.Push(to_sid, from_sid, msg)
@@ -277,7 +327,7 @@ func (s *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 }
 
 
-func (s *Sdk) BroadcastAll(msg string) bool {
+func (this *Sdk) BroadcastAll(msg string) bool {
 
 	return true
 

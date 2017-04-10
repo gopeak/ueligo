@@ -2,7 +2,6 @@ package hub
 
 import (
 	"morego/golog"
-	"morego/lib/antonholmquist/jason"
 	"morego/lib/robfig/cron"
 	json_orgin "encoding/json"
 	//"fmt"
@@ -16,8 +15,12 @@ import (
 	"fmt"
 )
 
+type Api struct {
+
+}
+
 // 获取服务器的根路径
-func GetBase() string {
+func (api *Api)GetBase() string {
 
 	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
 	if err != nil {
@@ -27,13 +30,9 @@ func GetBase() string {
 
 }
 
-func GetConfig() *jason.Object {
 
-	return global.ConfigJson
 
-}
-
-func GetEnableStatus() bool {
+func (api *Api)GetEnableStatus() bool {
 	if global.AppConfig.Enable <= 0 {
 		return false
 	} else {
@@ -42,21 +41,21 @@ func GetEnableStatus() bool {
 
 }
 
-func Enable() bool {
+func (api *Api)Enable() bool {
 
 	global.AppConfig.Enable = 1
 	return true
 
 }
 
-func Disable() bool {
+func (api *Api)Disable() bool {
 
 	global.AppConfig.Enable = 0
 	return true
 
 }
 
-func AddCron(expression string, exefnc func()) bool {
+func (api *Api)AddCron(expression string, exefnc func()) bool {
 
 	if cron, ok := global.Crons[expression]; ok {
 		golog.Info("cron exist :", cron)
@@ -70,7 +69,7 @@ func AddCron(expression string, exefnc func()) bool {
 
 }
 
-func RemoveCron(expression string) bool {
+func (api *Api)RemoveCron(expression string) bool {
 
 	if cron, ok := global.Crons[expression]; ok {
 		delete(global.Crons, expression)
@@ -83,24 +82,24 @@ func RemoveCron(expression string) bool {
 
 }
 
-func Get(key string) bool {
+func (api *Api)Get(key string) bool {
 
 	return true
 
 }
 
-func Set(key string, value string) bool {
+func (api *Api)Set(key string, value string) bool {
 
 	return true
 
 }
 
-func GetSession(sid string) *z_type.Session  {
+func (api *Api)GetSession(sid string) *z_type.Session  {
 	session, _ := global.SyncUserSessions.Get(sid)
 	return session.(*z_type.Session)
 }
 
-func GetSessionStr(sid string)  string {
+func (api *Api)GetSessionStr(sid string)  string {
 
 	user_session, exist := global.SyncUserSessions.Get(sid)
 	js1 := []byte(`{}`)
@@ -111,35 +110,35 @@ func GetSessionStr(sid string)  string {
 
 }
 
-func Kick(sid string) bool {
+func (api *Api)Kick(sid string) bool {
 
 	return true
 
 }
 
-func CreateChannel(id string, name string) bool {
+func (api *Api)CreateChannel(id string, name string) bool {
 
 	area.CreateChannel(id, name)
 	return true
 }
 
-func RemoveChannel(id string) bool {
+func (api *Api)RemoveChannel(id string) bool {
 
 	return true
 }
 
-func GetChannels() bool {
+func (api *Api)GetChannels() bool {
 
 	return true
 }
 
-func GetSidsByChannel(channel_id string) bool {
+func (api *Api)GetSidsByChannel(channel_id string) bool {
 
 	return true
 
 }
 
-func ChannelAddSid(sid string, area_id string) bool {
+func (api *Api)ChannelAddSid(sid string, area_id string) bool {
 
 
 	exist := area.CheckChannelExist(area_id)
@@ -177,21 +176,21 @@ func ChannelAddSid(sid string, area_id string) bool {
 
 }
 
-func ChannelKickSid(sid string, area_id string) bool {
+func (api *Api)ChannelKickSid(sid string, area_id string) bool {
 
 	area.UnSubscribeChannel( area_id,sid)
 	return true
 
 }
 
-func Push(from_sid string, to_sid string, msg string) bool {
+func (api *Api)Push(from_sid string, to_sid string, msg string) bool {
 
 	area.Push(to_sid, from_sid, msg)
 	return true
 
 }
 
-func PushBySids(from_sid string,to_sids []string, msg string) bool {
+func (api *Api)PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 	for _,to_sid:=   range to_sids {
 		area.Push(to_sid, from_sid, msg)
@@ -201,7 +200,7 @@ func PushBySids(from_sid string,to_sids []string, msg string) bool {
 }
 
 
-func BroadcastAll(msg string) bool {
+func (api *Api)BroadcastAll(msg string) bool {
 
 	return true
 

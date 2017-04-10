@@ -32,6 +32,8 @@ const (
 )
 
 
+
+
 /**
  * 封包返回错误的消息
  */
@@ -47,6 +49,13 @@ func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
 	str := fmt.Sprintf("%d||%s||%s||%d||%s", TypeReply, cmd, from_sid, req_id, data)
 	return str
 }
+
+
+func WrapReqStr(  cmd string, from_sid string, req_id int,data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+	return str
+}
+
 
 
 func WrapPushRespStr(  from_sid string, data string ) string {

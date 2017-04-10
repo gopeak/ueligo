@@ -27,7 +27,7 @@ func (this ReturnType)Auth( conn *net.TCPConn, cmd string, req_sid string ,req_i
 
 func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	sdk:= new(Sdk)
+	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
 	this.Data=sdk.GetSessionStr( req_sid )
 	fmt.Println( this.Data )
 	return this.Data
@@ -36,11 +36,20 @@ func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid str
 
 func (this ReturnType)JoinChannel( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	if(   ChannelAddSid( req_sid ,req_data) ){
+	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
+	if(   sdk.ChannelAddSid( req_sid ,req_data) ){
 		return "ok"
 	}else{
 		return "failed"
 	}
+
+}
+
+
+func (this ReturnType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+
+	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
+	return sdk.GetBase()
 
 }
 

@@ -331,34 +331,5 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	}
 
-	if cmd == "set" {
-		key, _ := ret_json.GetString("key")
-		data, _ := ret_json.GetString("data")
-		_, err := Set(key, data)
-		if err == nil {
-			conn.Write([]byte(`ok`))
-		} else {
-			conn.Write([]byte(`data server error!`))
-		}
-	}
-
-	if cmd == "get" {
-		key, _ := ret_json.GetString("key")
-		reply, err := Get(key)
-		if err == nil {
-			conn.Write([]byte(reply))
-		} else {
-			conn.Write([]byte(`error`))
-		}
-	}
-	if cmd == "delete" {
-		key, _ := ret_json.GetString("key")
-		_, err := Delete(key)
-		if err == nil {
-			conn.Write([]byte(`ok`))
-		} else {
-			conn.Write([]byte(`data server error!`))
-		}
-	}
 
 }
