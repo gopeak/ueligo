@@ -57,7 +57,6 @@ func WrapReqStr(  cmd string, from_sid string, req_id int,data string ) string {
 }
 
 
-
 func WrapPushRespStr(  from_sid string, data string ) string {
 	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
 	return str
@@ -120,4 +119,31 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 	// 去除换行符
 	broadcast_data = strings.Replace(broadcast_data, "\n", "", -1)
 	return err,from_sid,area_id,broadcast_data
+}
+
+
+
+func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+	return str
+}
+
+
+func ParseHubReqData(str string) ( error ,int ,string,string,int,string){
+
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 5 {
+		err = errors.New("request data length error")
+		return err,0,"","",0,""
+	}
+	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
+	cmd := msg_arr[MSG_CMD_INDEX];
+	req_sid := msg_arr[MSG_SID_INDEX]
+	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
+	req_data := msg_arr[MSG_DATA_INDEX]
+	// 去除换行符
+	req_data = strings.Replace(req_data, "\n", "", -1)
+	return err,_type,cmd,req_sid,req_id,req_data
 }

@@ -8,7 +8,7 @@ package global
 import (
 	"fmt"
 	"net"
-	"morego/lib/antonholmquist/jason"
+	"github.com/antonholmquist/jason"
 	"morego/lib/robfig/cron"
 	"morego/lib/syncmap"
 	"github.com/gorilla/websocket"
@@ -30,7 +30,6 @@ const (
 	DATA_WORKER_CONNECT = `3`
 	DATA_WORKER_REPLY   = `4`
 )
-
 
 
 // 服务器当前状态

@@ -7,17 +7,28 @@ import (
 	//"fmt"
 	"morego/area"
 	"morego/global"
-	z_type "morego/type"
 	"os"
 	"path/filepath"
 	"strings"
 	//"net"
 	"fmt"
+	"github.com/gorilla/websocket"
+	"gomore/connector"
+	"morego/protocol"
+	z_type "morego/type"
 )
 
 type Api struct {
 
+	Init func()
+
 }
+
+
+func (c *Api) Init(){
+
+}
+
 
 // 获取服务器的根路径
 func (api *Api)GetBase() string {
@@ -94,26 +105,40 @@ func (api *Api)Set(key string, value string) bool {
 
 }
 
-func (api *Api)GetSession(sid string) *z_type.Session  {
-	session, _ := global.SyncUserSessions.Get(sid)
-	return session.(*z_type.Session)
-}
-
-func (api *Api)GetSessionStr(sid string)  string {
-
-	user_session, exist := global.SyncUserSessions.Get(sid)
-	js1 := []byte(`{}`)
-	if exist {
-		js1, _ = json_orgin.Marshal(user_session)
+func (api *Api)GetSession(sid string) string {
+	session,exist := global.SyncUserSessions.Get(sid)
+	if !exist {
+		return "{}"
 	}
-	return string(js1)
-
+	str,err := json_orgin.Marshal(session)
+	if( err!=nil){
+		golog.Error("Api GetSession json Marshal err:",err.Error())
+		return "{}"
+	}
+	return str
 }
+
 
 func (api *Api)Kick(sid string) bool {
 
-	return true
+	user_conn := area.GetConn(sid)
+	if user_conn != nil {
+		// 通知消息退出
+		user_conn.Write(protocol.WrapRespErrStr("kicked"))
+		connector.FreeConn(user_conn,sid )
+		area.DeleteConn(sid)
+	}
 
+	user_wsconn := area.GetWsConn(sid)
+	if user_wsconn != nil {
+		// 通知消息退出
+		go user_wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapRespErrStr("kicked")) )
+		connector.FreeWsConn( user_wsconn,sid)
+	}
+	area.UserUnSubscribeChannel(sid)
+	area.DeleteUserssion(sid)
+
+	return true
 }
 
 func (api *Api)CreateChannel(id string, name string) bool {
@@ -124,22 +149,28 @@ func (api *Api)CreateChannel(id string, name string) bool {
 
 func (api *Api)RemoveChannel(id string) bool {
 
+	area.RemovChannel(id)
 	return true
 }
 
-func (api *Api)GetChannels() bool {
+func (api *Api)GetChannels() string {
 
-	return true
+	str, err := json_orgin.Marshal(global.Channels)
+	if( err!=nil ){
+		return "{}"
+	}
+	return str
+
 }
 
-func (api *Api)GetSidsByChannel(channel_id string) bool {
+func (api *Api)GetSidsByChannel(channel_id string) string {
 
-	return true
+	return json_orgin.Marshal(area.GetSidsByChannel(channel_id))
 
 }
+
 
 func (api *Api)ChannelAddSid(sid string, area_id string) bool {
-
 
 	exist := area.CheckChannelExist(area_id)
 	fmt.Println( area_id," CheckChannelExist:", exist )
@@ -199,9 +230,50 @@ func (api *Api)PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 }
 
+func (this *Api) Broadcast( sid string, area_id string, msg string) bool {
 
-func (api *Api)BroadcastAll(msg string) bool {
-
+	area.Broatcast( sid, area_id ,msg)
 	return true
 
 }
+
+func (this *Api) UpdateSession( sid string, data string ) bool {
+
+	tmp, user_session_exist := global.SyncUserSessions.Get(sid)
+	var user_session *z_type.Session
+	if user_session_exist {
+		user_session = tmp.(*z_type.Session)
+		user_session.User = data
+		global.SyncUserSessions.Set(sid, user_session)
+	}
+	return true
+
+}
+
+
+
+func (api *Api)BroadcastAll(msg string) bool {
+	area.BroatcastGlobal("GM",msg)
+	return true
+
+}
+
+
+
+func (api *Api)GetUserJoinedChannel(sid string) string {
+
+	return json_orgin.Marshal(area.GetSidsByChannel(sid))
+
+}
+
+func (api *Api)GetAllSession( ) string {
+
+	var UserSessions = map[string]*z_type.Session{}
+	for item := range global.SyncUserSessions.IterItems() {
+		UserSessions[item.Key] = item.Value.(*z_type.Session)
+	}
+	ret, _ := json_orgin.Marshal(UserSessions)
+	return  ret
+
+}
+

@@ -7,17 +7,20 @@ package hub
 
 import (
 	"bufio"
-	json2 "encoding/json"
+	//json2 "encoding/json"
 	"fmt"
 	"net"
-	"morego/area"
+	//"morego/area"
 	"morego/global"
 	"morego/golog"
-	"morego/lib/antonholmquist/jason"
-	"github.com/gorilla/websocket"
-	z_type "morego/type"
+	"github.com/antonholmquist/jason"
+	//"github.com/gorilla/websocket"
+	//z_type "morego/type"
+	"morego/protocol"
 	"strconv"
 	"time"
+	//"reflect"
+	"gomore/hub"
 )
 
 /**
@@ -66,9 +69,7 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-
 		msg, err := reader.ReadBytes('\n')
-
 		if err != nil {
 			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
 			// 超时处理
@@ -79,11 +80,7 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 			break
 
 		}
-		if msg == nil {
-			continue
-		}
 		//fmt.Println("handleHub  from :" , msg)
-
 		go hubWorkeDispath(msg, conn)
 
 	}
@@ -102,234 +99,228 @@ func closeHubConn(conn *net.TCPConn) {
 func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	//  Process messages as they arrive
+	msg_err,_type,cmd,sid,reqid,data := protocol.ParseHubReqData(string(msg))
+	if( msg_err!=nil ){
+		fmt.Println( "hubWorkeDispath err:",_type,cmd,sid,reqid,data )
+	}
+	api := new(*Api)
 
-	//fmt.Println( "hubWorkeDispath:", string(msg) )
-
-	// 角色登录成功后
-	ret_json, _ := jason.NewObjectFromBytes(msg)
-	cmd, _ := ret_json.GetString("cmd")
-
-	if cmd == "get_enable" {
+	if cmd == "GetBase" {
 
 		conn.Write([]byte(string(global.AppConfig.Enable)))
 		conn.Close()
+		return
 	}
 
-	if cmd == "enabled" {
+	if cmd == "GetEnableStatus" {
+		conn.Write([]byte(string(global.AppConfig.Enable)))
+	}
+
+	if cmd == "Enable" {
 		global.AppConfig.Enable = 1
 		conn.Write([]byte(string(global.AppConfig.Enable)))
 	}
 
-	if cmd == "disabled" {
+	if cmd == "Disable" {
 		global.AppConfig.Enable = 0
-		conn.Write([]byte(string(global.AppConfig.Enable)))
+		conn.Write([]byte(string(`1`)))
 	}
 
-	// 创建场景
-	if cmd == "create_channel" {
-
-		name, _ := ret_json.GetString("name")
-		golog.Debug(" join_channel ", name)
-
-		go area.CreateChannel(name, name)
-		global.Channels[name] = ""
-
-		conn.Write([]byte(`ok`))
-	}
-
-	// 销毁场景
-	if cmd == "remove_channel" {
-
-		id, _ := ret_json.GetString("name")
-		golog.Debug("remove_channel:", id)
-		area.RemovChannel(id)
-		conn.Write([]byte(`ok`))
-
-	}
-	// 加入到一个场景中
-	if cmd == "join_channel" {
-
-		sid, _ := ret_json.GetString("sid")
-		name, _ := ret_json.GetString("name")
-		golog.Debug("join_channel:", sid, name)
-
-		// 如果场景不存在，则返回错误
-		exist := area.CheckChannelExist(name)
-		if !exist {
-
-			conn.Write([]byte(`error,channel not exist`))
-
-		} else {
-
-			// 检查会话用户是否加入过此场景
-			have_joined := area.CheckUserJoinChannel(name, sid)
-
-			// 如果还没有加入场景,则订阅
-			if !have_joined {
-				user_conn := area.GetConn(sid)
-				channel_host := global.Channels[name]
-				golog.Debug(" join_channel ", user_conn, channel_host, sid)
-				user_wsconn := area.GetWsConn(sid)
-
-				// 会话如果属于socket
-				if user_conn != nil {
-					go area.SubscribeChannel(name, user_conn, sid)
-				}
-				// 会话如果属于websocket
-				if user_wsconn != nil {
-					go area.SubscribeWsChannel(name, user_wsconn, sid)
-				}
-				var userJoinedChannels = make([]string, 0, 1000)
-				tmp, ok := global.SyncUserJoinedChannels.Get(sid)
-				if ok {
-					userJoinedChannels = tmp.([]string)
-				}
-				userJoinedChannels = append(userJoinedChannels, name)
-				global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
-			}
-
-			conn.Write([]byte(`ok`))
+	if cmd == "Get" {
+		str,err:=hub.Get(data)
+		if( err!=nil ) {
+			conn.Write([]byte(protocol.WrapRespErrStr(err.Error())))
+			return
 		}
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,str)))
+		return
+	}
+
+	if cmd == "Set" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub Set json err:",err_json.Error())
+			return
+		}
+		key,err_key := data_json.GetString("key")
+		value,err_v := data_json.GetString("value")
+		expire,err_e := data_json.GetInt64("expire")
+		if( err_key!=nil || err_v!=nil || err_e!=nil ){
+			golog.Error("Hub Set json err:",err_key.Error()+err_v.Error()+err_e.Error())
+			return
+		}
+		_,err:=hub.Set(key,value,expire)
+		if( err!=nil ) {
+			golog.Error("Hub Set err:",err.Error())
+		}
+		return
 
 	}
 
-	if cmd == "leave_channel" {
-
-		sid, _ := ret_json.GetString("sid")
-		name, _ := ret_json.GetString("name")
-		golog.Debug("remove_channel:", sid, name)
-		// 离开场景则关闭此订阅
-		go area.UnSubscribeChannel(name, sid)
-
-		user_channels, exist := global.UserChannels[sid]
-		if exist {
-			for i := 0; i < len(user_channels); i++ {
-				if user_channels[i] == name {
-					user_channels = append(user_channels[:i], user_channels[i+1:]...)
-					global.UserChannels[sid] = user_channels
-					break
-				}
-			}
-		}
-
-		golog.Debug("userChannels's ", sid, ":", global.UserChannels[sid])
-		golog.Debug("hub_worker leave_channel:", sid, name)
-		conn.Write([]byte(`ok`))
+	if cmd == "GetSession" {
+		str :=api.GetSession(data)
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,str)))
+		return
 	}
 
-	if cmd == "kick" {
-		sid, _ := ret_json.GetString("sid")
-		user_conn := area.GetConn(sid)
-		if user_conn != nil {
-			// 发送消息退出
-			user_conn.Write([]byte(`{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`))
-			user_conn.Close()
-			area.DeleteConn(sid)
-		}
-
-		user_wsconn := area.GetWsConn(sid)
-		if user_wsconn != nil {
-			// 发送消息退出
-			//websocket.Message.Send(user_wsconn, `{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`)
-			go user_wsconn.WriteMessage(websocket.TextMessage, []byte(`{"cmd":"error_","data":{"ret":0,"msg":"Server kicked " }}`) )
-			area.DeleteWsConn(sid)
-		}
-		area.UserUnSubscribeChannel(sid)
-		area.DeleteUserssion(sid)
-		conn.Write([]byte(`ok`))
-	}
-	if cmd == "push" {
-
-		sid, _ := ret_json.GetString("sid")
-		push_data, _ := ret_json.GetString("data")
-
-		user_conn := area.GetConn(sid)
-		if user_conn != nil {
-			user_conn.Write([]byte(fmt.Sprintf("%s\r\n", push_data)))
-		}
-		user_wsconn := area.GetWsConn(sid)
-		if user_wsconn != nil {
-			//websocket.Message.Send(user_wsconn, fmt.Sprintf("%s\r\n", push_data))
-			go user_wsconn.WriteMessage(websocket.TextMessage, []byte(fmt.Sprintf("%s\r\n", push_data)) )
-		}
-
-		golog.Debug("hub_worker push to  --------------->:", sid, push_data)
-		conn.Write([]byte(`ok`))
+	if cmd == "Kick" {
+		ret :=api.Kick(data)
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
 	}
 
-	if cmd == "broatcast" {
-		sid, _ := ret_json.GetString("sid")
-		channel, _ := ret_json.GetString("id")
-		data, _ := ret_json.GetString("data")
-		area.Broatcast( sid,channel, data)
-		golog.Debug("hub_worker broadcast to :", channel, "   ", data)
-		conn.Write([]byte(`ok`))
-	}
-
-	if cmd == "get_channels" {
-
-		js1, _ := json2.Marshal(global.Channels)
-		fmt.Println("(global.Channels:", (global.Channels))
-		conn.Write(js1)
-		conn.Close()
-	}
-
-	if cmd == "get_session" {
-
-		sid, _ := ret_json.GetString("sid")
-		user_session, exist := global.SyncUserSessions.Get(sid)
-		js1 := []byte(`{}`)
-		if exist {
-			js1, _ = json2.Marshal(user_session)
+	if cmd == "CreateChannel" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub Set json err:",err_json.Error())
+			return
 		}
-		conn.Write(js1)
-		conn.Close()
-	}
-
-	if cmd == "get_all_session" {
-
-		var UserSessions = map[string]*z_type.Session{}
-		for item := range global.SyncUserSessions.IterItems() {
-			UserSessions[item.Key] = item.Value.(*z_type.Session)
+		id,err1 := data_json.GetString("id")
+		name,err2 := data_json.GetString("name")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub Set json err:",err1.Error()+err2.Error() )
+			return
 		}
-		js1, _ := json2.Marshal(UserSessions)
-		conn.Write(js1)
-		conn.Close()
+		ret:=api.CreateChannel( id, name )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
 
 	}
 
-	if cmd == "update_session" {
-
-		sid, _ := ret_json.GetString("sid")
-		data, _ := ret_json.GetString("data")
-		tmp, user_session_exist := global.SyncUserSessions.Get(sid)
-		var user_session *z_type.Session
-		if user_session_exist {
-			user_session = tmp.(*z_type.Session)
-			user_session.User = data
-			global.SyncUserSessions.Set(sid, user_session)
-		}
-
-		golog.Info("User Session  :", sid, user_session)
-		conn.Write([]byte(`ok`))
+	if cmd == "RemoveChannel" {
+		ret :=api.RemoveChannel(data)
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
 	}
 
-	if cmd == "get_user_join_channels" {
+	if cmd == "GetChannels" {
+		ret :=api.GetChannels()
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
 
-		sid, _ := ret_json.GetString("sid")
-		js1 := []byte(`[]`)
+	if cmd == "GetSidsByChannel" {
+		ret :=api.GetSidsByChannel( data )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
 
-		tmp, ok := global.SyncUserJoinedChannels.Get(sid)
-		if ok {
-			userJoinedChannels := tmp.([]string)
-			js1, _ = json2.Marshal(userJoinedChannels)
-
+	if cmd == "ChannelAddSid" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub ChannelAddSid json err:",err_json.Error())
+			return
 		}
-		// 发送消息退出
-		conn.Write(js1)
-		conn.Close()
+		sid,err1 := data_json.GetString("sid")
+		area_id,err2 := data_json.GetString("area_id")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub ChannelAddSid json err:",err1.Error()+err2.Error() )
+			return
+		}
+		ret :=api.ChannelAddSid(sid, area_id )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+	if cmd == "ChannelKickSid" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub ChannelKickSid json err:",err_json.Error())
+			return
+		}
+		sid,err1 := data_json.GetString("sid")
+		area_id,err2 := data_json.GetString("area_id")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub ChannelKickSid json err:",err1.Error()+err2.Error() )
+			return
+		}
+		ret :=api.ChannelKickSid(sid, area_id )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+
+	if cmd == "Push" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub Push json err:",err_json.Error())
+			return
+		}
+		from_sid,err1 := data_json.GetString("from_sid")
+		to_sid,err2 := data_json.GetString("to_sid")
+		to_data,err2 := data_json.GetString("msg")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub Push json err:",err1.Error()+err2.Error() )
+			return
+		}
+		ret :=api.Push(from_sid, to_sid ,to_data )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+
+	if cmd == "BroadcastAll" {
+		ret :=api.BroadcastAll(data)
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+
+
+	if cmd == "Broatcast" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub Broatcast json err:",err_json.Error())
+			return
+		}
+		sid,err1 := data_json.GetString("sid")
+		area_sid,err2 := data_json.GetString("area_sid")
+		to_data,err2 := data_json.GetString("msg")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub data_json json err:",err1.Error()+err2.Error() )
+			return
+		}
+		ret :=api.Broadcast(sid, area_sid ,to_data )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+
+	if cmd == "UpdateSession" {
+
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub UpdateSession json err:",err_json.Error())
+			return
+		}
+		sid,err1 := data_json.GetString("sid")
+		to_data,err2 := data_json.GetString("data")
+		if( err1!=nil || err2!=nil )  {
+			golog.Error("Hub UpdateSession json err:",err1.Error()+err2.Error() )
+			return
+		}
+		ret :=api.UpdateSession(sid, to_data )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+	}
+
+	if cmd == "GetUserJoinedChannel" {
+		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		if( err_json!=nil ) {
+			golog.Error("Hub UpdateSession json err:",err_json.Error())
+			return
+		}
+		sid, _ := data_json.GetString("sid")
+		ret :=api.GetUserJoinedChannel(sid )
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
+
+	}
+
+	if cmd == "GetAllSession" {
+
+		ret :=api.GetAllSession()
+		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		return
 
 	}
 
 
 }
+
+

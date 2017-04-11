@@ -110,6 +110,23 @@ func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 }
 
 
+func GetSidsByChannel(channel_id string) []string {
+
+	ret := make([]string,0)
+	if( global.SyncRpcChannelConns.Has( channel_id ) ){
+		var channel *syncmap.SyncMap
+		item,ok:= global.SyncRpcChannelConns.Get(channel_id)
+		if( ok ){
+			channel = item.(*syncmap.SyncMap)
+			for key,_ := range channel.IterItems(){
+				ret=append(ret,key)
+			}
+
+		}
+	}
+	return ret
+
+}
 
 /**
  *  socket连接 加入到全局场景中

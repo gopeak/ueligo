@@ -8,7 +8,7 @@ import (
    "time" 
    "encoding/json" 
    "morego/protocol"
-   "morego/lib/antonholmquist/jason"
+   "github.com/antonholmquist/jason"
    "morego/global"
    //"io/ioutil"
    "net"

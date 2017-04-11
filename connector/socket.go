@@ -9,7 +9,7 @@ import (
 	"morego/area"
 	"morego/global"
 	"morego/golog"
-	"morego/lib/antonholmquist/jason"
+	"github.com/antonholmquist/jason"
 	//flatbuffers "github.com/google/flatbuffers/go"
 	"morego/protocol"
 	"morego/worker"

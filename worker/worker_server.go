@@ -14,7 +14,7 @@ import (
 	"net"
 	//"os"
 	"encoding/json"
-	"morego/lib/antonholmquist/jason"
+	"github.com/antonholmquist/jason"
 	"time"
 	"reflect"
 	"os/exec"
@@ -34,7 +34,6 @@ func InitWorkerServer() {
 		if worker_language == "go" {
 			go WorkerServer(host, port)
 		}
-
 	}
 	//fmt.Println("global.WorkerServers:", global.WorkerServers)
 }
@@ -211,7 +210,8 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	data:=InvokeObjectMethod( new(ReturnType),cmd, conn, cmd,  req_sid, req_id,req_data )
+	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
+	data:=InvokeObjectMethod( task_obj,cmd )
 	//fmt.Println( "Invoker:", data )
 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 	//fmt.Println( "resp_str:", resp_str )

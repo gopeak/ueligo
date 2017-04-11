@@ -13,7 +13,7 @@ import (
 	"time"
 	//"encoding/json"
 	"morego/golog"
-	"morego/lib/antonholmquist/jason"
+	"github.com/antonholmquist/jason"
 
 	"github.com/gorilla/websocket"
 

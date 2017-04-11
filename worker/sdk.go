@@ -2,33 +2,21 @@ package worker
 
 import (
 	"morego/golog"
-	"morego/lib/antonholmquist/jason"
 	"morego/lib/robfig/cron"
-	json_orgin "encoding/json"
 	//"fmt"
-	"morego/area"
 	"morego/global"
 	z_type "morego/type"
-	"os"
-	"path/filepath"
-	"strings"
 	//"net"
 	"fmt"
 	"time"
-	"sync"
-	"container/list"
 	"net"
-	"strconv"
 	"morego/protocol"
-	"runtime"
-	"log"
 	"morego/hub"
 	"bufio"
 )
 
 
 type Sdk struct {
-
 
 
 	Connected bool
@@ -93,6 +81,18 @@ type Sdk struct {
 
 }
 
+func (this *Sdk) Init(cmd string,sid string,reqid int,data string) *Sdk{
+
+	this.Cmd = cmd
+	this.Sid = sid
+	this.Reqid = reqid
+	this.Data = data
+	this.Connected = false
+	return this
+}
+
+
+
 // 数据连接
 func (this *Sdk) connect() bool{
 
@@ -114,70 +114,111 @@ func (this *Sdk) connect() bool{
 
 }
 
+// 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
+func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
+
+	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	this.HubConn.Write([]byte(req_str))
+	reader := bufio.NewReader(this.HubConn)
+
+	for {
+		buf, err := reader.ReadBytes('\n')
+		select {
+
+		case <- time.After(5 * time.Second):
+			return "time 5 second",false
+
+		default:
+			if err != nil {
+				this.HubConn.Close()
+				return err.Error(),false
+
+			}
+			errcode, _, resp_cmd, _, _, msg_data := protocol.ParseRplyData(string(buf))
+			if( errcode==protocol.TypeError ){
+				golog.Error( "ReqHub resp err:",msg_data)
+				return msg_data,false
+			}
+			if resp_cmd == req_cmd{
+				this.HubConn.Close()
+				return msg_data,true
+			}
+		}
+	}
+
+	return "",false
+}
+
+func (this *Sdk) PushHub( req_cmd string , data string ) bool {
+
+	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	_,err:=this.HubConn.Write([]byte(req_str))
+
+	if( err!=nil ) {
+		return false
+	}
+
+	return true
+}
+
 // 获取服务器的根路径
 func (this *Sdk)  GetBase() string {
 
 	// 单机模式直接返回内存中数据
 	if( global.SingleMode ) {
-		return hub.GetBase()
+		api := new(hub.Api)
+		return api.GetBase()
 	}
+
 	this.connect()
-	req_str := protocol.WrapReqStr("GetBase",this.Sid,this.Reqid,this.Data)
-	this.HubConn.Write([]byte(req_str))
-	reader := bufio.NewReader(this.HubConn)
-	chan_ret := make(chan string)
-	// 监听返回
-	go func ( ) {
-		for {
-			buf, err := reader.ReadBytes('\n')
-			//fmt.Println("worker_task response:", msg)
-			if err != nil {
-				this.HubConn.Close()
-				chan_ret <- ""
-				break
-			}
-			_, _, cmd, _, _, msg_data := protocol.ParseRplyData(string(buf))
 
-			if cmd == "GetBase" {
-				this.HubConn.Close()
-				chan_ret <- msg_data
-				break
-			}
-		}
-	}()
-
-	select {
-	case ret := <- chan_ret:
+	ret,ok :=this.ReqHub( "GetBase","" )
+	if ok {
 		return ret
-	case <- time.After(5 * time.Second):
-		return ""
 	}
-
-	return
+	return ""
 
 }
 
 
+
 func (this *Sdk) GetEnableStatus() bool {
-	if global.AppConfig.Enable <= 0 {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetEnableStatus()
+	}
+
+	ret,ok:= this.ReqHub( "GetEnableStatus","" )
+	if( !ok ){
 		return false
-	} else {
+	}
+	if( ret=="1" ){
 		return true
+	}else{
+		return false
 	}
 
 }
 
 func (this *Sdk) Enable() bool {
 
-	global.AppConfig.Enable = 1
-	return true
+	if( global.SingleMode ) {
+		global.AppConfig.Enable = 1
+		return true
+	}
+	return this.PushHub( "Enable","")
+
 
 }
 
 func (this *Sdk) Disable() bool {
 
-	global.AppConfig.Enable = 0
-	return true
+	if( global.SingleMode ) {
+		global.AppConfig.Enable = 0
+		return true
+	}
+	return this.PushHub( "Disable","")
 
 }
 
@@ -208,119 +249,159 @@ func (this *Sdk) RemoveCron(expression string) bool {
 
 }
 
-func (this *Sdk) Get(key string) bool {
+func (this *Sdk) Get(key string) string {
 
-	return true
+	if( global.SingleMode ) {
+		str,err:=hub.Get(key)
+		if err!=nil {
+			golog.Error("Redis Get err:",err.Error())
+			return ""
+		}
+		return str
+	}
+
+	ret,ok := this.ReqHub( "Get",key )
+	if( !ok ) {
+		return ""
+	}
+	return ret
 
 }
 
-func (this *Sdk) Set(key string, value string) bool {
+func (this *Sdk) Set(key string, value string,expire int) bool {
 
-	return true
+	if( global.SingleMode ) {
+		ret,err:=hub.Set(key,value,expire)
+		if err!=nil {
+			golog.Error("Redis Set err:",err.Error())
+			return false
+		}
+		return ret
+	}
+	json:=fmt.Sprintf(`{"key":"%s","value":"%s","expire":%d}`,key,value,expire)
+	ret:= this.PushHub( "Set",json )
+	return ret
 
 }
+// 该方法仅在单机模式下调用
+func (this *Sdk) GetSessionType(sid string) *z_type.Session  {
 
-func (this *Sdk) GetSession(sid string) *z_type.Session  {
-	session, _ := global.SyncUserSessions.Get(sid)
+	session,exist := global.SyncUserSessions.Get(sid)
+	if !exist {
+		return nil
+	}
 	return session.(*z_type.Session)
 }
 
-func (this *Sdk) GetSessionStr(sid string)  string {
+func (this *Sdk) GetSession(sid string)  string {
 
-
-	user_session, exist := global.SyncUserSessions.Get(sid)
-	js1 := []byte(`{}`)
-	if exist {
-		js1, _ = json_orgin.Marshal(user_session)
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetSession( sid )
 	}
-	return string(js1)
+	ret,ok := this.ReqHub( "GetSession",sid )
+	if !ok{
+		return ""
+	}
+	return ret
 
 }
 
 func (this *Sdk) Kick(sid string) bool {
 
-	return true
-
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.Kick( sid )
+	}
+	return this.PushHub( "Kick",sid)
 }
 
 func (this *Sdk) CreateChannel(id string, name string) bool {
 
-	area.CreateChannel(id, name)
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.CreateChannel( id,name )
+	}
+	json:=fmt.Sprintf(`{"id":"%s","name":"%s","expire":%d}`,id,name)
+	return this.PushHub( "CreateChannel",json)
+
 }
 
 func (this *Sdk) RemoveChannel(id string) bool {
 
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.RemoveChannel( id )
+	}
+	return this.PushHub( "RemoveChannel",id)
 }
 
-func (this *Sdk) GetChannels() bool {
+func (this *Sdk) GetChannels() string {
 
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetChannels(  )
+	}
+	ret,ok := this.ReqHub( "GetChannels","" )
+	if( !ok ) {
+		return "{}"
+	}
+	return ret
 }
 
-func (this *Sdk) GetSidsByChannel(channel_id string) bool {
 
-	return true
+
+func (this *Sdk) GetSidsByChannel(channel_id string) string {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetSidsByChannel( channel_id )
+	}
+	ret,ok :=  this.ReqHub( "GetSidsByChannel",channel_id )
+	if( !ok ) {
+		return "{}"
+	}
+	return ret
 
 }
 
 func (this *Sdk) ChannelAddSid(sid string, area_id string) bool {
 
-
-	exist := area.CheckChannelExist(area_id)
-	fmt.Println( area_id," CheckChannelExist:", exist )
-	if !exist {
-		return false
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.ChannelAddSid( sid, area_id  )
 	}
-
-	// 检查会话用户是否加入过此场景
-	have_joined := area.CheckUserJoinChannel(area_id, sid)
-	fmt.Println( "have_joined:", have_joined )
-	// 如果还没有加入场景,则订阅
-	if !have_joined {
-		user_conn := area.GetConn(sid)
-		user_wsconn := area.GetWsConn(sid)
-		// 会话如果属于socket
-		if user_conn != nil {
-			area.SubscribeChannel(area_id, user_conn, sid)
-		}
-		// 会话如果属于websocket
-		if user_wsconn != nil {
-			area.SubscribeWsChannel(area_id, user_wsconn, sid)
-		}
-		// 该用户加入过的场景列表
-		var userJoinedChannels = make([]string, 0, 1000)
-		tmp, ok := global.SyncUserJoinedChannels.Get(sid)
-		if ok {
-			userJoinedChannels = tmp.([]string)
-		}
-		userJoinedChannels = append(userJoinedChannels, area_id)
-		global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
-	}
-
-	return true
+	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
+	return this.PushHub( "ChannelAddSid",json)
 
 }
 
-func (this *Sdk) ChannelKickSid(sid string, area_id string) bool {
+func (this *Sdk) ChannelKickSid( sid string, area_id string) bool {
 
-	area.UnSubscribeChannel( area_id,sid)
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.ChannelKickSid( sid, area_id  )
+	}
+	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
+	return this.PushHub( "ChannelKickSid",json)
 
 }
 
 func (this *Sdk) Push(from_sid string, to_sid string, msg string) bool {
 
-	area.Push(to_sid, from_sid, msg)
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.Push( from_sid, to_sid, msg  )
+	}
+	json:=fmt.Sprintf(`{"from_sid":"%s","to_sid":"%s","msg":"%s"}`,from_sid, to_sid, msg )
+	return this.PushHub( "Push",json)
 
 }
 
 func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 	for _,to_sid:=   range to_sids {
-		area.Push(to_sid, from_sid, msg)
+		this.Push(from_sid, to_sid, msg)
 	}
 	return true
 
@@ -329,6 +410,10 @@ func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 func (this *Sdk) BroadcastAll(msg string) bool {
 
-	return true
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.BroadcastAll(   msg  )
+	}
+	return this.PushHub( "BroadcastAll",msg)
 
 }

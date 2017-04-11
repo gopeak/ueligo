@@ -8,36 +8,53 @@ import (
 
 
 
-type ReturnType struct {
+type TaskType struct {
+
+	Conn * net.Conn
+
+	Cmd string
+
+	Sid string
+
+	Reqid int
+
 	Data string
-	Type  string
+
+
+}
+
+func (this *TaskType) Init( conn *net.Conn,cmd string,sid string,reqid int,data string ) *TaskType{
+
+	this.Cmd = cmd
+	this.Sid = sid
+	this.Reqid = reqid
+	this.Data = data
+	this.Conn = conn
+	return this
 }
 
 
+func (this TaskType)Auth(  ) string {
 
-
-
-func (this ReturnType)Auth( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
-
-
+	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	fmt.Println(sdk)
 	return "ok";
 
 }
 
 
-func (this ReturnType)GetUserSession( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+func (this TaskType)GetUserSession(   ) string {
 
-	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
-	this.Data=sdk.GetSessionStr( req_sid )
-	fmt.Println( this.Data )
-	return this.Data
+	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	return sdk.GetSession( this.Sid )
 
 }
 
-func (this ReturnType)JoinChannel( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+func (this TaskType)JoinChannel(   ) string {
 
-	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
-	if(   sdk.ChannelAddSid( req_sid ,req_data) ){
+	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+
+	if(   sdk.ChannelAddSid( this.Sid ,this.Data ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -46,9 +63,9 @@ func (this ReturnType)JoinChannel( conn *net.TCPConn, cmd string, req_sid string
 }
 
 
-func (this ReturnType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
+func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	sdk:=Sdk{ Connected:false,Cmd:cmd,Sid:req_sid,Reqid:req_id,Data:req_data}
+	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 	return sdk.GetBase()
 
 }
