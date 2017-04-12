@@ -32,41 +32,30 @@ const (
 )
 
 
-
-
 /**
- * 封包返回错误的消息
+ * 封包返回客户端错误的消息
  */
 func WrapRespErrStr(err string) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s", TypeError, "", "", 0, err)
+	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeError, "", "", 0, err)
 	return str
 }
 
 /**
- * 封包返回数据
+ * 客户端封包返回数据
  */
 func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s", TypeReply, cmd, from_sid, req_id, data)
+	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeReply, cmd, from_sid, req_id, data)
 	return str
 }
 
-
+/**
+ * 客户端封包请求数据
+ */
 func WrapReqStr(  cmd string, from_sid string, req_id int,data string ) string {
 	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
 	return str
 }
-
-
-func WrapPushRespStr(  from_sid string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
-	return str
-}
-
-func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"",from_sid ,area_id,data) ;
-	return str
-}
-
+// 解析服务器端请求返回的数据
 func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 
 	msg_arr := strings.Split(str, "||")
@@ -86,6 +75,13 @@ func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 	return err,_type,cmd,req_sid,req_id,req_data
 }
 
+
+func WrapPushRespStr(  from_sid string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
+	return str
+}
+
+// 解析服务器端PUSH过来的消息
 func ParseRplyPushData(str string) ( error , string, string ){
 
 	msg_arr := strings.Split(str, "||")
@@ -103,6 +99,12 @@ func ParseRplyPushData(str string) ( error , string, string ){
 	return err,from_sid,push_data
 }
 
+
+func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"",from_sid ,area_id,data) ;
+	return str
+}
+
 func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 
 	msg_arr := strings.Split(str, "||")
@@ -112,7 +114,6 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 		err = errors.New("request data length error")
 		return err,"","",""
 	}
-
 	from_sid := msg_arr[MSG_SID_INDEX]
 	area_id := msg_arr[MSG_CHANNEL_INDEX]
 	broadcast_data := msg_arr[MSG_DATA_INDEX]
@@ -122,13 +123,52 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 }
 
 
+/**
+ * 封包返回客户端错误的消息
+ */
+func WrapHubRespErrStr(err string,cmd string ) string {
+	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeError, cmd, "", 0, err)
+	return str
+}
 
+/**
+ * 客户端封包返回数据
+ */
+func WrapHubRespStr(cmd string, from_sid string, req_id int, data string) string {
+	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeReply, cmd, from_sid, req_id, data)
+	return str
+}
+
+// 封装请求Hub数据
 func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) string {
 	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
 	return str
 }
 
+/**
+ * 解析worker server返回的数据
+ */
+func ParseHubRplyData(str string) ( error ,int ,string,string,int,string){
 
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 5 {
+		err = errors.New("request data length error")
+		return err,0,"","",0,""
+	}
+	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
+	cmd := msg_arr[MSG_CMD_INDEX];
+	req_sid := msg_arr[MSG_SID_INDEX]
+	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
+	req_data := msg_arr[MSG_DATA_INDEX]
+	// 去除换行符
+	req_data = strings.Replace(req_data, "\n", "", -1)
+	return err,_type,cmd,req_sid,req_id,req_data
+}
+/**
+ * 解析Hub请求的数据
+ */
 func ParseHubReqData(str string) ( error ,int ,string,string,int,string){
 
 	msg_arr := strings.Split(str, "||")

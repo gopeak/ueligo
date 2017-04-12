@@ -215,13 +215,12 @@ func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data 
 	//fmt.Println( "Invoker:", data )
 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 	//fmt.Println( "resp_str:", resp_str )
-	conn.Write(append( []byte(resp_str),'\n'))
+	conn.Write(  []byte(resp_str) )
 	if( global.SingleMode ){
 		if cmd==global.AuthCcmd && data=="ok" {
 			area.ConnRegister( conn,req_sid)
 		}
 	}
-
 	return data
 
 }

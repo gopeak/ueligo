@@ -3,10 +3,8 @@ package worker
 import (
 	"morego/golog"
 	"morego/lib/robfig/cron"
-	//"fmt"
 	"morego/global"
 	z_type "morego/type"
-	//"net"
 	"fmt"
 	"time"
 	"net"
@@ -31,54 +29,6 @@ type Sdk struct {
 
 	Data string
 
-	/*
-	GetBase func() (string)
-
-	GetConfig func() (*jason.Object)
-
-	GetEnable func() bool
-
-	Enable func() bool
-
-	Disable func() bool
-
-	AddCron func(expression string, exefnc func()) bool
-
-	RemoveCron func(expression string) bool
-
-	Set func(key string, args ...interface{}) (bool, error)
-
-	Get func(key string) (string, error)
-
-	GetSession func(sid string) *z_type.Session
-
-	GetSessionStr func(sid string) string
-
-	Kick func(sid string) bool
-
-	CreateChannel func(id string, name string) bool
-
-	GetChannels func() map[string]string
-
-	RemoveChannel func(id string) bool
-
-	ChannelAddSid func(sid string, area_id string) bool
-
-	ChannelKickSid func(sid string, area_id string) bool
-
-	Push func(from_sid string, to_sid string, msg string) bool
-
-	PushBySids func(from_sid string,to_sids []string, msg string) bool
-
-	BroadcastAll func(msg string) bool
-
-	Broadcast func( area_id string,msg string) bool
-
-	*/
-
-
-
-
 }
 
 func (this *Sdk) Init(cmd string,sid string,reqid int,data string) *Sdk{
@@ -90,8 +40,6 @@ func (this *Sdk) Init(cmd string,sid string,reqid int,data string) *Sdk{
 	this.Connected = false
 	return this
 }
-
-
 
 // 数据连接
 func (this *Sdk) connect() bool{
@@ -118,6 +66,7 @@ func (this *Sdk) connect() bool{
 func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
 	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	this.connect()
 	this.HubConn.Write([]byte(req_str))
 	reader := bufio.NewReader(this.HubConn)
 
@@ -134,12 +83,13 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 				return err.Error(),false
 
 			}
-			errcode, _, resp_cmd, _, _, msg_data := protocol.ParseRplyData(string(buf))
-			if( errcode==protocol.TypeError ){
-				golog.Error( "ReqHub resp err:",msg_data)
-				return msg_data,false
-			}
+			errcode, _, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
 			if resp_cmd == req_cmd{
+				// 如果服务返回错误
+				if( errcode==protocol.TypeError ){
+					golog.Error( "ReqHub resp err:",msg_data)
+					return msg_data,false
+				}
 				this.HubConn.Close()
 				return msg_data,true
 			}
@@ -152,6 +102,7 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 func (this *Sdk) PushHub( req_cmd string , data string ) bool {
 
 	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	this.connect()
 	_,err:=this.HubConn.Write([]byte(req_str))
 
 	if( err!=nil ) {
@@ -170,8 +121,6 @@ func (this *Sdk)  GetBase() string {
 		return api.GetBase()
 	}
 
-	this.connect()
-
 	ret,ok :=this.ReqHub( "GetBase","" )
 	if ok {
 		return ret
@@ -180,8 +129,7 @@ func (this *Sdk)  GetBase() string {
 
 }
 
-
-
+// 获取服务启用状态
 func (this *Sdk) GetEnableStatus() bool {
 
 	if( global.SingleMode ) {
@@ -281,8 +229,8 @@ func (this *Sdk) Set(key string, value string,expire int) bool {
 	json:=fmt.Sprintf(`{"key":"%s","value":"%s","expire":%d}`,key,value,expire)
 	ret:= this.PushHub( "Set",json )
 	return ret
-
 }
+
 // 该方法仅在单机模式下调用
 func (this *Sdk) GetSessionType(sid string) *z_type.Session  {
 
@@ -415,5 +363,49 @@ func (this *Sdk) BroadcastAll(msg string) bool {
 		return api.BroadcastAll(   msg  )
 	}
 	return this.PushHub( "BroadcastAll",msg)
+
+}
+
+
+func (this *Sdk) UpdateSession( sid string, data string ) bool {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.UpdateSession( sid, data )
+	}
+	json:=fmt.Sprintf(`{"sid":"%s","data":"%s"}`,sid, data )
+	return this.PushHub( "UpdateSession",json)
+
+}
+
+func (this *Sdk)GetUserJoinedChannel(sid string) string {
+
+	// 单机模式直接返回内存中数据
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetUserJoinedChannel(sid)
+	}
+
+	ret,ok :=this.ReqHub( "GetUserJoinedChannel",sid)
+	if ok {
+		return ret
+	}
+	return ""
+
+}
+
+func (this *Sdk)GetAllSession( ) string {
+
+	// 单机模式直接返回内存中数据
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetAllSession()
+	}
+
+	ret,ok :=this.ReqHub( "GetAllSession","")
+	if ok {
+		return ret
+	}
+	return ""
 
 }

@@ -106,33 +106,28 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	api := new(*Api)
 
 	if cmd == "GetBase" {
-
 		conn.Write([]byte(string(global.AppConfig.Enable)))
 		conn.Close()
 		return
 	}
-
 	if cmd == "GetEnableStatus" {
 		conn.Write([]byte(string(global.AppConfig.Enable)))
 	}
-
 	if cmd == "Enable" {
 		global.AppConfig.Enable = 1
 		conn.Write([]byte(string(global.AppConfig.Enable)))
 	}
-
 	if cmd == "Disable" {
 		global.AppConfig.Enable = 0
 		conn.Write([]byte(string(`1`)))
 	}
-
 	if cmd == "Get" {
 		str,err:=hub.Get(data)
 		if( err!=nil ) {
-			conn.Write([]byte(protocol.WrapRespErrStr(err.Error())))
+			conn.Write([]byte(protocol.WrapHubRespErrStr(err.Error(),cmd)))
 			return
 		}
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,str)))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -159,13 +154,13 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	if cmd == "GetSession" {
 		str :=api.GetSession(data)
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,str)))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
 	if cmd == "Kick" {
 		ret :=api.Kick(data)
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
@@ -182,26 +177,26 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret:=api.CreateChannel( id, name )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 
 	}
 
 	if cmd == "RemoveChannel" {
 		ret :=api.RemoveChannel(data)
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
 	if cmd == "GetChannels" {
 		ret :=api.GetChannels()
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
 	if cmd == "GetSidsByChannel" {
 		ret :=api.GetSidsByChannel( data )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
@@ -218,7 +213,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.ChannelAddSid(sid, area_id )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 	if cmd == "ChannelKickSid" {
@@ -234,7 +229,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.ChannelKickSid(sid, area_id )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
@@ -252,13 +247,13 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.Push(from_sid, to_sid ,to_data )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
 	if cmd == "BroadcastAll" {
 		ret :=api.BroadcastAll(data)
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
@@ -277,7 +272,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.Broadcast(sid, area_sid ,to_data )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
@@ -295,19 +290,21 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.UpdateSession(sid, to_data )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 	}
 
 	if cmd == "GetUserJoinedChannel" {
 		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
 		if( err_json!=nil ) {
-			golog.Error("Hub UpdateSession json err:",err_json.Error())
+			err_str :="Hub UpdateSession json err:"+err_json.Error()
+			golog.Error( err_str )
+			conn.Write([]byte(protocol.WrapRespErrStr(err_json.Error())))
 			return
 		}
 		sid, _ := data_json.GetString("sid")
 		ret :=api.GetUserJoinedChannel(sid )
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 
 	}
@@ -315,7 +312,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if cmd == "GetAllSession" {
 
 		ret :=api.GetAllSession()
-		conn.Write([]byte(protocol.WrapRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
 		return
 
 	}
