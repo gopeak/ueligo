@@ -17,6 +17,8 @@ import (
 	"time"
 	//"strings"
 	"morego/protocol"
+	"sync/atomic"
+	"math/rand"
 )
 
 // 预创建多个场景
@@ -118,8 +120,8 @@ func GetSidsByChannel(channel_id string) []string {
 		item,ok:= global.SyncRpcChannelConns.Get(channel_id)
 		if( ok ){
 			channel = item.(*syncmap.SyncMap)
-			for key,_ := range channel.IterItems(){
-				ret=append(ret,key)
+			for tmp := range channel.IterItems(){
+				ret=append(ret,tmp.Key)
 			}
 
 		}
@@ -407,4 +409,82 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 		global.SyncUserSessions.Set(user_sid, data)
 	}
 
+}
+
+
+func CloseWsConn(sid string) {
+	_, conn_exist := global.SyncUserWebsocketConns.Get(sid)
+	if conn_exist {
+		global.SyncUserWebsocketConns.Delete(sid)
+	}
+}
+
+func CloseConn(sid string) {
+
+	_, conn_exist := global.SyncUserConns.Get(sid)
+	if conn_exist {
+		global.SyncUserConns.Delete(sid)
+	}
+
+}
+
+func CloseSession(sid string) {
+
+	_, session_exist := global.SyncUserSessions.Get(sid)
+	if session_exist {
+		global.SyncUserSessions.Delete(sid)
+	}
+
+}
+
+func CloseUserChannel(sid string) {
+
+	global.SyncUserJoinedChannels.Delete(sid)
+
+}
+
+func FreeConn(conn *net.TCPConn, sid string) {
+
+	conn.Write([]byte{'E', 'O', 'F'})
+	conn.Close()
+	golog.Warn("Sid closing:", sid)
+	CloseConn(sid)
+	CloseSession(sid)
+	CloseUserChannel(sid)
+	atomic.AddInt32(&global.SumConnections, -1)
+	UserUnSubscribeChannel(sid)
+	global.SyncUserConns.Delete(sid)
+	golog.Info("UserConns length:", len(global.UserConns))
+
+}
+
+func FreeWsConn(ws *websocket.Conn, sid string) {
+
+	//ws.Write([]byte{'E', 'O', 'F'})
+	ws.WriteMessage(websocket.CloseMessage,[]byte{'E', 'O', 'F'})
+	ws.Close()
+	golog.Warn("Sid closing:", sid)
+	CloseWsConn(sid)
+	CloseSession(sid)
+	CloseUserChannel(sid)
+	atomic.AddInt32(&global.SumConnections, -1)
+	UserUnSubscribeChannel(sid)
+	golog.Info("UserConns length:", len(global.UserConns))
+
+}
+
+/**
+ * 检查
+ */
+func CheckSid(sid string) bool {
+
+	return true
+	_, exist := global.SyncUserSessions.Get(sid)
+	return exist
+}
+
+func CreateSid() string {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	sid := fmt.Sprintf("%d%d", r.Intn(99999), rand.Intn(999999))
+	return sid
 }

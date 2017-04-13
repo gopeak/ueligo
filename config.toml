@@ -1,7 +1,7 @@
 ####################
 # 配置文件   #
 ####################
-# Zeromore initialization file, generally called config.ini, is responsible for
+# Morego initialization file, generally called config.ini, is responsible for
 # configuring many of the aspects of Zeromore behavior.
 
 	 
@@ -12,7 +12,7 @@
     loglevel	=	"error"
     rpc_type	=	"go"  # string | flatbuffer 
     pack_type	=	"bufferio"
-    single_mode	=	true
+    single_mode	=	false
 	
 	[log]
 		log_level	=	"error"
@@ -42,7 +42,7 @@
 		mysql_host 	= "localhost"
 		mysql_port 	= 3306
 		mysql_password = ""
-		    
+
 
 	[worker_server]
 	    servers = [ ["127.0.0.1","8001" ,"go"],  ["127.0.0.1","8002" ,"go"] , ["127.0.0.1","8003" ,"go"] ]  #["192.168.3.254", "8002","php"]

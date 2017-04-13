@@ -2,23 +2,18 @@ package connector
 
 import (
 	"bufio"
-	//"encoding/json"
 	"fmt"
-	//"math/rand"
 	"net"
-	"morego/area"
-	"morego/global"
-	"morego/golog"
-	"github.com/antonholmquist/jason"
-	//flatbuffers "github.com/google/flatbuffers/go"
-	"morego/protocol"
-	"morego/worker"
 	"sync/atomic"
-	//"time"
-	//"encoding/json"
 	"strings"
 	"errors"
 	"strconv"
+	"morego/area"
+	"morego/global"
+	"morego/golog"
+	"morego/protocol"
+	"morego/worker"
+	"github.com/antonholmquist/jason"
 
 )
 
@@ -74,7 +69,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 		}
 
 
-		go handleClientMsg(conn, req_conn, CreateSid())
+		go handleClientMsg(conn, req_conn, area.CreateSid())
 		go handleWorkerResponse(conn, req_conn)
 		//go handleClientMsgSingle( conn ,CreateSid() )
 
@@ -163,7 +158,7 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 		str, err := reader.ReadString('\n')
 		fmt.Println( "HandleConn str: ",str)
 		if err != nil {
-			FreeConn(conn, sid)
+			area.FreeConn(conn, sid)
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
@@ -205,8 +200,8 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 	buf = append( buf, '\n')
 
 	//  认证检查
-	if ( cmd!=global.AuthCcmd && !CheckSid(req_sid) ) {
-		FreeConn(conn, req_sid)
+	if ( cmd!=global.AuthCcmd && !area.CheckSid(req_sid) ) {
+		area.FreeConn(conn, req_sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}

@@ -149,8 +149,8 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 	buf = append(buf, '\n')
 
 	//  认证检查
-	if cmd != "user.getUser" && !CheckSid(req_sid) {
-		FreeWsConn(wsconn, req_sid)
+	if cmd != "user.getUser" && !area.CheckSid(req_sid) {
+		area.FreeWsConn(wsconn, req_sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}

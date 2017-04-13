@@ -2,7 +2,7 @@ package main
 
 import (
 	"bufio"
-	"crypto/md5"
+	//"crypto/md5"
 	"fmt"
 	"morego/protocol"
 	"net"
@@ -32,9 +32,9 @@ func createReqConns(num int64)  {
 		//defer conn.Close()
 		Conns = append(Conns, conn)
 		time.Sleep(100 * time.Millisecond)
-		srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)  )
-
-		data := fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
+		//srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)  )
+		//str:=md5.Sum([]byte(srcData))
+		data :=  protocol.WrapReqStr("Auth", strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i) , i, strconv.FormatInt(int64(time.Now().Unix()), 10) ) // fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
 		conn.Write([]byte(data))
 		r := bufio.NewReader(conn)
 		for {
@@ -53,21 +53,6 @@ func createReqConns(num int64)  {
 
 } //
 
-func getReqStrData(num int64) string {
-
-	data := ""
-
-	type_ := protocol.TypeReq
-	cmd := "Auth"
-	req_data := time.Now().Unix()
-	srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10) )
-	sid := md5.Sum([]byte(srcData))
-	req_id := num
-	data = fmt.Sprintf("%d||%s||%x||%d||%d", type_, cmd, sid, req_id, req_data)
-
-	return data
-
-} //
 
 func main() {
 
@@ -103,7 +88,7 @@ func main() {
 			var success int64
 			success = 0
 			req_sid := Sids[i]
-			data := fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "GetUserSession", req_sid, 0, req_sid)
+			data :=  protocol.WrapReqStr("GetUserSession",req_sid,0,req_sid )
 			conn.Write([]byte( data ))
 
 			for {
@@ -139,12 +124,12 @@ func main() {
 						}
 						to_sid:= Sids[to_sid_index]
 						push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`,to_sid,"md55555555555")
-						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypePush, "Push", req_sid,req_id+1, push_data)
+						data =  protocol.WrapPushStr("Push",req_sid,0,push_data )
 						conn.Write([]byte( data ))
 
 						// 发送点对点发送消息后 加入场景
 						time.Sleep(100 * time.Millisecond)
-						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "JoinChannel", req_sid,req_id+1, "area-global")
+						data =  protocol.WrapReqStr("JoinChannel",req_sid,req_id+1,"area-global" )
 						conn.Write([]byte( data ))
 						time.Sleep(5 * time.Second)
 
@@ -154,13 +139,13 @@ func main() {
 					if cmd=="JoinChannel"  {
 
 						push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
-						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeBroadcast, "Broadcast", req_sid,req_id+1, push_data)
+						data =  protocol.WrapBroatcastStr("Broadcast",req_sid,req_id+1, push_data )
 						conn.Write([]byte( data ))
 					}
 
 					if cmd=="LeaveChannel"  {
 
-						data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "KickSelf", req_sid, 0, req_sid)
+						data =  protocol.WrapReqStr("KickSelf",req_sid,req_id+1,req_sid )
 						conn.Write([]byte( data ))
 					}
 					if cmd=="KickSelf"  {
@@ -181,7 +166,7 @@ func main() {
 					}
 					fmt.Println( "broadcast recvice:", form_sid,area_id,data  )
 
-					data = fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypeReq, "LeaveChannel", req_sid, 0, "area-global")
+					data =  protocol.WrapReqStr("LeaveChannel",req_sid,0,"area-global" )
 					conn.Write([]byte( data ))
 
 				}

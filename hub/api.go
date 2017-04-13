@@ -13,7 +13,6 @@ import (
 	//"net"
 	"fmt"
 	"github.com/gorilla/websocket"
-	"gomore/connector"
 	"morego/protocol"
 	z_type "morego/type"
 )
@@ -24,10 +23,6 @@ type Api struct {
 
 }
 
-
-func (c *Api) Init(){
-
-}
 
 
 // 获取服务器的根路径
@@ -115,7 +110,7 @@ func (api *Api)GetSession(sid string) string {
 		golog.Error("Api GetSession json Marshal err:",err.Error())
 		return "{}"
 	}
-	return str
+	return string(str)
 }
 
 
@@ -124,16 +119,16 @@ func (api *Api)Kick(sid string) bool {
 	user_conn := area.GetConn(sid)
 	if user_conn != nil {
 		// 通知消息退出
-		user_conn.Write(protocol.WrapRespErrStr("kicked"))
-		connector.FreeConn(user_conn,sid )
-		area.DeleteConn(sid)
+		user_conn.Write( []byte(protocol.WrapRespErrStr("kicked")))
+		area.FreeConn(user_conn,sid )
+
 	}
 
 	user_wsconn := area.GetWsConn(sid)
 	if user_wsconn != nil {
 		// 通知消息退出
 		go user_wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapRespErrStr("kicked")) )
-		connector.FreeWsConn( user_wsconn,sid)
+		area.FreeWsConn( user_wsconn,sid)
 	}
 	area.UserUnSubscribeChannel(sid)
 	area.DeleteUserssion(sid)
@@ -155,17 +150,22 @@ func (api *Api)RemoveChannel(id string) bool {
 
 func (api *Api)GetChannels() string {
 
-	str, err := json_orgin.Marshal(global.Channels)
+	buf, err := json_orgin.Marshal(global.Channels)
 	if( err!=nil ){
 		return "{}"
 	}
-	return str
+	return string(buf)
 
 }
 
 func (api *Api)GetSidsByChannel(channel_id string) string {
 
-	return json_orgin.Marshal(area.GetSidsByChannel(channel_id))
+	buf,err:= json_orgin.Marshal(area.GetSidsByChannel(channel_id))
+	if err!=nil {
+		return string(buf)
+	}else{
+		return "[]"
+	}
 
 }
 
@@ -262,7 +262,11 @@ func (api *Api)BroadcastAll(msg string) bool {
 
 func (api *Api)GetUserJoinedChannel(sid string) string {
 
-	return json_orgin.Marshal(area.GetSidsByChannel(sid))
+	buf,err:=json_orgin.Marshal(area.GetSidsByChannel(sid))
+	if( err!=nil ) {
+		return  "[]"
+	}
+	return  string( buf )
 
 }
 
@@ -273,7 +277,7 @@ func (api *Api)GetAllSession( ) string {
 		UserSessions[item.Key] = item.Value.(*z_type.Session)
 	}
 	ret, _ := json_orgin.Marshal(UserSessions)
-	return  ret
+	return  string(ret)
 
 }
 

@@ -31,7 +31,6 @@ const (
 	TypePing = 7
 )
 
-
 /**
  * 封包返回客户端错误的消息
  */
@@ -52,9 +51,11 @@ func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
  * 客户端封包请求数据
  */
 func WrapReqStr(  cmd string, from_sid string, req_id int,data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypeReq, cmd,from_sid ,req_id, data) ;
 	return str
 }
+
+
 // 解析服务器端请求返回的数据
 func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 
@@ -75,6 +76,13 @@ func ParseRplyData(str string) ( error ,int ,string,string,int,string){
 	return err,_type,cmd,req_sid,req_id,req_data
 }
 
+/**
+ * 客户端封包请求数据
+ */
+func WrapPushStr(  cmd string, from_sid string, req_id int,data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+	return str
+}
 
 func WrapPushRespStr(  from_sid string, data string ) string {
 	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
@@ -99,6 +107,13 @@ func ParseRplyPushData(str string) ( error , string, string ){
 	return err,from_sid,push_data
 }
 
+/**
+ * 客户端封包广播数据
+ */
+func WrapBroatcastStr(  cmd string, from_sid string, req_id int,data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypeBroadcast, cmd,from_sid ,req_id, data) ;
+	return str
+}
 
 func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
 	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"",from_sid ,area_id,data) ;
@@ -122,12 +137,9 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 	return err,from_sid,area_id,broadcast_data
 }
 
-
-/**
- * 封包返回客户端错误的消息
- */
-func WrapHubRespErrStr(err string,cmd string ) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeError, cmd, "", 0, err)
+// 封装请求Hub数据
+func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) string {
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
 	return str
 }
 
@@ -139,9 +151,11 @@ func WrapHubRespStr(cmd string, from_sid string, req_id int, data string) string
 	return str
 }
 
-// 封装请求Hub数据
-func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+/**
+ * 封包返回客户端错误的消息
+ */
+func WrapHubRespErrStr(err string,cmd string ) string {
+	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeError, cmd, "", 0, err)
 	return str
 }
 

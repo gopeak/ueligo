@@ -84,7 +84,6 @@ func TickWorkerServer() {
 	time.Sleep(5 * time.Second)
 	timer := time.Tick(2* time.Second)
 	for now := range timer {
-
 		fmt.Println("now", now)
 		ch_success := make(chan string, 0)
 		for index,data :=  range global.Config.WorkerServer.Servers{
@@ -123,18 +122,18 @@ func TickWorkerServer() {
 			}(data)
 		}
 		sum :=0
-		for  range global.Config.WorkerServer.Servers {
+		for i:=0;i<len(global.Config.WorkerServer.Servers)+1;i++ {
 			select {
-			case r := <-ch_success:
-				fmt.Println("recv_result:", r)
+			case  <-ch_success:
+				//fmt.Println("recv_result:", r)
 				sum++
 				if( sum==len(global.Config.WorkerServer.Servers)){
-					//break
+					break
 				}
 
 			default:
 				fmt.Printf(".")
-				time.Sleep(100 * time.Millisecond)
+				time.Sleep(10 * time.Millisecond)
 			}
 		}
 		fmt.Println("sum:", sum)

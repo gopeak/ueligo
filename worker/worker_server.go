@@ -1,24 +1,20 @@
 package worker
 
 import (
-	//"math/rand"
-	"morego/global"
-	"morego/golog"
+
 	"strconv"
 	"strings"
-	//"sync/atomic"
-	"morego/protocol"
-	"morego/area"
 	"bufio"
 	"fmt"
 	"net"
-	//"os"
 	"encoding/json"
-	"github.com/antonholmquist/jason"
 	"time"
 	"reflect"
-	"os/exec"
-	"os"
+	"morego/protocol"
+	"morego/area"
+	"morego/global"
+	"morego/golog"
+	"github.com/antonholmquist/jason"
 )
 
 // 初始化worker服务
@@ -59,6 +55,7 @@ func WorkerServer(host string, port int) {
 		}
 		// 校验ip地址
 		conn.SetKeepAlive(true)
+		//conn.SetDeadline(30*time.Second)
 		defer conn.Close()
 		//conn.SetNoDelay(false)
 		golog.Info("RemoteAddr:", conn.RemoteAddr().String())
@@ -73,33 +70,6 @@ func WorkerServer(host string, port int) {
 	} //end for {
 }
 
-// 启动一个测试的php worker以处理业务流程
-func stop_php_worker() {
-
-	c := exec.Command("/bin/sh", "-c", `ps -ef |grep "worker/php/workers.php"  |awk \'{print $2}\' |xargs -i kill -9 {} `)
-	d, _ := c.Output()
-
-	golog.Info("Stop_php_worker: ", string(d))
-
-	time.Sleep(time.Second * 1)
-
-}
-
-// 启动一个测试的php worker以处理业务流程
-func start_php_worker() {
-
-	stop_php_worker()
-	wd, _ := os.Getwd()
-	work_num, _ := global.ConfigJson.GetString("worker", "worker_num")
-	argv := []string{fmt.Sprintf("%s/worker/php/workers.php", wd), "start", work_num}
-	golog.Info("Argv:", argv)
-	c := exec.Command("/usr/bin/php", argv...)
-	d, _ := c.Output()
-	golog.Info("Start_php_worker: ", string(d))
-
-	time.Sleep(time.Second * 1)
-
-}
 
 func handleWorkerStrSplit(conn *net.TCPConn) {
 
@@ -109,7 +79,10 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 	for {
 		str, err := reader.ReadString('\n')
 		if err != nil {
-			fmt.Println("HandleWork connection error: ", err.Error())
+			if( err.Error()!="EOF"){
+				fmt.Println("HandleWork connection error: ", err.Error())
+			}
+
 			conn.Write([]byte(protocol.WrapRespErrStr(err.Error())))
 			conn.Close()
 			break

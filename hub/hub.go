@@ -19,8 +19,6 @@ import (
 	"morego/protocol"
 	"strconv"
 	"time"
-	//"reflect"
-	"gomore/hub"
 )
 
 /**
@@ -103,7 +101,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if( msg_err!=nil ){
 		fmt.Println( "hubWorkeDispath err:",_type,cmd,sid,reqid,data )
 	}
-	api := new(*Api)
+	api := new(Api)
 
 	if cmd == "GetBase" {
 		conn.Write([]byte(string(global.AppConfig.Enable)))
@@ -122,7 +120,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		conn.Write([]byte(string(`1`)))
 	}
 	if cmd == "Get" {
-		str,err:=hub.Get(data)
+		str,err:=Get(data)
 		if( err!=nil ) {
 			conn.Write([]byte(protocol.WrapHubRespErrStr(err.Error(),cmd)))
 			return
@@ -144,7 +142,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Set json err:",err_key.Error()+err_v.Error()+err_e.Error())
 			return
 		}
-		_,err:=hub.Set(key,value,expire)
+		_,err:=Set(key,value,expire)
 		if( err!=nil ) {
 			golog.Error("Hub Set err:",err.Error())
 		}
@@ -160,7 +158,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	if cmd == "Kick" {
 		ret :=api.Kick(data)
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -177,14 +179,22 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret:=api.CreateChannel( id, name )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 
 	}
 
 	if cmd == "RemoveChannel" {
 		ret :=api.RemoveChannel(data)
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -213,7 +223,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.ChannelAddSid(sid, area_id )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 	if cmd == "ChannelKickSid" {
@@ -229,7 +243,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.ChannelKickSid(sid, area_id )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -247,13 +265,21 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.Push(from_sid, to_sid ,to_data )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
 	if cmd == "BroadcastAll" {
 		ret :=api.BroadcastAll(data)
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -272,7 +298,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.Broadcast(sid, area_sid ,to_data )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -290,7 +320,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		ret :=api.UpdateSession(sid, to_data )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		str :="0"
+		if ret{
+			str = "1"
+		}
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
 
@@ -304,7 +338,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		}
 		sid, _ := data_json.GetString("sid")
 		ret :=api.GetUserJoinedChannel(sid )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+
+		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,ret)))
 		return
 
 	}

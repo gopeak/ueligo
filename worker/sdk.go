@@ -52,7 +52,8 @@ func (this *Sdk) connect() bool{
 	hub_port_str := data[1]
 	ip_port := hub_host + ":" + hub_port_str
 
-	hubconn, err_req := net.DialTimeout("tcp", ip_port, 5 * time.Second)
+	tcpAddr, _ := net.ResolveTCPAddr("tcp4", ip_port)
+	hubconn, err_req := net.DialTCP("tcp", nil, tcpAddr)
 	if( err_req!=nil ){
 		this.HubConn=nil
 		return false
@@ -83,10 +84,11 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 				return err.Error(),false
 
 			}
-			errcode, _, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
+			_, _type, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
+
 			if resp_cmd == req_cmd{
 				// 如果服务返回错误
-				if( errcode==protocol.TypeError ){
+				if( _type==protocol.TypeError ){
 					golog.Error( "ReqHub resp err:",msg_data)
 					return msg_data,false
 				}

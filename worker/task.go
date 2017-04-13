@@ -10,7 +10,7 @@ import (
 
 type TaskType struct {
 
-	Conn * net.Conn
+	Conn * net.TCPConn
 
 	Cmd string
 
@@ -23,7 +23,7 @@ type TaskType struct {
 
 }
 
-func (this *TaskType) Init( conn *net.Conn,cmd string,sid string,reqid int,data string ) *TaskType{
+func (this *TaskType) Init( conn *net.TCPConn,cmd string,sid string,reqid int,data string ) *TaskType{
 
 	this.Cmd = cmd
 	this.Sid = sid
@@ -36,7 +36,7 @@ func (this *TaskType) Init( conn *net.Conn,cmd string,sid string,reqid int,data 
 
 func (this TaskType)Auth(  ) string {
 
-	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 	fmt.Println(sdk)
 	return "ok";
 
@@ -45,14 +45,14 @@ func (this TaskType)Auth(  ) string {
 
 func (this TaskType)GetUserSession(   ) string {
 
-	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 	return sdk.GetSession( this.Sid )
 
 }
 
 func (this TaskType)JoinChannel(   ) string {
 
-	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 
 	if(   sdk.ChannelAddSid( this.Sid ,this.Data ) ){
 		return "ok"
@@ -65,7 +65,7 @@ func (this TaskType)JoinChannel(   ) string {
 
 func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	sdk:=new(*Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 	return sdk.GetBase()
 
 }
