@@ -63,6 +63,33 @@ func (this TaskType)JoinChannel(   ) string {
 }
 
 
+func (this TaskType)LeaveChannel(   ) string {
+
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+
+	if(   sdk.ChannelKickSid( this.Sid ,this.Data ) ){
+		return "ok"
+	}else{
+		return "failed"
+	}
+
+}
+
+
+func (this TaskType)KickSelf(   ) string {
+
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+
+	if(   sdk.Kick( this.Sid ) ){
+		return "ok"
+	}else{
+		return "failed"
+	}
+
+}
+
+
+
 func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )

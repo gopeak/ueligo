@@ -81,7 +81,7 @@ func main() {
 	go worker.InitWorkerServer()
 
 	// 监控
-	go hub.TickWorkerServer()
+	//go hub.TickWorkerServer()
 
 
 	golog.Info("Server started!")

@@ -82,20 +82,20 @@ func LoadSessionFromRedis() {
 func TickWorkerServer() {
 	// 先暂停10秒
 	time.Sleep(5 * time.Second)
-	timer := time.Tick(2* time.Second)
+	timer := time.Tick(10* time.Second)
 	for now := range timer {
-		fmt.Println("now", now)
+		//fmt.Println("now", now)
 		ch_success := make(chan string, 0)
-		for index,data :=  range global.Config.WorkerServer.Servers{
+		for _,data :=  range global.Config.WorkerServer.Servers{
 			go func( data []interface{}  ) {
 				worker_host, _ := data[0].(string)
 				worker_port_str, _ := data[1].(string)
 				ip_port := worker_host + ":" + worker_port_str
 
-				fmt.Println("tcpAddr: ",index," ", ip_port)
+				//fmt.Println("tcpAddr: ",index," ", ip_port)
 				conn, err_req := net.DialTimeout("tcp", ip_port, 5 * time.Second)
 				if ( err_req != nil ) {
-					golog.Error("检测到 workerserver:", ip_port, " 连接异常!")
+					golog.Error("检测到 workerserver:", ip_port, " 连接异常!",now)
 					for i, addr := range global.WorkerServers {
 						if (addr == ip_port) {
 							global.WorkerServers = append(global.WorkerServers[:i], global.WorkerServers[i + 1:]...)
@@ -132,11 +132,11 @@ func TickWorkerServer() {
 				}
 
 			default:
-				fmt.Printf(".")
+				//fmt.Printf(".")
 				time.Sleep(10 * time.Millisecond)
 			}
 		}
-		fmt.Println("sum:", sum)
+		//fmt.Println("sum:", sum)
 
 	}
 }

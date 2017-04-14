@@ -15,7 +15,17 @@ import (
 	"morego/worker"
 	"github.com/antonholmquist/jason"
 
+	"os"
+	"time"
+	"sync"
 )
+
+var ConnMlock *sync.RWMutex
+var ChannelMlock *sync.RWMutex
+var SessionMlock *sync.RWMutex
+var UserChannelsMlock *sync.RWMutex
+
+
 
 /**
  * 监听客户端连接
@@ -197,7 +207,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		return -1, msg_err
 	}
 	buf := []byte(str)
-	buf = append( buf, '\n')
+	//buf = append( buf, '\n')
 
 	//  认证检查
 	if ( cmd!=global.AuthCcmd && !area.CheckSid(req_sid) ) {
@@ -242,7 +252,8 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		area_id, _ := data_json.GetString("area_id")
 		to_data, _ := data_json.GetString("data")
 		if( area_id=="global" ) {
-			area.BroatcastGlobal( from_sid,to_data )
+			err = errors.New("broatcast global failed")
+			return -4, err
 		}else{
 			area.Broatcast( from_sid, area_id,to_data )
 		}
@@ -265,6 +276,31 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 	req_id := int64(msg.ReqId())
 	golog.Info("HandleConn data:", cmd, data, req_sid, req_id)
 
+}
+
+
+func checkError(err error) {
+	if err != nil {
+		golog.Error(os.Stderr, "Connector error: %s", err.Error())
+	}
+}
+
+func stat_tick() {
+
+	timer := time.Tick(1000 * time.Millisecond)
+	for _ = range timer {
+		//ping := fmt.Sprintf(`{"cmd":"ping","ret":200,"time":%d }` , time.Now().Unix() );
+		fmt.Println(time.Now().Unix(), " Connections: ", global.SumConnections, "  Qps: ", global.Qps)
+	}
+}
+
+func user_tick(conn *net.TCPConn) {
+
+	timer := time.Tick(5000 * time.Millisecond)
+	for _ = range timer {
+		ping := fmt.Sprintf(`{"cmd":"ping","ret":200,"time":%d }`, time.Now().Unix())
+		go conn.Write([]byte(fmt.Sprintf("%s\r\n", ping)))
+	}
 }
 
 

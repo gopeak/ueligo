@@ -3,7 +3,6 @@ package worker
 import (
 
 	"strconv"
-	"strings"
 	"bufio"
 	"fmt"
 	"net"
@@ -90,21 +89,18 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 		//fmt.Println( "HandleWorkerStr str: ",str)
 		go func(str string, conn *net.TCPConn) {
 
-			msg_arr := strings.Split(str, "||")
-			if len(msg_arr) < 5 {
-				//conn.Write([]byte( WrapRespErrStr("request data length error-->"+str)))
+			msg_err,_type,cmd,req_sid,reqid,req_data := protocol.ParseReqData( str )
+			if( msg_err!=nil ){
+				golog.Error(msg_err.Error(),_type,cmd,req_sid,reqid,req_data  )
 				return
 			}
-			_type,_:=  strconv.Atoi(msg_arr[protocol.MSG_TYPE_INDEX])
 			if( _type==protocol.TypePing ) {
 				conn.Write([]byte(protocol.WrapRespStr("Ping","",0,"")))
 				conn.Close()
 			}else{
-				cmd := msg_arr[protocol.MSG_CMD_INDEX];
-				req_sid := msg_arr[protocol.MSG_SID_INDEX]
-				req_id, _ := strconv.Atoi(msg_arr[protocol.MSG_REQID_INDEX])
-				req_data := msg_arr[protocol.MSG_DATA_INDEX]
-				Invoker( conn,cmd,req_sid,req_id,req_data)
+
+
+				Invoker( conn,cmd,req_sid,reqid,req_data)
 			}
 
 
@@ -205,7 +201,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	//fmt.Println( "methodName:",methodName )
+	fmt.Println( "methodName:",methodName )
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 	//fmt.Println( "ret:" ,ret)
 	data:=""

@@ -51,10 +51,30 @@ func WrapRespStr(cmd string, from_sid string, req_id int, data string) string {
  * 客户端封包请求数据
  */
 func WrapReqStr(  cmd string, from_sid string, req_id int,data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypeReq, cmd,from_sid ,req_id, data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%d||%s\n" ,TypeReq, cmd,from_sid ,req_id, data) ;
 	return str
 }
 
+
+// 解析服务器端请求返回的数据
+func ParseReqData(str string) ( error ,int ,string,string,int,string){
+
+	msg_arr := strings.Split(str, "||")
+	var err error
+	err = nil
+	if len(msg_arr) < 4 {
+		err = errors.New("ParseReqData data length error")
+		return err,0,"","",0,""
+	}
+	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
+	cmd := msg_arr[MSG_CMD_INDEX];
+	req_sid := msg_arr[MSG_SID_INDEX]
+	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
+	req_data := msg_arr[MSG_DATA_INDEX]
+	// 去除换行符
+	req_data = strings.Replace(req_data, "\n", "", -1)
+	return err,_type,cmd,req_sid,req_id,req_data
+}
 
 // 解析服务器端请求返回的数据
 func ParseRplyData(str string) ( error ,int ,string,string,int,string){
@@ -111,7 +131,7 @@ func ParseRplyPushData(str string) ( error , string, string ){
  * 客户端封包广播数据
  */
 func WrapBroatcastStr(  cmd string, from_sid string, req_id int,data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypeBroadcast, cmd,from_sid ,req_id, data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%d||%s\n" ,TypeBroadcast, cmd,from_sid ,req_id, data) ;
 	return str
 }
 
@@ -139,7 +159,7 @@ func ParseRplyBrodcastData(str string) ( error ,string, string, string ){
 
 // 封装请求Hub数据
 func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" ,TypePush, cmd,from_sid ,req_id, data) ;
+	str:=fmt.Sprintf("%s||%s||%d||%s\n" , cmd,from_sid ,req_id, data) ;
 	return str
 }
 
@@ -147,7 +167,7 @@ func WrapReqHubStr(  cmd string, from_sid string, req_id int,data string ) strin
  * 客户端封包返回数据
  */
 func WrapHubRespStr(cmd string, from_sid string, req_id int, data string) string {
-	str := fmt.Sprintf("%d||%s||%s||%d||%s\n", TypeReply, cmd, from_sid, req_id, data)
+	str := fmt.Sprintf("%s||%s||%d||%s\n",  cmd, from_sid, req_id, data)
 	return str
 }
 
@@ -162,42 +182,42 @@ func WrapHubRespErrStr(err string,cmd string ) string {
 /**
  * 解析worker server返回的数据
  */
-func ParseHubRplyData(str string) ( error ,int ,string,string,int,string){
+func ParseHubRplyData(str string) ( error ,string,string,int,string){
 
 	msg_arr := strings.Split(str, "||")
 	var err error
 	err = nil
-	if len(msg_arr) < 5 {
+	if len(msg_arr) < 4 {
 		err = errors.New("request data length error")
-		return err,0,"","",0,""
+		return err,"","",0,""
 	}
-	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
-	cmd := msg_arr[MSG_CMD_INDEX];
-	req_sid := msg_arr[MSG_SID_INDEX]
-	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
-	req_data := msg_arr[MSG_DATA_INDEX]
+	cmd := msg_arr[0];
+	req_sid := msg_arr[1]
+	req_id ,_ :=strconv.Atoi(msg_arr[2])
+	req_data := msg_arr[3]
 	// 去除换行符
 	req_data = strings.Replace(req_data, "\n", "", -1)
-	return err,_type,cmd,req_sid,req_id,req_data
+	return err,cmd,req_sid,req_id,req_data
 }
 /**
  * 解析Hub请求的数据
  */
-func ParseHubReqData(str string) ( error ,int ,string,string,int,string){
+func ParseHubReqData(str string) ( error ,string,string,int,string){
+
 
 	msg_arr := strings.Split(str, "||")
 	var err error
 	err = nil
-	if len(msg_arr) < 5 {
-		err = errors.New("request data length error")
-		return err,0,"","",0,""
+
+	if len(msg_arr) < 4 {
+		err = errors.New("request data length error:"+str)
+		return err,"","",0,""
 	}
-	_type,_ := strconv.Atoi(msg_arr[MSG_TYPE_INDEX])
-	cmd := msg_arr[MSG_CMD_INDEX];
-	req_sid := msg_arr[MSG_SID_INDEX]
-	req_id ,_ :=strconv.Atoi(msg_arr[MSG_REQID_INDEX])
-	req_data := msg_arr[MSG_DATA_INDEX]
+	cmd := msg_arr[0];
+	req_sid := msg_arr[1]
+	req_id ,_ :=strconv.Atoi(msg_arr[2])
+	req_data := msg_arr[3]
 	// 去除换行符
 	req_data = strings.Replace(req_data, "\n", "", -1)
-	return err,_type,cmd,req_sid,req_id,req_data
+	return err,cmd,req_sid,req_id,req_data
 }

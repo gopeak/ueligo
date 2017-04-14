@@ -247,7 +247,7 @@ func Broatcast( sid string,area_id string, msg string) {
 	}
 	channel_conns = _item.(*syncmap.SyncMap)
 	var conn *net.TCPConn
-	//fmt.Println("广播里有:", channel_conns.Size(),"个连接")
+	fmt.Println("广播里有:", channel_conns.Size(),"个连接")
 
 	for item := range channel_conns.IterItems() {
 		//fmt.Println("key:", item.Key, "value:", item.Value)

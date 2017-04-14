@@ -66,7 +66,8 @@ func (this *Sdk) connect() bool{
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
 func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
-	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,data)
+	fmt.Println( "req_str:", req_str)
 	this.connect()
 	this.HubConn.Write([]byte(req_str))
 	reader := bufio.NewReader(this.HubConn)
@@ -84,12 +85,12 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 				return err.Error(),false
 
 			}
-			_, _type, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
+			resp_err, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
 
 			if resp_cmd == req_cmd{
 				// 如果服务返回错误
-				if( _type==protocol.TypeError ){
-					golog.Error( "ReqHub resp err:",msg_data)
+				if( resp_err!=nil  ){
+					golog.Error( "ReqHub resp err:",resp_err.Error())
 					return msg_data,false
 				}
 				this.HubConn.Close()
@@ -103,7 +104,8 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
 func (this *Sdk) PushHub( req_cmd string , data string ) bool {
 
-	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,this.Data)
+	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,data)
+
 	this.connect()
 	_,err:=this.HubConn.Write([]byte(req_str))
 
@@ -354,6 +356,17 @@ func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 		this.Push(from_sid, to_sid, msg)
 	}
 	return true
+
+}
+
+func (this *Sdk) Broatcast(sid,string ,area_id string,msg string) bool {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.Broadcast( sid,area_id,  msg  )
+	}
+	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s","msg":"%s"}`,sid, area_id, msg )
+	return this.PushHub( "Broatcast",json)
 
 }
 

@@ -79,6 +79,9 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 
 		}
 		//fmt.Println("handleHub  from :" , msg)
+		if( string(msg)==""){
+			continue
+		}
 		go hubWorkeDispath(msg, conn)
 
 	}
@@ -97,11 +100,14 @@ func closeHubConn(conn *net.TCPConn) {
 func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	//  Process messages as they arrive
-	msg_err,_type,cmd,sid,reqid,data := protocol.ParseHubReqData(string(msg))
+	fmt.Println( "hubDispath str:", string(msg))
+	msg_err,cmd,sid,reqid,data := protocol.ParseHubReqData(string(msg))
 	if( msg_err!=nil ){
-		fmt.Println( "hubWorkeDispath err:",_type,cmd,sid,reqid,data )
+		fmt.Println( "hubDispath err:",msg_err.Error(),cmd,sid,reqid,data )
+		return
 	}
 	api := new(Api)
+	fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
 		conn.Write([]byte(string(global.AppConfig.Enable)))
@@ -152,6 +158,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	if cmd == "GetSession" {
 		str :=api.GetSession(data)
+		fmt.Println( "api.GetSession:",str)
 		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
 		return
 	}
@@ -211,6 +218,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	}
 
 	if cmd == "ChannelAddSid" {
+		fmt.Println("ChannelKickSid", data )
 		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
 		if( err_json!=nil ) {
 			golog.Error("Hub ChannelAddSid json err:",err_json.Error())
@@ -231,6 +239,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		return
 	}
 	if cmd == "ChannelKickSid" {
+
 		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
 		if( err_json!=nil ) {
 			golog.Error("Hub ChannelKickSid json err:",err_json.Error())
