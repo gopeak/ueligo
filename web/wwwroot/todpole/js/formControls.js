@@ -84,8 +84,8 @@
 			if(!hidden) {
 				if(k == keys.esc || k == keys.enter || (k == keys.space && input.val().length > 35)) {
 					if(k != keys.esc && input.val().length > 0) {
-					    	messageHistory.push(input.val());
-			    			messagePointer = messageHistory.length;
+					    messageHistory.push(input.val());
+			    		messagePointer = messageHistory.length;
 						app.sendMessage(input.val());
 					}
 					closechat();

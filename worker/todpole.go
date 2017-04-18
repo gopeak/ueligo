@@ -3,7 +3,7 @@ package worker
 import (
 	"github.com/antonholmquist/jason"
 	"morego/golog"
-	"fmt"
+	"fmt" 
 	"strconv"
 )
 
@@ -29,7 +29,7 @@ func (this TaskType)Message(   ) string {
 		return ""
 	}
 
-	_type,err1 := data_json.GetString("type")
+	_,err1 := data_json.GetString("type")
 	_,err2 := data_json.GetString("message")
 	sid,err3 := data_json.GetString("id")
 	if( err1!=nil || err2!=nil || err3!=nil ){
@@ -38,8 +38,8 @@ func (this TaskType)Message(   ) string {
 	}
 	//broatcast_msg := fmt.Sprintf(`{"type":"message","message":"%s","id":"%s" }`,message,sid)
 	sdk.Broatcast( sid,"area-global",this.Data  )
-	json_ret := fmt.Sprintf(`{"type":"%s","id":"%s" }`,_type,sid)
-	return json_ret;
+	//json_ret := fmt.Sprintf(`{"type":"messageresp","id":"%s" }`,sid)
+	return "";
 
 
 }
@@ -54,25 +54,27 @@ func (this TaskType)Update(   ) string {
 		return ""
 	}
 
-	_type,_ := data_json.GetString("type")
-	angle,_ := data_json.GetInt64("angle")
-	_id,_ := data_json.GetInt64("id")
-	momentum,_ := data_json.GetInt64("momentum")
-	x,_ := data_json.GetInt64("x")
-	y,_ := data_json.GetInt64("y")
+	type_str,_ := data_json.GetString("type")
+	angle_str,_ := data_json.GetString("angle")
+	_id,_ := data_json.GetString("id")
+	momentum_str,_ := data_json.GetString("momentum")
+	x_str,_ := data_json.GetString("x")
+	y_str,_ := data_json.GetString("y")
 	name,err_name := data_json.GetString("name")
 	if( err_name!=nil ) {
-		name = "Guest."+strconv.FormatInt(_id,10);
+		name = "Guest."+ _id ;
 	}
-	angle = angle+0
-	momentum = momentum+0
-	x = x+0
-	y = y+0
-	broatcast_data := fmt.Sprintf(`{"type":"%s","id":"%s","angle":%d,"momentum":%d,"x":%d,"y":%d,"life":1,"name":"%s","authorized":%s}`,
-		_type,_id,angle,momentum,x,y,name,"false" )
+	angle,_ := strconv.ParseFloat(angle_str, 32)
+	momentum ,_:= strconv.ParseFloat(momentum_str, 32)
+	x,_ := strconv.ParseFloat(x_str, 32)
+	y ,_:= strconv.ParseFloat(y_str, 32)
+	fmt.Println( "x y ",x_str,y_str,x,y  )
+	broatcast_data := fmt.Sprintf(`{"type":"%s","id":"%s","angle":%.3f,"momentum":%.3f,"x":%.3f,"y":%.3f,"life":1,"name":"%s","authorized":%s}`,
+		type_str,_id,float32(angle),float32(momentum),float32(x),float32(y),name,"false" )
+	fmt.Println("broatcast_data:",broatcast_data);
 	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
 
-	json_ret := fmt.Sprintf(`{"type":"%s","id":"%d" }`,"none",_id)
+	json_ret := fmt.Sprintf(`{"type":"%s","id":"%s" }`,"none",_id)
 	return json_ret;
 
 

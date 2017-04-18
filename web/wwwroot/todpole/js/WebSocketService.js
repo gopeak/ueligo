@@ -103,7 +103,7 @@ var WebSocketService = function(model, webSocket) {
 	
 	this.processMessage = function(data) {
 		//console.log("processMessage:");
-		//console.log(data);
+		console.log(data);
 		var fn = webSocketService[data.type + 'Handler'];
 		if (fn) {
 			fn(data);
