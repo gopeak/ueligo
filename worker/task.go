@@ -4,6 +4,8 @@ import (
 	"net"
 
 	"fmt"
+	"morego/area"
+	//"simple/golog"
 )
 
 
@@ -36,9 +38,15 @@ func (this *TaskType) Init( conn *net.TCPConn,cmd string,sid string,reqid int,da
 
 func (this TaskType)Auth(  ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
-	fmt.Println(sdk)
-	return "ok";
+	//sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sid:=area.CreateSid()
+	if(   true  ){
+		json_ret := fmt.Sprintf(`{"ret":"ok","type":"%s","id":"%s"  }`,"welcome",sid)
+		return json_ret
+	}else{
+		json_ret := fmt.Sprintf(`{"ret":"failed","type":"%s","id":"%s" }`,"failed",sid)
+		return json_ret
+	}
 
 }
 
@@ -53,7 +61,7 @@ func (this TaskType)GetUserSession(   ) string {
 func (this TaskType)JoinChannel(   ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
-
+	fmt.Println( "JoinChannel",this.Data  )
 	if(   sdk.ChannelAddSid( this.Sid ,this.Data ) ){
 		return "ok"
 	}else{

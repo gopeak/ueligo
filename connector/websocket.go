@@ -11,19 +11,16 @@ import (
 	"net/http"
 	"sync/atomic"
 	"time"
-	//"encoding/json"
 	"morego/golog"
 	"github.com/antonholmquist/jason"
-
 	"github.com/gorilla/websocket"
-
-	//"strings"
 	"errors"
-	//sync"
 	"flag"
 	"log"
 	"strconv"
 	"strings"
+	"os"
+	"sync"
 )
 
 var upgrader = websocket.Upgrader{
@@ -35,7 +32,13 @@ func WebsocketConnector(ip string, port int) {
 	golog.Info("Websocket Connetor bind :", ip, port)
 
 	var addr = flag.String("addr", fmt.Sprintf(":%d", port), "http service address")
-	http.HandleFunc("/", WebsocketHandle)
+	http.HandleFunc("/ws", WebsocketHandle)
+	wd, _ := os.Getwd()
+	http_dir := fmt.Sprintf("%s/web/wwwroot", wd)
+	fmt.Println("Http_dir:", http_dir)
+	http.Handle("/", http.FileServer(http.Dir(http_dir)))
+
+
 	log.Fatal(http.ListenAndServe(*addr, nil))
 
 }
@@ -111,22 +114,40 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
+	var l *sync.RWMutex
+	l = new(sync.RWMutex)
+
 	for {
-		msg, err := reader.ReadBytes('\n')
+		buf, err := reader.ReadBytes('\n')
 		//fmt.Println("worker_task response:", msg)
 		if err != nil {
 			fmt.Println("handleWorkerResponse ", "error: ", err.Error())
 			req_conn.Close()
 			break
 		}
-		if msg == nil {
+
+		if( strings.Replace(string(buf), "\n", "", -1)==""){
 			continue
+		}
+		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
+
+		if cmd==global.AuthCcmd  {
+			fmt.Println( "AuthCcmd:",string(buf) )
+			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
+			if( err_json!=nil ) {
+				golog.Error("auth  json err:",err_json.Error())
+				continue
+			}
+			auth_ret,_ := data_json.GetString("ret")
+			if( auth_ret=="ok"){
+				sid,_ := data_json.GetString("id")
+				area.WsConnRegister( wsconn,sid)
+			}
 		}
 
-		if string(msg) == "\n" {
-			continue
-		}
-		wsconn.WriteMessage(websocket.TextMessage, msg)
+		l.Lock()
+		wsconn.WriteMessage(websocket.TextMessage, buf)
+		l.Unlock()
 	}
 }
 

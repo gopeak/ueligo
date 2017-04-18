@@ -264,12 +264,12 @@ func Broatcast( sid string,area_id string, msg string) {
 	}
 	channel_wsconns = _item_ws.(*syncmap.SyncMap)
 
-	//fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
+	fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
 	var wsconn *websocket.Conn
 	for item := range channel_wsconns.IterItems() {
 		//fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
+		wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
 
 	}
 }
@@ -398,7 +398,7 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 	_, ok = global.SyncUserSessions.Get(user_sid)
 	if !ok {
 		data := &z_type.Session{
-			"", // @todo websocket ip
+			ws.RemoteAddr().String(),
 			"{}",
 			true,  // 登录成功
 			false, // 是否被踢出

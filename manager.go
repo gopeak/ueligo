@@ -19,6 +19,7 @@ import (
 	"morego/connector"
 	"morego/lib/syncmap"
 	"morego/worker"
+
 	//z_type "morego/type"
 )
 
@@ -69,7 +70,6 @@ func main() {
 	go connector.SocketConnector("", global.Config.Connector.SocketPort)
 	go connector.WebsocketConnector("", global.Config.Connector.WebsocketPort)
 
-
 	// 开启hub服务器
 	go hub.HubServer()
 
@@ -83,6 +83,8 @@ func main() {
 	// 监控
 	//go hub.TickWorkerServer()
 
+	// demo应用依赖web服务器
+	//go web.HttpServer()
 
 	golog.Info("Server started!")
 

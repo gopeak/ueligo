@@ -12,7 +12,7 @@
     loglevel	=	"error"
     rpc_type	=	"go"  # string | flatbuffer 
     pack_type	=	"bufferio"
-    single_mode	=	false
+    single_mode	=	true
 	
 	[log]
 		log_level	=	"error"
@@ -24,7 +24,7 @@
 		http_port = "9090"
 	    
     [connector]
-    	websocket_port 	= 7898  
+    	websocket_port 	= 9898
     	socket_port    	= 7002
     	max_conections 	= 5024
     	max_packet_rate	= 100

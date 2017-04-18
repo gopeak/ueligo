@@ -19,6 +19,7 @@ import (
 	"morego/protocol"
 	"strconv"
 	"time"
+	"strings"
 )
 
 /**
@@ -79,7 +80,7 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 
 		}
 		//fmt.Println("handleHub  from :" , msg)
-		if( string(msg)==""){
+		if( strings.Replace(string(msg), "\n", "", -1)==""){
 			continue
 		}
 		go hubWorkeDispath(msg, conn)

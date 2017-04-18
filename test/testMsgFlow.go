@@ -31,7 +31,7 @@ func createReqConns(num int64)  {
 		conn, err := net.DialTCP("tcp", nil, tcpAddr)
 		//defer conn.Close()
 		Conns = append(Conns, conn)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(10 * time.Millisecond)
 		//srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)  )
 		//str:=md5.Sum([]byte(srcData))
 		data :=  protocol.WrapReqStr("Auth", strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i) , i, strconv.FormatInt(int64(time.Now().Unix()), 10) ) // fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
@@ -98,7 +98,7 @@ func main() {
 					break
 				}
 				success++
-				fmt.Println("recv msg: ", str)
+				// fmt.Println("recv msg: ", str)
 				msg_arr := strings.Split(str, "||")
 
 				if len(msg_arr) <3 {
@@ -112,7 +112,6 @@ func main() {
 						fmt.Println("msg error: ", msg_err.Error(),msg_arr, msg_data)
 						continue
 					}
-					//fmt.Printf( " cmd: %s data: %s\n", cmd ,msg_data)
 					// 登录认证,然后获取用户信息
 
 					// 获取当前信息后 发送点对点信息
@@ -170,8 +169,6 @@ func main() {
 					conn.Write([]byte( data ))
 
 				}
-
-
 
 
 			}

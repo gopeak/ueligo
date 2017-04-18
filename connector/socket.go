@@ -69,7 +69,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			fmt.Println("req_conn tcpAddr :", err.Error())
 			return
 		}
-		fmt.Println("tcpAddr: ", tcpAddr)
+		//fmt.Println("tcpAddr: ", tcpAddr)
 
 		req_conn, err := net.DialTCP("tcp", nil, tcpAddr)
 		defer req_conn.Close()
@@ -100,11 +100,22 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 			req_conn.Close()
 			break
 		}
-		_,_,cmd,req_sid,_,msg_data := protocol.ParseRplyData(string(buf))
-		fmt.Println( "handleWorkerResponse",string(buf) )
-		if cmd==global.AuthCcmd && msg_data=="ok" {
-
-			area.ConnRegister( conn,req_sid)
+		if( strings.Replace(string(buf), "\n", "", -1)==""){
+			continue
+		}
+		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
+		//fmt.Println( "handleWorkerResponse",string(buf) )
+		if cmd==global.AuthCcmd  {
+			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
+			if( err_json!=nil ) {
+				golog.Error("auth  json err:",err_json.Error())
+				continue
+			}
+			auth_ret,_ := data_json.GetString("ret")
+			if( auth_ret=="ok"){
+				sid,_ := data_json.GetString("id")
+				area.ConnRegister( conn,sid)
+			}
 		}
 		conn.Write(buf)
 
@@ -166,13 +177,15 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 		}
 
 		str, err := reader.ReadString('\n')
-		fmt.Println( "HandleConn str: ",str)
 		if err != nil {
 			area.FreeConn(conn, sid)
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-
+		if( strings.Replace(str, "\n", "", -1)==""){
+			continue
+		}
+		// fmt.Println( "HandleConn str: ", str )
 		ret, ret_err := dispatchMsg(str, conn, req_conn)
 
 		if ( ret_err != nil ) {
@@ -215,6 +228,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 		err = errors.New("认证失败")
 		return 0, err
 	}
+
 	// 请求
 	if _type == protocol.TypeReq {
 		// 如果是单机模式,则直接调用
@@ -225,6 +239,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 			go req_conn.Write(buf)
 		}
 	}
+
 	if _type == protocol.TypePush {
 		from_sid := msg_arr[protocol.MSG_SID_INDEX]
 		req_data =msg_arr[protocol.MSG_DATA_INDEX]

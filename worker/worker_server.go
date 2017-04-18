@@ -14,6 +14,7 @@ import (
 	"morego/global"
 	"morego/golog"
 	"github.com/antonholmquist/jason"
+	"strings"
 )
 
 // 初始化worker服务
@@ -86,7 +87,10 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 			conn.Close()
 			break
 		}
-		//fmt.Println( "HandleWorkerStr str: ",str)
+		if( strings.Replace(str, "\n", "", -1)==""){
+			continue
+		}
+		fmt.Println( "HandleWorkerStr str: ",str)
 		go func(str string, conn *net.TCPConn) {
 
 			msg_err,_type,cmd,req_sid,reqid,req_data := protocol.ParseReqData( str )
@@ -98,8 +102,6 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 				conn.Write([]byte(protocol.WrapRespStr("Ping","",0,"")))
 				conn.Close()
 			}else{
-
-
 				Invoker( conn,cmd,req_sid,reqid,req_data)
 			}
 
@@ -181,7 +183,7 @@ func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data 
 
 	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
 	data:=InvokeObjectMethod( task_obj,cmd )
-	//fmt.Println( "Invoker:", data )
+	fmt.Println( "Invoker:",cmd,req_sid, data )
 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 	//fmt.Println( "resp_str:", resp_str )
 	conn.Write(  []byte(resp_str) )

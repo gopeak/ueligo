@@ -359,7 +359,7 @@ func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 }
 
-func (this *Sdk) Broatcast(sid,string ,area_id string,msg string) bool {
+func (this *Sdk) Broatcast(sid string ,area_id string,msg string) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
