@@ -10,6 +10,6 @@
     6.websocket                      √
     7.错误日志写入mongodb            √
     8.单机版                         √
-    9.demo
+    9.demo                          √
     10.文档
     
