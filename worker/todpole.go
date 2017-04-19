@@ -68,12 +68,11 @@ func (this TaskType)Update(   ) string {
 	momentum ,_:= strconv.ParseFloat(momentum_str, 32)
 	x,_ := strconv.ParseFloat(x_str, 32)
 	y ,_:= strconv.ParseFloat(y_str, 32)
-	fmt.Println( "x y ",x_str,y_str,x,y  )
 	broatcast_data := fmt.Sprintf(`{"type":"%s","id":"%s","angle":%.3f,"momentum":%.3f,"x":%.3f,"y":%.3f,"life":1,"name":"%s","authorized":%s}`,
 		type_str,_id,float32(angle),float32(momentum),float32(x),float32(y),name,"false" )
-	fmt.Println("broatcast_data:",broatcast_data);
-	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
 
+	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
+	return ""
 	json_ret := fmt.Sprintf(`{"type":"%s","id":"%s" }`,"none",_id)
 	return json_ret;
 

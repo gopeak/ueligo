@@ -90,7 +90,7 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 		if( strings.Replace(str, "\n", "", -1)==""){
 			continue
 		}
-		fmt.Println( "HandleWorkerStr str: ",str)
+		//fmt.Println( "HandleWorkerStr str: ",str)
 		go func(str string, conn *net.TCPConn) {
 
 			msg_err,_type,cmd,req_sid,reqid,req_data := protocol.ParseReqData( str )
@@ -183,7 +183,10 @@ func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data 
 
 	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
 	data:=InvokeObjectMethod( task_obj,cmd )
-	fmt.Println( "Invoker:",cmd,req_sid, data )
+	if( data=="" ){
+		return data
+	}
+	//fmt.Println( "Invoker:",cmd,req_sid, data )
 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 	//fmt.Println( "resp_str:", resp_str )
 	conn.Write(  []byte(resp_str) )
@@ -203,7 +206,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	fmt.Println( "methodName:",methodName )
+	//fmt.Println( "methodName:",methodName )
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 	//fmt.Println( "ret:" ,ret)
 	data:=""

@@ -20,7 +20,6 @@ import (
 	"strconv"
 	"strings"
 	"os"
-	"sync"
 )
 
 var upgrader = websocket.Upgrader{
@@ -114,8 +113,7 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
-	var l *sync.RWMutex
-	l = new(sync.RWMutex)
+
 
 	for {
 		buf, err := reader.ReadBytes('\n')
@@ -144,10 +142,11 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 				area.WsConnRegister( wsconn,sid)
 			}
 		}
-
-		l.Lock()
-		wsconn.WriteMessage(websocket.TextMessage, buf)
-		l.Unlock()
+		//var l *sync.RWMutex
+		//l = new(sync.RWMutex)
+		//l.Lock()
+		go wsconn.WriteMessage(websocket.TextMessage, buf)
+		//l.Unlock()
 	}
 }
 
