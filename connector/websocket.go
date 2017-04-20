@@ -20,6 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"os"
+	"morego/web"
 )
 
 var upgrader = websocket.Upgrader{
@@ -36,7 +37,10 @@ func WebsocketConnector(ip string, port int) {
 	http_dir := fmt.Sprintf("%s/web/wwwroot", wd)
 	fmt.Println("Http_dir:", http_dir)
 	http.Handle("/", http.FileServer(http.Dir(http_dir)))
-
+	http.HandleFunc("/upload_image", web.UploadImageHandler)
+	http.HandleFunc("/upload_file", web.UploadFileHandler)
+	http.HandleFunc("/reg", web.RegHandler)
+	http.HandleFunc("/login", web.LoginHandler)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 
@@ -204,3 +208,6 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 
 	return 1, nil
 }
+
+
+

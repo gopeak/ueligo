@@ -1,10 +1,10 @@
-var WebSocketService = function(model, webSocket) {
+var WebSocketService = function( webSocket) {
 	var webSocketService = this;
 	
 	var webSocket = webSocket;
-	var model = model;
+	//var model = model;
 
-	var TypeReq = "1";
+	var TypeReq  = "1";
 	var TypePush = "3";
 	
 	this.hasConnection = false;
@@ -13,7 +13,6 @@ var WebSocketService = function(model, webSocket) {
         webSocketService.hasConnection = true;
         console.log("welcomeHandler:");
         console.log(data);
-        
 
     };
 
@@ -24,7 +23,6 @@ var WebSocketService = function(model, webSocket) {
         alert("加入房间失败!")
 
     };
-
 	
 	this.updateHandler = function(data) {
 		var newtp = false;
@@ -40,7 +38,7 @@ var WebSocketService = function(model, webSocket) {
 	}
 	
 	this.closedHandler = function(data) {
-	 
+
 	}
 	
 	this.redirectHandler = function(data) {
@@ -83,8 +81,7 @@ var WebSocketService = function(model, webSocket) {
 			angle: tadpole.angle.toFixed(3),
 			momentum: tadpole.momentum.toFixed(3)
 		};
-		
-		
+
 		if(tadpole.name) {
 			sendObj['name'] = tadpole.name;
 		}
@@ -137,7 +134,7 @@ var WebSocketService = function(model, webSocket) {
 			token: token,
 			verifier: verifier
 		};
-        str = this.wrapReqMessage( 'Authorize',model.userTadpole.id,0,sendObj)
+        str = this.wrapReqMessage( 'Authorize',"",0,sendObj)
 		webSocket.send(str);
 	}
 }

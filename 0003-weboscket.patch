@@ -1,0 +1,110 @@
+From 7e154cd5a9d5336b189e84f83febb5a53c47b840 Mon Sep 17 00:00:00 2001
+From: sven <121642038@qq.com>
+Date: Wed, 19 Apr 2017 21:15:52 +0800
+Subject: [PATCH 3/3] =?UTF-8?q?=E8=B0=83=E8=AF=95weboscket=E5=B9=B6?=
+ =?UTF-8?q?=E5=8F=91=E5=86=99=E5=85=A5=E5=AF=BC=E8=87=B4=E5=B4=A9=E6=BA=83?=
+ =?UTF-8?q?=E7=9A=84?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ connector/websocket.go  | 13 ++++++-------
+ worker/todpole.go       |  5 ++---
+ worker/worker_server.go |  9 ++++++---
+ 3 files changed, 14 insertions(+), 13 deletions(-)
+
+diff --git a/connector/websocket.go b/connector/websocket.go
+index d58fbc1..eb17fb5 100644
+--- a/connector/websocket.go
++++ b/connector/websocket.go
+@@ -20,7 +20,6 @@ import (
+ 	"strconv"
+ 	"strings"
+ 	"os"
+-	"sync"
+ )
+ 
+ var upgrader = websocket.Upgrader{
+@@ -114,8 +113,7 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
+ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
+ 
+ 	reader := bufio.NewReader(req_conn)
+-	var l *sync.RWMutex
+-	l = new(sync.RWMutex)
++
+ 
+ 	for {
+ 		buf, err := reader.ReadBytes('\n')
+@@ -144,10 +142,11 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
+ 				area.WsConnRegister( wsconn,sid)
+ 			}
+ 		}
+-
+-		l.Lock()
+-		wsconn.WriteMessage(websocket.TextMessage, buf)
+-		l.Unlock()
++		//var l *sync.RWMutex
++		//l = new(sync.RWMutex)
++		//l.Lock()
++		go wsconn.WriteMessage(websocket.TextMessage, buf)
++		//l.Unlock()
+ 	}
+ }
+ 
+diff --git a/worker/todpole.go b/worker/todpole.go
+index 124ea5f..b92a0ca 100644
+--- a/worker/todpole.go
++++ b/worker/todpole.go
+@@ -68,12 +68,11 @@ func (this TaskType)Update(   ) string {
+ 	momentum ,_:= strconv.ParseFloat(momentum_str, 32)
+ 	x,_ := strconv.ParseFloat(x_str, 32)
+ 	y ,_:= strconv.ParseFloat(y_str, 32)
+-	fmt.Println( "x y ",x_str,y_str,x,y  )
+ 	broatcast_data := fmt.Sprintf(`{"type":"%s","id":"%s","angle":%.3f,"momentum":%.3f,"x":%.3f,"y":%.3f,"life":1,"name":"%s","authorized":%s}`,
+ 		type_str,_id,float32(angle),float32(momentum),float32(x),float32(y),name,"false" )
+-	fmt.Println("broatcast_data:",broatcast_data);
+-	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
+ 
++	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
++	return ""
+ 	json_ret := fmt.Sprintf(`{"type":"%s","id":"%s" }`,"none",_id)
+ 	return json_ret;
+ 
+diff --git a/worker/worker_server.go b/worker/worker_server.go
+index a1156b1..993f2d1 100644
+--- a/worker/worker_server.go
++++ b/worker/worker_server.go
+@@ -90,7 +90,7 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
+ 		if( strings.Replace(str, "\n", "", -1)==""){
+ 			continue
+ 		}
+-		fmt.Println( "HandleWorkerStr str: ",str)
++		//fmt.Println( "HandleWorkerStr str: ",str)
+ 		go func(str string, conn *net.TCPConn) {
+ 
+ 			msg_err,_type,cmd,req_sid,reqid,req_data := protocol.ParseReqData( str )
+@@ -183,7 +183,10 @@ func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data
+ 
+ 	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
+ 	data:=InvokeObjectMethod( task_obj,cmd )
+-	fmt.Println( "Invoker:",cmd,req_sid, data )
++	if( data=="" ){
++		return data
++	}
++	//fmt.Println( "Invoker:",cmd,req_sid, data )
+ 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
+ 	//fmt.Println( "resp_str:", resp_str )
+ 	conn.Write(  []byte(resp_str) )
+@@ -203,7 +206,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
+ 	for i, _ := range args {
+ 		inputs[i] = reflect.ValueOf(args[i])
+ 	}
+-	fmt.Println( "methodName:",methodName )
++	//fmt.Println( "methodName:",methodName )
+ 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
+ 	//fmt.Println( "ret:" ,ret)
+ 	data:=""
+-- 
+2.8.1.windows.1
+

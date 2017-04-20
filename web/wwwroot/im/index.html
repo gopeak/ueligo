@@ -1,43 +1,366 @@
-<?php 
-if(!function_exists('is_mobile'))
-{
-    function is_mobile()
-    {
-        //php判断客户端是否为手机
-        $agent = $_SERVER['HTTP_USER_AGENT'];
-        return (strpos($agent,"NetFront") || strpos($agent,"iPhone") || strpos($agent,"MIDP-2.0") || strpos($agent,"Opera Mini") || strpos($agent,"UCWEB") || strpos($agent,"Android") || strpos($agent,"Windows CE") || strpos($agent,"SymbianOS"));
-    }
-}
-?>
-<!doctype html>
-
 <html>
 	<head>
 		<meta charset="utf-8">
-		<title>GoMmorpg小蝌蚪互动聊天室 HTML5+Websocket多进程socket实时技术</title>
+		<title>Firego+HTML5+WebSocket  Webim</title>
 		<link rel="stylesheet" type="text/css" href="css/main.css" />
 		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />		
 		<meta name="apple-mobile-web-app-capable" content="YES">
 		<meta name="apple-mobile-web-app-status-bar-style" content="black">
-		<link rel="apple-touch-icon" href="images/apple-touch-icon.png"/>
-		<meta property="fb:app_id" content="149260988448984" />
-		<meta name="title" content="Mmorpg-todpole!" />
-		<meta name="description" content="Mmorpg + HTML5+WebSocket +PHP socket 广播 小蝌蚪交互游戏程序 ，坐标实时推送、实时聊天等" />
+ >
+		<meta name="title" content="Firego-webim!" />
+		<meta name="description" content="Firego + HTML5+WebSocket  Webim" />
 		<link rel="image_src" href="images/fb-image.jpg" />
+        <link rel="stylesheet" href="../layim/layui/css/layui.css">
 	</head>
 	<body>
 		<canvas id="canvas"></canvas>
+
+
+
+        <script src="../layim/layui/layui.js"></script>
+
+        <script id="login_tpl" type="text/plain">
+
+            <div  class="layui-layer-content">
+                <div class="layim-add-box">
+
+
+                    <div class="layim-add-remark">
+
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">用户名</label>
+                            <div class="layui-input-block">
+                                <input type="input" name="user"  id="user" autocomplete="off" class="layui-input">
+                            </div>
+
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">密码</label>
+                            <div class="layui-input-block">
+                                <input type="password" name="pwd" id="pwd" lay-verify="pass" placeholder="" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+                    </div>
+             </div>
+            </div>
+
+        </script>
+
+        <script id="reg_tpl" type="text/plain">
+
+            <div  class="layui-layer-content">
+                <div class="layim-add-box">
+                    <div class="layim-add-img">
+                        <img class="layui-circle" src="//www.firefox.com.cn/media/img/firefox/new/firefox-logo.png">
+                        <p>选择头像</p>
+                    </div>
+
+                    <div class="layim-add-remark">
+
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">用户名</label>
+                            <div class="layui-input-block">
+                                <input type="input" name="user"  id="user" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+                        <div class="layui-form-item">
+                            <label class="layui-form-label">密码</label>
+                            <div class="layui-input-block">
+                                <input type="password" name="pwd" lay-verify="pass" placeholder="" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+        </script>
+
+        <script>
+
+
+            function show_login(){
+
+                content = $('#login_tpl').html()
+                //示范一个公告层
+                layer.open({
+                    type: 1
+                    ,title: "登录" //不显示标题栏
+                    ,closeBtn: false
+                    ,area: '460px;'
+                   // ,shade: 0.8
+                    ,id: 'lay_login' //设定一个id，防止重复弹出
+                    ,btn: [ '登录','注册']
+                    ,moveType: 1 //拖拽模式，0或者1
+                    ,content: content
+                    ,yes: function(){
+                        user = $('#user').val()
+                        pwd  = $('#pwd').val()
+                        $.post("/login",{user:user,pwd:pwd},function(result){
+                            alert( result )
+                        });
+                    }
+                    ,btn2: function(){
+                        layer.closeAll();
+                        show_reg()
+                    }
+                });
+                $('#user').focus();
+            }
+
+            function show_reg(){
+
+                content = $('#reg_tpl').html()
+                //示范一个公告层
+                layer.open({
+                    type: 1
+                    ,title: "注册" //不显示标题栏
+                    ,closeBtn: false
+                    ,area: '460px;'
+                    // ,shade: 0.8
+                    ,id: 'lay_reg' //设定一个id，防止重复弹出
+                    ,btn: ['确定', '返回']
+                    ,moveType: 1 //拖拽模式，0或者1
+                    ,content: content
+                    ,yes: function(){
+                        user = $('#user').val()
+                        pwd  = $('#pwd').val()
+                        $.post("/reg",{user:user,pwd:pwd},function(result){
+                            alert( result )
+                        });
+                    }
+                    ,btn2: function(){
+                        layer.closeAll();
+                        show_login()
+                    }
+                });
+            }
+
+            layui.use('layim', function(layim){
+
+                //演示自动回复
+                var autoReplay = [
+                    '您好，我现在有事不在，一会再和您联系。',
+                    '你没发错吧？face[微笑] ',
+                    '洗澡中，请勿打扰，偷窥请购票，个体四十，团体八折，订票电话：一般人我不告诉他！face[哈哈] ',
+                    '你好，我是主人的美女秘书，有什么事就跟我说吧，等他回来我会转告他的。face[心] face[心] face[心] ',
+                    'face[威武] face[威武] face[威武] face[威武] ',
+                    '<（@￣︶￣@）>',
+                    '你要和我说话？你真的要和我说话？你确定自己想说吗？你一定非说不可吗？那你说吧，这是自动回复。',
+                    'face[黑线]  你慢慢说，别急……',
+                    '(*^__^*) face[嘻嘻] ，是贤心吗？'
+                ];
+
+                //基础配置
+                layim.config({
+
+                    //初始化接口
+                    init: {
+                        url: 'json/getList.json'
+                        ,data: {}
+                    }
+
+                    //查看群员接口
+                    ,members: {
+                        url: 'json/getMembers.json'
+                        ,data: {}
+                    }
+
+                    //上传图片接口
+                    ,uploadImage: {
+                        url: '/upload_image' //（返回的数据格式见下文）
+                        ,type: '' //默认post
+                    }
+
+                    //上传文件接口
+                    ,uploadFile: {
+                        url: '/upload_file' //（返回的数据格式见下文）
+                        ,type: '' //默认post
+                    }
+
+                    //扩展工具栏
+                    ,tool: [{
+                        alias: 'code'
+                        ,title: '代码'
+                        ,icon: '&#xe64e;'
+                    }]
+
+                    //,brief: true //是否简约模式（若开启则不显示主面板）
+
+                    //,title: 'WebIM' //自定义主面板最小化时的标题
+                    //,right: '100px' //主面板相对浏览器右侧距离
+                    //,minRight: '90px' //聊天面板最小化时相对浏览器右侧距离
+                    ,initSkin: '5.jpg' //1-5 设置初始背景
+                    //,skin: ['aaa.jpg'] //新增皮肤
+                    //,isfriend: false //是否开启好友
+                    //,isgroup: false //是否开启群组
+                    //,min: true //是否始终最小化主面板，默认false
+                    ,notice: true //是否开启桌面消息提醒，默认false
+                    //,voice: false //声音提醒，默认开启，声音文件为：default.wav
+
+                    ,msgbox: layui.cache.dir + 'css/modules/layim/html/msgbox.html' //消息盒子页面地址，若不开启，剔除该项即可
+                    ,find: layui.cache.dir + 'css/modules/layim/html/find.html' //发现页面地址，若不开启，剔除该项即可
+                    ,chatLog: layui.cache.dir + 'css/modules/layim/html/chatLog.html' //聊天记录页面地址，若不开启，剔除该项即可
+
+                });
+
+                /*
+                 layim.chat({
+                 name: '在线客服-小苍'
+                 ,type: 'kefu'
+                 ,avatar: 'http://tva3.sinaimg.cn/crop.0.0.180.180.180/7f5f6861jw1e8qgp5bmzyj2050050aa8.jpg'
+                 ,id: -1
+                 });
+                 layim.chat({
+                 name: '在线客服-心心'
+                 ,type: 'kefu'
+                 ,avatar: 'http://tva1.sinaimg.cn/crop.219.144.555.555.180/0068iARejw8esk724mra6j30rs0rstap.jpg'
+                 ,id: -2
+                 });
+                 layim.setChatMin();*/
+
+
+
+                //监听在线状态的切换事件
+                layim.on('online', function(data){
+                    console.log(data);
+
+                });
+
+                //监听签名修改
+                layim.on('sign', function(value){
+                    //console.log(value);
+                });
+
+                //监听自定义工具栏点击，以添加代码为例
+                layim.on('tool(code)', function(insert){
+                    layer.prompt({
+                        title: '插入代码'
+                        ,formType: 2
+                        ,shade: 0
+                    }, function(text, index){
+                        layer.close(index);
+                        insert('[pre class=layui-code]' + text + '[/pre]'); //将内容插入到编辑器
+                    });
+                });
+
+                //监听layim建立就绪
+                layim.on('ready', function(res){
+
+                    //console.log(res.mine);
+                    show_login()
+                    layim.msgbox(5); //模拟消息盒子有新消息，实际使用时，一般是动态获得
+
+                    //添加好友（如果检测到该socket）
+                    layim.addList({
+                        type: 'group'
+                        ,avatar: "http://tva3.sinaimg.cn/crop.64.106.361.361.50/7181dbb3jw8evfbtem8edj20ci0dpq3a.jpg"
+                        ,groupname: 'Angular开发'
+                        ,id: "12333333"
+                        ,members: 0
+                    });
+                    layim.addList({
+                        type: 'friend'
+                        ,avatar: "http://tp2.sinaimg.cn/2386568184/180/40050524279/0"
+                        ,username: '冲田杏梨'
+                        ,groupid: 2
+                        ,id: "1233333312121212"
+                        ,remark: "本人冲田杏梨将结束AV女优的工作"
+                    });
+
+                    setTimeout(function(){
+                        //接受消息（如果检测到该socket）
+                        layim.getMessage({
+                            username: "Hi"
+                            ,avatar: "http://qzapp.qlogo.cn/qzapp/100280987/56ADC83E78CEC046F8DF2C5D0DD63CDE/100"
+                            ,id: "10000111"
+                            ,type: "friend"
+                            ,content: "临时："+ new Date().getTime()
+                        });
+
+                        /*layim.getMessage({
+                         username: "贤心"
+                         ,avatar: "http://tp1.sinaimg.cn/1571889140/180/40030060651/1"
+                         ,id: "100001"
+                         ,type: "friend"
+                         ,content: "嗨，你好！欢迎体验LayIM。演示标记："+ new Date().getTime()
+                         });*/
+
+                    }, 3000);
+                });
+
+                //监听发送消息
+                layim.on('sendMessage', function(data){
+                    var To = data.to;
+                    //console.log(data);
+
+                    if(To.type === 'friend'){
+                        layim.setChatStatus('<span style="color:#FF5722;">对方正在输入。。。</span>');
+                    }
+
+                    //演示自动回复
+                    setTimeout(function(){
+                        var obj = {};
+                        if(To.type === 'group'){
+                            obj = {
+                                username: '模拟群员'+(Math.random()*100|0)
+                                ,avatar: layui.cache.dir + 'images/face/'+ (Math.random()*72|0) + '.gif'
+                                ,id: To.id
+                                ,type: To.type
+                                ,content: autoReplay[Math.random()*9|0]
+                            }
+                        } else {
+                            obj = {
+                                username: To.name
+                                ,avatar: To.avatar
+                                ,id: To.id
+                                ,type: To.type
+                                ,content: autoReplay[Math.random()*9|0]
+                            }
+                            layim.setChatStatus('<span style="color:#FF5722;">在线</span>');
+                        }
+                        layim.getMessage(obj);
+                    }, 1000);
+                });
+
+                //监听查看群员
+                layim.on('members', function(data){
+                    //console.log(data);
+                });
+
+                //监听聊天窗口的切换
+                layim.on('chatChange', function(res){
+                    var type = res.data.type;
+                    console.log(res.data.id)
+                    if(type === 'friend'){
+                        //模拟标注好友状态
+                        //layim.setChatStatus('<span style="color:#FF5722;">在线</span>');
+                    } else if(type === 'group'){
+                        //模拟系统消息
+                        layim.getMessage({
+                            system: true
+                            ,id: res.data.id
+                            ,type: "group"
+                            ,content: '模拟群员'+(Math.random()*100|0) + '加入群聊'
+                        });
+                    }
+                });
+
+
+
+            });
+        </script>
+
 		
 		<div id="ui">
 			<div id="fps"></div>
 		
 			<input id="chat" type="text" />
 			<div id="chatText"></div>
-			<h1>GoMmorpg</h1>
-		<?php if(!is_mobile()){?>
+			<h1>Firego</h1>
+
 			<div id="instructions">
-				<h2>介绍</h2>
-				<p>直接打字聊天!<br />输入 name: XX 则会设置你的昵称为XX</p>
+
 			</div>
 			<aside id="info">
 			<section id="share">
@@ -47,12 +370,12 @@ if(!function_exists('is_mobile'))
 			<section id="wtf">
 			
 			    <!-- 尊重他人劳动成果，请保留原作者相关链接 -->
-				<h2>powered&nbsp;by&nbsp;<a rel="external" href="http://Mmorpg.net/Mmorpg-todpole" target="_blank">Mmorpg</a> &nbsp;&nbsp;&nbsp;&nbsp;感谢 <a href="http://rumpetroll.com/" target="_blank">rumpetroll.com</a></h2>
+				<h2>powered&nbsp;by&nbsp;<a rel="external" href="http://Mmorpg.net/Mmorpg-todpole" target="_blank">Firego</a> &nbsp;&nbsp;&nbsp;&nbsp;感谢 <a href="http://layui.com/" target="_blank">layui</a></h2>
 				<!-- 尊重他人劳动成果，请保留原作者相关链接 -->
 				
 			</section>
 			</aside>
-			<?php }?>
+
             <aside id="frogMode">
                 <h3>Frog Mode</h3>
                 <section id="tadpoles">
@@ -88,13 +411,13 @@ if(!function_exists('is_mobile'))
 
 		<script src="js/lib/parseUri.js"></script> 
 		<script src="js/lib/modernizr-1.5.min.js"></script>
-		<script src="js/jquery.min.js"></script> 
-		
-		<script src="js/App.js"></script> 
-		<script src="js/WebSocketService.js?t="></script>
- 
-		
+
+		<script src="js/jquery.min.js"></script>
 		<script src="js/Cookie.js"></script>
+
+		<script src="js/WebSocketService.js?t="></script>
+		<script src="js/App.js"></script> 
+
 		<script src="js/main.js"></script>
 
 		

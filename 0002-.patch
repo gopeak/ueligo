@@ -1,0 +1,37 @@
+From 8a2bfe4c2977b0d2b3205e39ef7445898984639a Mon Sep 17 00:00:00 2001
+From: sven <121642038@qq.com>
+Date: Wed, 19 Apr 2017 21:14:24 +0800
+Subject: [PATCH 2/3] =?UTF-8?q?=E4=BF=AE=E6=94=B9=E6=A0=87=E9=A2=98?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+---
+ web/wwwroot/todpole/index.html | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+
+diff --git a/web/wwwroot/todpole/index.html b/web/wwwroot/todpole/index.html
+index 0d206c9..9ff027a 100644
+--- a/web/wwwroot/todpole/index.html
++++ b/web/wwwroot/todpole/index.html
+@@ -14,7 +14,7 @@ if(!function_exists('is_mobile'))
+ <html>
+ 	<head>
+ 		<meta charset="utf-8">
+-		<title>GoMmorpg小蝌蚪互动聊天室 HTML5+Websocket多进程socket实时技术</title>
++		<title>Firego小蝌蚪互动聊天室 HTML5+Websocket实时技术</title>
+ 		<link rel="stylesheet" type="text/css" href="css/main.css" />
+ 		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />		
+ 		<meta name="apple-mobile-web-app-capable" content="YES">
+@@ -33,7 +33,7 @@ if(!function_exists('is_mobile'))
+ 		
+ 			<input id="chat" type="text" />
+ 			<div id="chatText"></div>
+-			<h1>GoMmorpg</h1>
++			<h1>Firego</h1>
+ 		<?php if(!is_mobile()){?>
+ 			<div id="instructions">
+ 				<h2>介绍</h2>
+-- 
+2.8.1.windows.1
+
