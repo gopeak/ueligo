@@ -10,14 +10,14 @@
 		<meta name="title" content="Firego-webim!" />
 		<meta name="description" content="Firego + HTML5+WebSocket  Webim" />
 		<link rel="image_src" href="images/fb-image.jpg" />
-        <link rel="stylesheet" href="../layim/layui/css/layui.css">
+        <link rel="stylesheet" href="./layui/css/layui.css">
 	</head>
 	<body>
 		<canvas id="canvas"></canvas>
 
 
 
-        <script src="../layim/layui/layui.js"></script>
+        <script src="./layui/layui.js"></script>
 
         <script id="login_tpl" type="text/plain">
 
@@ -93,7 +93,7 @@
                 layer.open({
                     type: 1
                     ,title: "登录" //不显示标题栏
-                    ,closeBtn: true
+                    ,closeBtn: false
                     ,area: '460px;'
                    // ,shade: 0.8
                     ,id: 'lay_login' //设定一个id，防止重复弹出
