@@ -6,10 +6,11 @@ import (
 	"os"
 	"io"
  	"database/sql"
- 	"github.com/go-sql-driver/mysql"
-	"log"
+ 	_"github.com/go-sql-driver/mysql"
+	"encoding/json"
+	"github.com/go-sql-driver/mysql"
+	"time"
 )
-
 
 
 
@@ -110,7 +111,33 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 
 	} else {
 
-		resp:=fmt.Sprintf(format_str,2,"" )
+		r.ParseForm( )
+
+		user  := r.PostForm.Get(`user`)
+		pwd  := r.PostForm.Get(`pwd`)
+		age  := r.PostForm.Get(`age`)
+		nick  := r.PostForm.Get(`nick`)
+		sign  := r.PostForm.Get(`sign`)
+		reg_time  := time.Now().Unix()
+
+		db:=new(Mysql)
+		db.Connect()
+
+		row := db.GetRow( `select user from user where user=? `,user)
+		if _, ok := row[`user`]; ok {
+			resp:=fmt.Sprintf(format_str,0 ,"用户名已经存在!")
+			w.Write([]byte(resp))
+			return
+		}
+
+		insertid,err:=db.Insert( `INSERT user (user,pwd,nick,sign,age,reg_time) values (?,?,?,?,?,?)` ,user,pwd,nick,sign,age,reg_time)
+		if( err!=nil ){
+			resp:=fmt.Sprintf(format_str,500,"db.Insert err:",err.Error() )
+			w.Write([]byte(resp))
+			return
+		}
+		fmt.Println( "insertid:", insertid )
+		resp:=fmt.Sprintf(format_str,1,"注册成功" )
 		w.Write([]byte(resp))
 	}
 
@@ -133,26 +160,43 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println( user ,pwd ,mysql.MySQLDriver{})
 		db, err := sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/webim?timeout=90s&collation=utf8mb4_unicode_ci")
 		if err != nil {
-
 			resp:=fmt.Sprintf(format_str,500,"Open database error: "+err.Error() )
 			w.Write([]byte(resp))
 			return
 		}
 		defer db.Close()
-		row:= db.QueryRow("select user,pwd from user where user=? And pwd=? ",user,pwd)
-
-		var row_user string
-		var row_pwd string
-
-		err = row.Scan(&row_user, &row_pwd)
+		rows,err:= db.Query("select user,sign,sid,sign from user where user=? And pwd=? ",user,pwd)
 		if err != nil {
-			resp:=fmt.Sprintf(format_str,500,err.Error() )
+			resp:=fmt.Sprintf(format_str,500,"Sql query error: "+err.Error() )
 			w.Write([]byte(resp))
 			return
 		}
-		log.Println(row_user, row_pwd)
+		columns, _ := rows.Columns()
+		scanArgs := make([]interface{}, len(columns))
+		values := make([]interface{}, len(columns))
+		for j := range values {
+			scanArgs[j] = &values[j]
+		}
 
-		resp:=fmt.Sprintf(format_str,1,err.Error() )
+		record := make(map[string]string)
+		for rows.Next() {
+			//将行数据保存到record字典
+			err = rows.Scan(scanArgs...)
+			for i, col := range values {
+				if col != nil {
+					record[columns[i]] = string(col.([]byte))
+				}
+			}
+		}
+
+		fmt.Println(record)
+		json_encode ,err:=json.Marshal( record )
+		resp := ""
+		if _, ok := record[`user`]; ok {
+			resp=fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s} `,1,"验证成功",string(json_encode) )
+		}else{
+			resp=fmt.Sprintf(format_str,404,"用户名密码错误" )
+		}
 		w.Write([]byte(resp))
 	}
 

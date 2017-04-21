@@ -66,9 +66,16 @@
                         <div class="layui-form-item">
                             <label class="layui-form-label">密码</label>
                             <div class="layui-input-block">
-                                <input type="password" name="pwd" lay-verify="pass" placeholder="" autocomplete="off" class="layui-input">
+                                <input type="password" id="pwd" name="pwd" lay-verify="pass" placeholder="" autocomplete="off" class="layui-input">
                             </div>
                         </div>
+                         <div class="layui-form-item">
+                            <label class="layui-form-label">昵称</label>
+                            <div class="layui-input-block">
+                                <input type="input" name="nick"  id="nick" autocomplete="off" class="layui-input">
+                            </div>
+                        </div>
+
 
                     </div>
                 </div>
@@ -86,22 +93,27 @@
                 layer.open({
                     type: 1
                     ,title: "登录" //不显示标题栏
-                    ,closeBtn: false
+                    ,closeBtn: true
                     ,area: '460px;'
                    // ,shade: 0.8
                     ,id: 'lay_login' //设定一个id，防止重复弹出
                     ,btn: [ '登录','注册']
-                    ,moveType: 1 //拖拽模式，0或者1
+                    ,moveType: 0 //拖拽模式，0或者1
                     ,content: content
                     ,yes: function(){
                         user = $('#user').val()
                         pwd  = $('#pwd').val()
                         $.post("/login",{user:user,pwd:pwd},function(result){
-                            alert( result )
+                            json = JSON.parse( result )
+                            if (json.code==1) {
+                                setTimeout( function(layer){layer.close()},1000)
+                            }
+                            layer.msg(json.msg);
+
                         });
                     }
                     ,btn2: function(){
-                        layer.closeAll();
+                        layer.close();
                         show_reg()
                     }
                 });
@@ -125,12 +137,18 @@
                     ,yes: function(){
                         user = $('#user').val()
                         pwd  = $('#pwd').val()
-                        $.post("/reg",{user:user,pwd:pwd},function(result){
-                            alert( result )
+                        nick  = $('#nick').val()
+                        $.post("/reg",{user:user,pwd:pwd,nick:nick},function(result){
+                            // alert( result )
+							json = JSON.parse( result )
+							if (json.code==1) {
+								layer.close();
+							}
+                            alert(json.msg)
                         });
                     }
                     ,btn2: function(){
-                        layer.closeAll();
+                        layer.close();
                         show_login()
                     }
                 });
@@ -204,20 +222,6 @@
 
                 });
 
-                /*
-                 layim.chat({
-                 name: '在线客服-小苍'
-                 ,type: 'kefu'
-                 ,avatar: 'http://tva3.sinaimg.cn/crop.0.0.180.180.180/7f5f6861jw1e8qgp5bmzyj2050050aa8.jpg'
-                 ,id: -1
-                 });
-                 layim.chat({
-                 name: '在线客服-心心'
-                 ,type: 'kefu'
-                 ,avatar: 'http://tva1.sinaimg.cn/crop.219.144.555.555.180/0068iARejw8esk724mra6j30rs0rstap.jpg'
-                 ,id: -2
-                 });
-                 layim.setChatMin();*/
 
 
 
@@ -259,34 +263,8 @@
                         ,id: "12333333"
                         ,members: 0
                     });
-                    layim.addList({
-                        type: 'friend'
-                        ,avatar: "http://tp2.sinaimg.cn/2386568184/180/40050524279/0"
-                        ,username: '冲田杏梨'
-                        ,groupid: 2
-                        ,id: "1233333312121212"
-                        ,remark: "本人冲田杏梨将结束AV女优的工作"
-                    });
 
-                    setTimeout(function(){
-                        //接受消息（如果检测到该socket）
-                        layim.getMessage({
-                            username: "Hi"
-                            ,avatar: "http://qzapp.qlogo.cn/qzapp/100280987/56ADC83E78CEC046F8DF2C5D0DD63CDE/100"
-                            ,id: "10000111"
-                            ,type: "friend"
-                            ,content: "临时："+ new Date().getTime()
-                        });
 
-                        /*layim.getMessage({
-                         username: "贤心"
-                         ,avatar: "http://tp1.sinaimg.cn/1571889140/180/40030060651/1"
-                         ,id: "100001"
-                         ,type: "friend"
-                         ,content: "嗨，你好！欢迎体验LayIM。演示标记："+ new Date().getTime()
-                         });*/
-
-                    }, 3000);
                 });
 
                 //监听发送消息
@@ -420,6 +398,6 @@
 
 		<script src="js/main.js"></script>
 
-		
+
 	</body>
 </html>
