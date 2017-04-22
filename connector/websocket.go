@@ -41,6 +41,7 @@ func WebsocketConnector(ip string, port int) {
 	http.HandleFunc("/upload_file", web.UploadFileHandler)
 	http.HandleFunc("/reg", web.RegHandler)
 	http.HandleFunc("/login", web.LoginHandler)
+	http.HandleFunc("/get_list", web.GetListHandler)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 

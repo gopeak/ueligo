@@ -19,17 +19,17 @@ type Mysql struct {
 }
 
 
-func (this *Mysql) Connect() {
+func (this *Mysql) Connect() (bool,error){
 	var err error
 	this.Db, err = sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/webim?timeout=90s&collation=utf8mb4_unicode_ci")
 	if err != nil {
 		fmt.Println("sql.Open err:",err.Error())
-		return
+		return false,err
 	}
 	this.Db.SetMaxOpenConns(2000)
 	this.Db.SetMaxIdleConns(1000)
 	this.Db.Ping()
-
+	return true,nil
 }
 
 //插入demo
@@ -54,7 +54,7 @@ func (this *Mysql) GetRows( sql string, args ...interface{} ) []map[string]strin
 	db :=this.Db
 	this.Sql = sql
 	rets := make([]map[string]string,0)
-	rows, err := db.Query(sql,args...)
+	rows, err := db.Query(sql,args)
 	if err != nil {
 		fmt.Println( "Insert err:"+err.Error())
 		return rets
@@ -86,13 +86,13 @@ func (this *Mysql) GetRows( sql string, args ...interface{} ) []map[string]strin
 }
 
 //查询demo
-func (this *Mysql) GetRow( sql string, args ...interface{} )  map[string]string {
+func (this *Mysql) GetRow( sql string,  args ...interface{})  map[string]string {
 	db :=this.Db
 	this.Sql = sql
 	record := make(map[string]string)
-	rows, err := db.Query(sql,args...)
+	rows, err := db.Query(sql,args...  )
 	if err != nil {
-		fmt.Println( "Insert err:"+err.Error())
+		fmt.Println( "query err:"+err.Error())
 		return record
 	}
 
@@ -109,7 +109,6 @@ func (this *Mysql) GetRow( sql string, args ...interface{} )  map[string]string 
 	for rows.Next() {
 		//将行数据保存到record字典
 		err = rows.Scan(scanArgs...)
-
 		for i, col := range values {
 			if col != nil {
 				record[columns[i]] = string(col.([]byte))
