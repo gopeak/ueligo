@@ -12,7 +12,6 @@ import (
 	"time"
 
 	"github.com/go-sql-driver/mysql"
-	_ "github.com/go-sql-driver/mysql"
 )
 
 func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -166,8 +165,8 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		sql_str := `select id,user,sign,sid ,avatar from user  where user=? and pwd=?`
 		var id, sign, sid, avatar string
 		record := make(map[string]string)
-		scan_err := db.Db.QueryRow(sql_str, user, pwd ).Scan(&id, &user, &sign, &sid, &avatar)
-		if( scan_err!=nil ){
+		scan_err := db.Db.QueryRow(sql_str, user, pwd).Scan(&id, &user, &sign, &sid, &avatar)
+		if scan_err != nil {
 			resp = fmt.Sprintf(format_str, 500, "用户名密码错误"+scan_err.Error())
 			w.Write([]byte(resp))
 			return
@@ -177,11 +176,11 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		record["sign"] = sign
 		record["sid"] = sid
 		record["avatar"] = avatar
-		fmt.Println("id:",id)
+		fmt.Println("id:", id)
 		fmt.Println(record)
 		json_encode, _ := json.Marshal(record)
 
-		if id!="" {
+		if id != "" {
 			resp = fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s} `, 1, "验证成功", string(json_encode))
 		} else {
 			resp = fmt.Sprintf(format_str, 404, "用户名密码错误")
@@ -190,12 +189,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func getUserRow(db *sql.DB,sid string ) map[string]string {
+func getUserRow(db *sql.DB, sid string) map[string]string {
 
 	sql_str := `select id,nick,status ,sign, avatar  from user where sid=?`
-	var id, nick,status, sign, avatar string
+	var id, nick, status, sign, avatar string
 	record := make(map[string]string)
-	err := db.QueryRow(sql_str,sid ).Scan(&id, &nick, &status, &sign,  &avatar)
+	err := db.QueryRow(sql_str, sid).Scan(&id, &nick, &status, &sign, &avatar)
 	switch {
 	case err == sql.ErrNoRows:
 		log.Printf("No user with that ID.")
@@ -214,10 +213,128 @@ func getUserRow(db *sql.DB,sid string ) map[string]string {
 	return record
 }
 
+func getMyContacts(db *sql.DB, uid int) []map[string]string {
+
+	sql := "SELECT  u.id,u.nick as nick,u.avatar,u.sign,c.group_id FROM `contacts` c LEFT JOIN `user` u on u.id =c.uid WHERE  c.master_uid=?"
+
+	contact_records := make([]map[string]string, 0)
+	rows, err := db.Db.Query(sql, uid)
+	if err != nil {
+
+		return contact_records
+	}
+	for rows.Next() {
+		//将行数据保存到record字典
+		var id, nick, avatar, sign, group_id string
+		record := make(map[string]string)
+		rows.Scan(&id, &nick, &avatar, &sign, &group_id)
+
+		record["id"] = id
+		record["username"] = nick
+		record["avatar"] = avatar
+		record["sign"] = sign
+		record["group_id"] = group_id
+		contact_records = append(contact_records, record)
+
+	}
+	return contact_records
+
+}
+
+func getMyGroup(db *sql.DB, uid int) []map[string]string {
+
+	sql = "SELECT  id,title as groupname  FROM `contact_group` WHERE uid=? "
+	my_group_records := make([]map[string]string, 0)
+	rows, err = db.Db.Query(sql, uid)
+	if err != nil {
+		return my_group_records
+	}
+	for rows.Next() {
+		//将行数据保存到record字典
+		var gid, groupname string
+		err = rows.Scan(&gid, &groupname)
+		if err != nil {
+			resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
+			w.Write([]byte(resp))
+			return
+		}
+		record["id"] = gid
+		record["groupname"] = groupname
+		fmt.Println(record)
+		my_group_records = append(my_group_records, record)
+	}
+	return my_group_records
+}
+
+func getFriends(db *sql.DB, uid int) []FriendType {
+
+	sql = "SELECT  id,title as groupname  FROM `contact_group` WHERE uid=? "
+	friends := make([]FriendType{}, 0)
+
+	// 获取所属的联系人列表（未分组）
+	contact_records := getMyContacts(db.Db, uid)
+	fmt.Println(contact_records)
+
+	// 获取分组
+	my_group_records := getMyGroup(db.Db, uid)
+
+	for _, group := range my_group_records {
+		friend := new(FriendType)
+		friend.Groupname = group[`groupname`]
+		friend.Id = group[`id`]
+		friend.Online = 1
+		tmp_list := make([]map[string]string, 0)
+
+		for _k, c := range contact_records {
+			if c[`group_id`] == friend.Id {
+				tmp_list = append(tmp_list, c)
+				contact_records = append(contact_records[:_k], contact_records[_k+1:]...)
+			}
+		}
+		friend.List = tmp_list_str
+		friends = append(friends, friend)
+	}
+
+	return friends
+}
+
+func getMyGroups(db *sql.DB, uid int) []map[string]string {
+
+	sql = "SELECT id,channel_id,pic as avatar FROM `global_group` WHERE  id in( SELECT `group_id` FROM `user_join_group` WHERE `uid`=? )"
+	join_group_records := make([]map[string]string, 0)
+	rows, err = db.Db.Query(sql, uid)
+	if err != nil {
+		resp = fmt.Sprintf(format_str, 504, "服务器错误@"+err.Error())
+		w.Write([]byte(resp))
+		return
+	}
+	for rows.Next() {
+		//将行数据保存到record字典
+		var cid, channel_id, avatar string
+		err = rows.Scan(&cid, &channel_id, &avatar)
+		if err != nil {
+			resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
+			w.Write([]byte(resp))
+			return
+		}
+		record["id"] = cid
+		record["channel_id"] = channel_id
+		record["avatar"] = avatar
+		fmt.Println(record)
+		join_group_records = append(join_group_records, record)
+	}
+	fmt.Println(join_group_records)
+	return join_group_records
+
+}
+
 func GetListHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
 
-	format_str := `{ "code":%d ,"msg": "%s","data":%s } `
+	root := new(Root)
+	_list := new(ListType)
+	root.Data = &_list
+
 	record := make(map[string]string)
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
@@ -229,131 +346,30 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 		db := new(Mysql)
 		_, err := db.Connect()
 		if err != nil {
-			resp := fmt.Sprintf(format_str, 500, "db.Insert err:", err.Error(), "{}")
-			w.Write([]byte(resp))
+			root.code = 500
+			root.Msg = "数据库连接失败:" + err.Error()
+			w.Write([]byte(root))
 			return
 		}
 
 		resp := ""
 		// 获取当前用户信息
-		my_record := getUserRow( db.Db, sid)
+		my_record := getUserRow(db.Db, sid)
 		_, ok := my_record[`id`]
 		if !ok {
-			resp = fmt.Sprintf(format_str, 404, "验证错误")
-			w.Write([]byte(resp))
+			root.code = 400
+			root.Msg = "用户验证失败"
+			w.Write([]byte(root))
 			return
 		}
 		uid, _ := strconv.Atoi(my_record["id"])
 
-		// 获取所属的联系人列表（未分组）
-		sql := "SELECT  u.id,u.nick as nick,u.avatar,u.sign,c.group_id FROM `contacts` c LEFT JOIN `user` u on u.id =c.uid WHERE  c.master_uid=?"
+		_list.Friend = getFriends(db.Db, uid)
+		_list.Group = getMyGroups()
 
-		contact_records := make([]map[string]string,0)
-		rows, err := db.Db.Query(sql,uid)
-		if err != nil {
-			resp = fmt.Sprintf(format_str, 501, "服务器错误@"+err.Error())
-			w.Write([]byte(resp))
-			return
-		}
-		for rows.Next() {
-			//将行数据保存到record字典
-			var id, nick, avatar, sign,group_id string
-			record := make(map[string]string)
-			err = rows.Scan( &id, &nick, &avatar, &sign, &group_id )
-			if( err!=nil ){
-				resp = fmt.Sprintf(format_str, 502 , "服务器错误@"+err.Error())
-				w.Write([]byte(resp))
-				return
-			}
-			record["id"] = id
-			record["username"] = nick
-			record["avatar"] = avatar
-			record["sign"] = sign
-			record["group_id"] = group_id
-			fmt.Println(record)
-			contact_records = append( contact_records,record )
-
-		}
-		fmt.Println(contact_records)
-
-		// 获取分组
-		sql = "SELECT  id,title as groupname  FROM `contact_group` WHERE uid=? "
-		my_group_records := make([]map[string]string,0)
-		rows, err = db.Db.Query(sql,uid)
-		if err != nil {
-			resp = fmt.Sprintf(format_str, 504, "服务器错误@"+err.Error())
-			w.Write([]byte(resp))
-			return
-		}
-		for rows.Next() {
-			//将行数据保存到record字典
-			var gid, groupname  string
-			err = rows.Scan( &gid, &groupname )
-			if( err!=nil ){
-				resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
-				w.Write([]byte(resp))
-				return
-			}
-			record["id"] = gid
-			record["groupname"] = groupname
-			fmt.Println(record)
-			my_group_records = append( my_group_records,record )
-		}
-
-		for _, group := range my_group_records {
-			group_id := group[`id`]
-			tmp_list := make([]map[string]string, 0)
-
-			for _k, c := range contact_records {
-				if c[`group_id`] == group_id {
-					tmp_list = append(tmp_list, c)
-					contact_records = append(contact_records[:_k], contact_records[_k+1:]...)
-				}
-			}
-			tmp_list_str, _ := json.Marshal(tmp_list)
-			group["list"] = string(tmp_list_str)
-			group["online"] = "1"
-			//my_group_records[_key] = fmt.Sprintf(`{ "groupname": "%s","id": "%s","list": [],"online": "1"}`,group["groupname"],group["id"])
-
-		}
-		fmt.Println(my_group_records)
-
-		// 获取群组
-		sql = "SELECT id,channel_id,pic as avatar FROM `global_group` WHERE  id in( SELECT `group_id` FROM `user_join_group` WHERE `uid`=? )"
-		join_group_records := make([]map[string]string,0)
-		rows, err = db.Db.Query(sql,uid)
-		if err != nil {
-			resp = fmt.Sprintf(format_str, 504, "服务器错误@"+err.Error())
-			w.Write([]byte(resp))
-			return
-		}
-		for rows.Next() {
-			//将行数据保存到record字典
-			var cid, channel_id ,avatar string
-			err = rows.Scan( &cid, &channel_id,&avatar )
-			if( err!=nil ){
-				resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
-				w.Write([]byte(resp))
-				return
-			}
-			record["id"] = cid
-			record["channel_id"] = channel_id
-			record["avatar"] = avatar
-			fmt.Println(record)
-			join_group_records = append( join_group_records,record )
-		}
-		fmt.Println(join_group_records)
-
-		data_format_str := `{ "mine":%s ,"friend": %s,"group":%s} `
-		my_record_encode, err := json.Marshal(my_record)
-		my_group_records_encode, err := json.Marshal(my_group_records)
-
-		join_group_records_encode, err := json.Marshal(join_group_records)
-		data_resp := fmt.Sprintf(data_format_str, string(my_record_encode), string(my_group_records_encode), string(join_group_records_encode))
-		fmt.Println(data_resp)
-		resp = fmt.Sprintf(format_str, 0,"ok", data_resp)
-
-		w.Write([]byte(resp))
+		root.code = 0
+		root.Msg = ""
+		w.Write([]byte(root))
 	}
 
 }
