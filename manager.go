@@ -9,18 +9,12 @@ import (
 	"morego/global"
 	"morego/golog"
 	"morego/hub"
-	//"strconv"
-	//"net"
-	//"net/http"
 	_ "net/http/pprof"
 	"runtime"
-	//"morego/admin"
 	"morego/area"
 	"morego/connector"
 	"morego/lib/syncmap"
 	"morego/worker"
-
-	//z_type "morego/type"
 )
 
 
@@ -33,6 +27,7 @@ func init_global() {
 
 	// 先在global声明,再使用make函数创建一个非nil的map，nil map不能赋值
 	global.Channels = make(map[string]string)
+	global.AuthCmds = make([]string,0)
 
 	// global.RpcChannels  =  make(map[string] *z_type.ChannelRpcType )
 
@@ -49,7 +44,7 @@ func init_global() {
 	global.SyncCrons = syncmap.New()
 	global.PackSplitType = global.Config.PackType
 	global.SingleMode = global.Config.SingleMode
-	global.AuthCcmd = global.Config.Connector.AuthCcmd
+	global.AuthCmds = global.Config.Connector.AuthCcmds
 
 	global.InitWorkerAddr()
 

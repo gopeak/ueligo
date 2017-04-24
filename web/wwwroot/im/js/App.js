@@ -7,7 +7,8 @@ var App = function( aCanvas) {
 			context,
 			webSocket,
 			webSocketService,
-			messageQuota = 5
+			messageQuota = 5,
+			sid
 	;
 
 	app.update = function() {
@@ -23,15 +24,12 @@ var App = function( aCanvas) {
 				type: 'auth'
 			};
 		// 认证请求
-        str = webSocketService.wrapReqMessage( 'Auth',"",0,"area-global")
-		webSocket.send( str );
+
 
 		//console.log('Socket opened!', e);
 
-		uri = parseUri(document.location)
-		if ( uri.queryKey.oauth_token ) {
-			app.authorize(uri.queryKey.oauth_token, uri.queryKey.oauth_verifier)
-		}
+		 app.authorize( GlobalToken, GlobalSid )
+
 
 	};
 
@@ -57,15 +55,25 @@ var App = function( aCanvas) {
 
 	app.sendMessage = function( msg ) {
 
+
 	    webSocketService.sendMessage( msg  );
 
 	}
+    app.pushMessage = function( from_sid,to_sid,msg ) {
 
-	app.authorize = function(token,verifier) {
-		//webSocketService.authorize(token,verifier);
+        var sendObj = {
+            sid: to_sid,
+            msg: msg,
+        };
+        webSocketService.pushMessage( from_sid, sendObj  );
+
+    }
+
+	app.authorize = function(token,sid) {
+		webSocketService.authorize(token,sid);
 	}
 
-	app.init = function(aCanvas ) {
+	app.init = function(aCanvas ,sid) {
 		canvas = aCanvas;
 		context = canvas.getContext('2d');
 

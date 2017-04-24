@@ -11,12 +11,7 @@ import (
 
 
 
-func (this TaskType)Authorize(  ) string {
 
-	return this.Auth()
-
-
-}
 
 
 func (this TaskType)Message(   ) string {

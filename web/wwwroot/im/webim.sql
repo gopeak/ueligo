@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: 2017-04-22 13:40:07
+-- Generation Time: 2017-04-24 14:29:11
 -- 服务器版本： 10.1.10-MariaDB
 -- PHP Version: 7.0.4
 
@@ -72,7 +72,7 @@ INSERT INTO `contact_group` (`id`, `uid`, `title`, `order_weight`) VALUES
 
 CREATE TABLE `global_group` (
   `id` int(11) NOT NULL,
-  `titile` varchar(20) NOT NULL DEFAULT '',
+  `title` varchar(20) NOT NULL DEFAULT '',
   `channel_id` varchar(32) NOT NULL DEFAULT '',
   `pic` varchar(120) NOT NULL DEFAULT '',
   `uids` varchar(5000) NOT NULL
@@ -82,7 +82,7 @@ CREATE TABLE `global_group` (
 -- 转存表中的数据 `global_group`
 --
 
-INSERT INTO `global_group` (`id`, `titile`, `channel_id`, `pic`, `uids`) VALUES
+INSERT INTO `global_group` (`id`, `title`, `channel_id`, `pic`, `uids`) VALUES
 (1, '前端群', 'channel_id_1', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0', '1,2,4'),
 (2, 'Fly社区官方群', 'channel_id_2', 'http://tp2.sinaimg.cn/5488749285/50/5719808192/1', '1,2');
 
@@ -103,18 +103,20 @@ CREATE TABLE `user` (
   `reg_time` int(10) UNSIGNED NOT NULL,
   `is_online` tinyint(1) UNSIGNED NOT NULL DEFAULT '0',
   `status` varchar(20) NOT NULL DEFAULT 'offline',
-  `avatar` varchar(120) NOT NULL DEFAULT ''
+  `avatar` varchar(120) NOT NULL DEFAULT '',
+  `token` varchar(128) NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- 转存表中的数据 `user`
 --
 
-INSERT INTO `user` (`id`, `user`, `pwd`, `sid`, `nick`, `age`, `sign`, `reg_time`, `is_online`, `status`, `avatar`) VALUES
-(1, 'user', '123456', '', 'nick1', 0, '', 0, 0, 'offline', ''),
-(2, 'user2', '123456', '', 'nick2', 0, '', 0, 0, 'offline', ''),
-(4, 'weichaoduo', '121', '4c56ff4ce4aaf9573aa5dff913df997a', '纸飞机', 32, '在深邃的编码世界，做一枚轻盈的纸飞机', 1492770152, 0, 'offline', 'http://cdn.firstlinkapp.com/upload/2016_6/1465575923433_33812.jpg'),
-(5, 'weichaoduo2', '121', '', '121', 0, '', 1492858341, 0, 'offline', '');
+INSERT INTO `user` (`id`, `user`, `pwd`, `sid`, `nick`, `age`, `sign`, `reg_time`, `is_online`, `status`, `avatar`, `token`) VALUES
+(1, 'user', '123456', '', 'nick1', 0, '', 0, 0, 'offline', 'avatar/femalecodertocat.png', ''),
+(2, 'user2', '123456', '', 'nick2', 0, '', 0, 0, 'offline', 'avatar/mountietocat.png', ''),
+(4, 'weichaoduo', '121', '4c56ff4ce4aaf9573aa5dff913df997a', '纸飞机', 32, '在深邃的编码世界，做一枚轻盈的纸飞机', 1492770152, 0, 'offline', 'http://cdn.firstlinkapp.com/upload/2016_6/1465575923433_33812.jpg', '12620888321'),
+(5, 'weichaoduo2', '121', '4c56ff4ce4aaf9573aa5dff913df9972', '121', 0, '', 1492858341, 0, 'offline', 'avatar/privateinvestocat.jpg', '80770675596'),
+(6, 'simarui', '121', '87289608001', '司马睿', 0, '', 1493036784, 0, 'offline', '', '73544123084');
 
 -- --------------------------------------------------------
 
@@ -199,7 +201,7 @@ ALTER TABLE `global_group`
 -- 使用表AUTO_INCREMENT `user`
 --
 ALTER TABLE `user`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=7;
 --
 -- 使用表AUTO_INCREMENT `user_join_group`
 --

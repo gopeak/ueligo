@@ -11,10 +11,12 @@ var WebSocketService = function( webSocket) {
 	
 	this.welcomeHandler = function(data) {
         webSocketService.hasConnection = true;
-        console.log("welcomeHandler:");
-        console.log(data);
+        console.log("welcomeHandler:",data);
+
 
     };
+
+
 
     this.failedHandler = function(data) {
         webSocketService.hasConnection = true;
@@ -104,35 +106,54 @@ var WebSocketService = function( webSocket) {
 		return  TypeReq+"||"+cmd+"||"+sid+"||"+reqid+"||"+str
 
 	}
-	this.sendMessage = function( msg  ) {
-		console.log("sendMessage:"+msg);
-		var regexp = /name: ?(.+)/i;
-		if(regexp.test(msg)) {
-			model.userTadpole.name = msg.match(regexp)[1];
-			$.cookie('todpole_name', model.userTadpole.name, {expires:14});
-			return;
+
+	this.wrapPushMessage = function( sid,msg ){
+		str = msg
+		if( typeof(msg)=="undefined" ){
+			return false
 		}
-		
+		if( typeof(msg)=="null" ){
+			return false
+		}
+		if( typeof(msg)=="object" ){
+			str =  JSON.stringify(msg)
+		}
+
+		return  TypePush+"||||"+sid+"||0||"+str
+
+	}
+
+	this.sendMessage = function( sid, msg  ) {
+		console.log("sendMessage:"+msg);
+
 		var sendObj = {
 			type: 'message',
 			message: msg,
-			id:model.userTadpole.id
+			id:sid
 		};
-        str = this.wrapReqMessage( 'Message',model.userTadpole.id,0,sendObj)
+        str = this.wrapReqMessage( 'Message',sid,0,sendObj)
 		webSocket.send(str);
 	}
-    this.joinChannel = function( channel_id  ) {
+
+	this.pushMessage = function( sid, msg  ) {
+		console.log("pushMessage:"+sid+","+msg);
+		str = this.wrapPushMessage( sid,msg)
+		webSocket.send(str);
+	}
+
+
+    this.joinChannel = function( sid,channel_id  ) {
         console.log("joinChannel:"+channel_id);
 
-        str = this.wrapReqMessage( 'JoinChannel',model.userTadpole.id,0,channel_id)
+        str = this.wrapReqMessage( 'JoinChannel',sid ,0,channel_id)
         webSocket.send(str);
     }
 	
-	this.authorize = function(token,verifier) {
+	this.authorize = function(token,sid) {
 		var sendObj = {
 			type: 'authorize',
 			token: token,
-			verifier: verifier
+			sid: sid
 		};
         str = this.wrapReqMessage( 'Authorize',"",0,sendObj)
 		webSocket.send(str);

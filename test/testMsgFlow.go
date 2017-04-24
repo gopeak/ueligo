@@ -167,17 +167,10 @@ func main() {
 
 					data =  protocol.WrapReqStr("LeaveChannel",req_sid,0,"area-global" )
 					conn.Write([]byte( data ))
-
 				}
-
-
 			}
-
 			return
-
 		}( conn,  times, conn_num , int(i))
-
-
 	}
 	select {
 

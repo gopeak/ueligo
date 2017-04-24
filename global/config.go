@@ -41,7 +41,7 @@ type connector struct {
 	MaxConntionsIp    int `toml:"max_conntions_ip"`
 	MaxPacketRate     int `toml:"max_packet_rate"`
 	MaxPacketRateUnit int `toml:"max_packet_rate_unit"`
-	AuthCcmd	string `toml:"auth_cmd"`
+	AuthCcmds	[]string `toml:"auth_cmds"`
 }
 
 type object struct {

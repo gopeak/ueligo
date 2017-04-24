@@ -83,7 +83,7 @@ var RpcType string
 
 var SingleMode bool
 var PackSplitType string
-var AuthCcmd string
+var AuthCmds []string
 
 var SyncCrons *syncmap.SyncMap
 var Crons = map[string]*cron.Cron{}
@@ -110,4 +110,17 @@ func CheckError(err error) {
 	if err != nil {
 		fmt.Println("Fatal error: %s", err.Error())
 	}
+}
+
+
+func IsAuthCmd( cmd string ) bool {
+
+	fmt.Println( "global.AuthCmds:",AuthCmds )
+	for _,c:= range AuthCmds{
+		if( c==cmd ){
+			return true
+		}
+	}
+	return false
+
 }

@@ -30,7 +30,7 @@
     	max_packet_rate	= 100
     	max_conntions_ip= 100
       	max_packet_rate_unit = 10
-      	auth_cmd = "Auth"
+      	auth_cmds = ["Auth","Authorize"]
       	
     [object]
     	data_type 	= "redis"  #  Mysql| redis | monogo  

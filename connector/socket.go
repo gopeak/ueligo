@@ -105,7 +105,7 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 		}
 		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
 		//fmt.Println( "handleWorkerResponse",string(buf) )
-		if cmd==global.AuthCcmd  {
+		if global.IsAuthCmd(cmd) {
 			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
 			if( err_json!=nil ) {
 				golog.Error("auth  json err:",err_json.Error())
@@ -223,7 +223,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 	//buf = append( buf, '\n')
 
 	//  认证检查
-	if ( cmd!=global.AuthCcmd && !area.CheckSid(req_sid) ) {
+	if ( !global.IsAuthCmd(cmd) && !area.CheckSid(req_sid) ) {
 		area.FreeConn(conn, req_sid)
 		err = errors.New("认证失败")
 		return 0, err

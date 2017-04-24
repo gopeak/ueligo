@@ -134,7 +134,7 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 		}
 		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
 
-		if cmd==global.AuthCcmd  {
+		if global.IsAuthCmd(cmd)  {
 			fmt.Println( "AuthCcmd:",string(buf) )
 			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
 			if( err_json!=nil ) {
@@ -154,6 +154,8 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 		//l.Unlock()
 	}
 }
+
+
 
 /**
  * 根据消息类型分发处理

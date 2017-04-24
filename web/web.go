@@ -1,17 +1,17 @@
 package web
 
 import (
-	"database/sql"
+	_"database/sql"
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
 
 	"github.com/go-sql-driver/mysql"
+	"morego/area"
 )
 
 func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
@@ -118,6 +118,7 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 		nick := r.PostForm.Get(`nick`)
 		sign := r.PostForm.Get(`sign`)
 		reg_time := time.Now().Unix()
+		sid := area.CreateSid()
 
 		db := new(Mysql)
 		db.Connect()
@@ -130,13 +131,13 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		insertid, err := db.Insert(`INSERT user (user,pwd,nick,sign,age,reg_time) values (?,?,?,?,?,?)`, user, pwd, nick, sign, age, reg_time)
+		insert_id, err := db.Insert(`INSERT user (user,pwd,nick,sign,age,sid,reg_time) values (?,?,?,?,?,?,?)`, user, pwd, nick, sign, age,sid, reg_time)
 		if err != nil {
 			resp := fmt.Sprintf(format_str, 500, "db.Insert err:", err.Error())
 			w.Write([]byte(resp))
 			return
 		}
-		fmt.Println("insertid:", insertid)
+		fmt.Println("insertid:", insert_id)
 		resp := fmt.Sprintf(format_str, 1, "注册成功")
 		w.Write([]byte(resp))
 	}
@@ -146,7 +147,7 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
 
-	format_str := `{ "code":%d ,"msg": "%s","data": {  }} `
+	format_str := `{ "code":%d ,"msg": "%s","data": {}} `
 
 	if r.Method == "GET" {
 		resp := fmt.Sprintf(format_str, 401, "GET no support!")
@@ -176,7 +177,13 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		record["sign"] = sign
 		record["sid"] = sid
 		record["avatar"] = avatar
-		fmt.Println("id:", id)
+		token := area.CreateSid()
+		affect_num,_:=db.Update( `Update user set token=? Where id=?`,token,id)
+		if affect_num>0 {
+			record["token"] = token
+		}
+
+
 		fmt.Println(record)
 		json_encode, _ := json.Marshal(record)
 
@@ -189,144 +196,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
-func getUserRow(db *sql.DB, sid string) map[string]string {
 
-	sql_str := `select id,nick,status ,sign, avatar  from user where sid=?`
-	var id, nick, status, sign, avatar string
-	record := make(map[string]string)
-	err := db.QueryRow(sql_str, sid).Scan(&id, &nick, &status, &sign, &avatar)
-	switch {
-	case err == sql.ErrNoRows:
-		log.Printf("No user with that ID.")
-	case err != nil:
-		log.Fatal(err)
-	default:
-		fmt.Printf("id is %s\n", id)
-	}
-	record["id"] = id
-	record["username"] = nick
-	record["sign"] = sign
-	record["status"] = status
-	record["sid"] = sid
-	record["avatar"] = avatar
-
-	return record
-}
-
-func getMyContacts(db *sql.DB, uid int) []map[string]string {
-
-	sql := "SELECT  u.id,u.nick as nick,u.avatar,u.sign,c.group_id FROM `contacts` c LEFT JOIN `user` u on u.id =c.uid WHERE  c.master_uid=?"
-
-	contact_records := make([]map[string]string, 0)
-	rows, err := db.Db.Query(sql, uid)
-	if err != nil {
-
-		return contact_records
-	}
-	for rows.Next() {
-		//将行数据保存到record字典
-		var id, nick, avatar, sign, group_id string
-		record := make(map[string]string)
-		rows.Scan(&id, &nick, &avatar, &sign, &group_id)
-
-		record["id"] = id
-		record["username"] = nick
-		record["avatar"] = avatar
-		record["sign"] = sign
-		record["group_id"] = group_id
-		contact_records = append(contact_records, record)
-
-	}
-	return contact_records
-
-}
-
-func getMyGroup(db *sql.DB, uid int) []map[string]string {
-
-	sql = "SELECT  id,title as groupname  FROM `contact_group` WHERE uid=? "
-	my_group_records := make([]map[string]string, 0)
-	rows, err = db.Db.Query(sql, uid)
-	if err != nil {
-		return my_group_records
-	}
-	for rows.Next() {
-		//将行数据保存到record字典
-		var gid, groupname string
-		err = rows.Scan(&gid, &groupname)
-		if err != nil {
-			resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
-			w.Write([]byte(resp))
-			return
-		}
-		record["id"] = gid
-		record["groupname"] = groupname
-		fmt.Println(record)
-		my_group_records = append(my_group_records, record)
-	}
-	return my_group_records
-}
-
-func getFriends(db *sql.DB, uid int) []FriendType {
-
-	sql = "SELECT  id,title as groupname  FROM `contact_group` WHERE uid=? "
-	friends := make([]FriendType{}, 0)
-
-	// 获取所属的联系人列表（未分组）
-	contact_records := getMyContacts(db.Db, uid)
-	fmt.Println(contact_records)
-
-	// 获取分组
-	my_group_records := getMyGroup(db.Db, uid)
-
-	for _, group := range my_group_records {
-		friend := new(FriendType)
-		friend.Groupname = group[`groupname`]
-		friend.Id = group[`id`]
-		friend.Online = 1
-		tmp_list := make([]map[string]string, 0)
-
-		for _k, c := range contact_records {
-			if c[`group_id`] == friend.Id {
-				tmp_list = append(tmp_list, c)
-				contact_records = append(contact_records[:_k], contact_records[_k+1:]...)
-			}
-		}
-		friend.List = tmp_list_str
-		friends = append(friends, friend)
-	}
-
-	return friends
-}
-
-func getMyGroups(db *sql.DB, uid int) []map[string]string {
-
-	sql = "SELECT id,channel_id,pic as avatar FROM `global_group` WHERE  id in( SELECT `group_id` FROM `user_join_group` WHERE `uid`=? )"
-	join_group_records := make([]map[string]string, 0)
-	rows, err = db.Db.Query(sql, uid)
-	if err != nil {
-		resp = fmt.Sprintf(format_str, 504, "服务器错误@"+err.Error())
-		w.Write([]byte(resp))
-		return
-	}
-	for rows.Next() {
-		//将行数据保存到record字典
-		var cid, channel_id, avatar string
-		err = rows.Scan(&cid, &channel_id, &avatar)
-		if err != nil {
-			resp = fmt.Sprintf(format_str, 505, "服务器错误@"+err.Error())
-			w.Write([]byte(resp))
-			return
-		}
-		record["id"] = cid
-		record["channel_id"] = channel_id
-		record["avatar"] = avatar
-		fmt.Println(record)
-		join_group_records = append(join_group_records, record)
-	}
-	fmt.Println(join_group_records)
-	return join_group_records
-
-}
 
 func GetListHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
@@ -335,7 +205,7 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 	_list := new(ListType)
 	root.Data = &_list
 
-	record := make(map[string]string)
+
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		r.ParseForm()
@@ -346,30 +216,33 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 		db := new(Mysql)
 		_, err := db.Connect()
 		if err != nil {
-			root.code = 500
+			root.Code = 500
 			root.Msg = "数据库连接失败:" + err.Error()
-			w.Write([]byte(root))
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
 			return
 		}
 
-		resp := ""
+
 		// 获取当前用户信息
-		my_record := getUserRow(db.Db, sid)
+		my_record := GetUserRow(db.Db, sid)
 		_, ok := my_record[`id`]
 		if !ok {
-			root.code = 400
+			root.Code = 400
 			root.Msg = "用户验证失败"
-			w.Write([]byte(root))
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
 			return
 		}
 		uid, _ := strconv.Atoi(my_record["id"])
-
+		_list.Mine = my_record
 		_list.Friend = getFriends(db.Db, uid)
-		_list.Group = getMyGroups()
+		_list.Group = getMyGroups( db.Db,uid)
 
-		root.code = 0
+		root.Code = 0
 		root.Msg = ""
-		w.Write([]byte(root))
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
 	}
 
 }
