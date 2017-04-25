@@ -114,9 +114,10 @@
 
             <div  class="layui-layer-content">
                 <div class="layim-add-box">
-                    <div class="layim-add-img">
-                        <img class="layui-circle" src="//www.firefox.com.cn/media/img/firefox/new/firefox-logo.png">
+                    <div class="layim-add-img" onclick="show_header()"  style="cursor: pointer">
+                        <img class="layui-circle" id="avatar_show" src="avatar/twenty-percent-cooler-octocat.png">
                         <p>选择头像</p>
+                        <input type="hidden" name="avatar" id="avatar" value="avatar/twenty-percent-cooler-octocat.png">
                     </div>
 
                     <div class="layim-add-remark">
@@ -146,6 +147,59 @@
             </div>
 
         </script>
+
+		<style>
+
+			#recomFace {
+				padding: 20px;
+				padding-right: 0px
+			}
+
+			#recomFace li {
+				float: left;
+				padding: 0 10px 10px 0;
+				width: 80px;
+				height: 80px;
+				cursor: pointer;
+			}
+			#recomFace li img {
+				padding:5px;
+				width: 80px;
+				height: 80px;
+			}
+			.clearfix:after {
+				content: ".";
+				display: block;
+				height: 0;
+				clear: both;
+				visibility: hidden;
+				zoom: 1;
+			}
+			.clearfix li {
+				list-style: none;
+				list-style-position: outside;
+				list-style-type: none;
+			}
+
+		</style>
+
+		<script type="text/plain" id="header_tpl" >
+
+			<ul class="clearfix" id="recomFace"  >
+					<li data="avatar/collabocats.jpg"><img src="avatar/collabocats.jpg" alt=""></li>
+					<li data="avatar/dojocat.jpg"><img src="avatar/dojocat.jpg" alt=""></li>
+					<li data="avatar/femalecodertocat.png"><img src="avatar/femalecodertocat.png" alt=""></li>
+					<li data="avatar/goretocat.png"><img src="avatar/goretocat.png" alt=""></li>
+					<li data="avatar/hubot.jpg"><img src="avatar/hubot.jpg" alt=""></li>
+					<li data="avatar/minertocat.png"><img src="avatar/minertocat.png" alt=""></li>
+					<li data="avatar/mountietocat.png"><img src="avatar/mountietocat.png" alt=""></li>
+					<li data="avatar/notocat.jpg"><img src="avatar/notocat.jpg" alt=""></li>
+					<li data="avatar/octocat-de-los-muertos.jpg"><img src="avatar/octocat-de-los-muertos.jpg" alt=""></li>
+					<li data="avatar/privateinvestocat.jpg"><img src="avatar/privateinvestocat.jpg" alt=""></li>
+					<li data="avatar/supportcat.png"><img src="avatar/supportcat.png" alt=""></li>
+					<li data="avatar/twenty-percent-cooler-octocat.png"><img src="avatar/twenty-percent-cooler-octocat.png" alt=""></li>
+			</ul>
+		</script>
 
 
 		<script>
@@ -178,8 +232,8 @@
                         ,yes: function( index, layero ){
                             user = $('#user').val()
                             pwd  = $('#pwd').val()
-                            $.post("/login",{user:user,pwd:pwd},function(result){
-                                json = JSON.parse( result )
+                            $.post("/login",{user:user,pwd:pwd},function(json){
+                                //json = JSON.parse( result )
                                 if (json.code==1) {
                                     GlobalId = json.data.id
                                     GlobalSid = json.data.sid
@@ -202,11 +256,12 @@
                 });
 			}
 
+            // 弹出注册层
 			function show_reg(){
                 layui.use('layer', function() {
                     content = $('#reg_tpl').html()
                     var layer = layui.layer;
-                    //示范一个公告层
+
                     layer.open({
                         type: 1
                         , title: "注册" //不显示标题栏
@@ -221,9 +276,10 @@
                             user = $('#user').val()
                             pwd = $('#pwd').val()
                             nick = $('#nick').val()
-                            $.post("/reg", {user: user, pwd: pwd, nick: nick}, function (result) {
+                            avatar = $('#avatar').val()
+                            $.post("/reg", {user: user, pwd: pwd, nick: nick,avatar:avatar}, function (json) {
                                 // alert( result )
-                                json = JSON.parse(result)
+                                // json = JSON.parse(result)
                                 if (json.code == 1) {
                                     layer.close();
                                 }
@@ -237,6 +293,52 @@
                     });
                 });
 			}
+
+            // 弹出头像选择层
+			function show_header(){
+                layui.use('layer', function() {
+                    content = $('#header_tpl').html()
+                    var layer = layui.layer;
+                    var choose_pic = ""
+
+                    layer.open({
+                        type: 1
+                        , title: "请选择头像"
+                        , closeBtn: false
+                        , area: '576px;'
+                        , id: 'lay_header' //设定一个id，防止重复弹出
+                        , btn: ['确定', '返回']
+                        , moveType: 0 //拖拽模式，0或者1
+                        , content: content
+                        , success: function () {
+                            $("#recomFace li").click(function () {
+
+                                $('#recomFace li').each(function (i) {
+                                    $(this).css('background-color', '');
+                                });
+                                $(this).css('background-color', 'lightblue');
+                                choose_pic = $(this).attr('data')
+
+                            });
+                        }
+                        , yes: function () {
+                            layui.layer.close();
+                            if (choose_pic != "") {
+                                $('#avatar').val(choose_pic)
+                                $('#avatar_show').attr('src',choose_pic)
+                            }
+                           // $('.layui-layer-btn1').click();
+                            console.log( $('#lay_header').next().next().children("a.layui-layer-btn1") )
+                            $('#lay_header').next().next().children("a.layui-layer-btn1").click();
+
+                        }
+                        , btn2: function () {
+                            layer.close();
+                        }
+                    });
+                });
+			}
+
 
 			//演示自动回复
 			var autoReplay = [
@@ -268,7 +370,7 @@
 
                         //查看群员接口
                         , members: {
-                            url: 'json/getMembers.json'
+                            url: '/get_member'
                             , data: {}
                         }
 

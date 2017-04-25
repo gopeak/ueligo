@@ -307,13 +307,14 @@ func UnSubGlobalChannel( sid string ) {
 /**
  *  点对点发送消息
  */
-func Push(  to_sid string ,from_sid string,to_data string) {
+func Push(  to_sid string ,from_sid string,to_data string ) {
 	conn :=  GetConn(to_sid)
 	if( conn!=nil ) {
 		conn.Write([]byte(protocol.WrapPushRespStr( from_sid,to_data)))
 		return
 	}
 	wsconn:=GetWsConn(to_sid)
+	fmt.Println( "push, wsconn:",wsconn.LocalAddr() )
 	if( wsconn!=nil ) {
 		wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapPushRespStr( from_sid,to_data)) )
 		return

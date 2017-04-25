@@ -124,7 +124,7 @@ var WebSocketService = function( webSocket) {
 	}
 
 	this.sendMessage = function( sid, msg  ) {
-		console.log("sendMessage:"+msg);
+
 
 		var sendObj = {
 			type: 'message',
@@ -132,6 +132,7 @@ var WebSocketService = function( webSocket) {
 			id:sid
 		};
         str = this.wrapReqMessage( 'Message',sid,0,sendObj)
+		console.log("sendMessage:"+str);
 		webSocket.send(str);
 	}
 

@@ -16,7 +16,7 @@ import (
 
 func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
-
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	format_str := `{ "code":%d ,"msg": "%s","data": {"src":"%s","name":"%s" }} `
 
 	if r.Method == "GET" {
@@ -58,7 +58,7 @@ func UploadImageHandler(w http.ResponseWriter, r *http.Request) {
 
 func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
-
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	format_str := `{ "code":%d ,"msg": "%s","data": {"src":"%s","name":"%s" }} `
 
 	if r.Method == "GET" {
@@ -100,7 +100,7 @@ func UploadFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func RegHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
-
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	format_str := `{ "code":%d ,"msg": "%s","data": { }} `
 
 	if r.Method == "GET" {
@@ -117,6 +117,7 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 		age := r.PostForm.Get(`age`)
 		nick := r.PostForm.Get(`nick`)
 		sign := r.PostForm.Get(`sign`)
+		avatar := r.PostForm.Get(`avatar`)
 		reg_time := time.Now().Unix()
 		sid := area.CreateSid()
 
@@ -131,7 +132,9 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		insert_id, err := db.Insert(`INSERT user (user,pwd,nick,sign,age,sid,reg_time) values (?,?,?,?,?,?,?)`, user, pwd, nick, sign, age,sid, reg_time)
+		insert_id, err := db.Insert(`INSERT user (user,pwd,nick,sign,age,sid,avatar,reg_time)
+						    values (?,?,?,?,?,?,?,?)`,
+			user, pwd, nick, sign, age,sid,avatar, reg_time)
 		if err != nil {
 			resp := fmt.Sprintf(format_str, 500, "db.Insert err:", err.Error())
 			w.Write([]byte(resp))
@@ -148,7 +151,7 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
 
 	format_str := `{ "code":%d ,"msg": "%s","data": {}} `
-
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	if r.Method == "GET" {
 		resp := fmt.Sprintf(format_str, 401, "GET no support!")
 		w.Write([]byte(resp))
@@ -183,7 +186,6 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 			record["token"] = token
 		}
 
-
 		fmt.Println(record)
 		json_encode, _ := json.Marshal(record)
 
@@ -205,7 +207,6 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 	_list := new(ListType)
 	root.Data = &_list
 
-
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		r.ParseForm()
@@ -222,7 +223,6 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write( json_encode )
 			return
 		}
-
 
 		// 获取当前用户信息
 		my_record := GetUserRow(db.Db, sid)
@@ -244,5 +244,53 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 		json_encode ,_:=json.Marshal( root )
 		w.Write( json_encode )
 	}
+}
+
+
+func GetMemberHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+
+	root := new(Root)
+	member := new(MemberType)
+	root.Data = &member
+
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		r.ParseForm()
+		id_str := r.Form.Get(`id`)
+		id, _ := strconv.Atoi(id_str)
+		sid := r.Form.Get(`sid`)
+		fmt.Println(id, sid, mysql.MySQLDriver{})
+		db := new(Mysql)
+		_, err := db.Connect()
+		if err != nil {
+			root.Code = 500
+			root.Msg = "数据库连接失败:" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+		_, ok := my_record[`id`]
+		if !ok {
+			root.Code = 400
+			root.Msg = "用户验证失败"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		member.Owner = my_record
+		member.List = getMembers(db.Db, id)
+		member.Members = len( member.List  )
+
+		root.Code = 0
+		root.Msg = ""
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+	}
 
 }
+

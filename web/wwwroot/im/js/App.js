@@ -39,6 +39,8 @@ var App = function( aCanvas) {
 	};
 
 	app.onSocketMessage = function(e) {
+
+		console.log( e.data )
 		try {
 			data_arr = e.data.split('||')
             _type = data_arr[0]
@@ -48,6 +50,7 @@ var App = function( aCanvas) {
             _data = data_arr[4]
 
 			var obj = JSON.parse(_data);
+			alert(typeof(obj))
 
 			webSocketService.processMessage(obj);
 		} catch(e) {}

@@ -42,6 +42,7 @@ func WebsocketConnector(ip string, port int) {
 	http.HandleFunc("/reg", web.RegHandler)
 	http.HandleFunc("/login", web.LoginHandler)
 	http.HandleFunc("/get_list", web.GetListHandler)
+	http.HandleFunc("/get_member", web.GetMemberHandler)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 
@@ -188,6 +189,7 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 	if _type == protocol.TypePush {
 		from_sid := msg_arr[2]
 		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
+		fmt.Println( "data_json:",data_json )
 		if json_err != nil {
 			err = errors.New("push data json format error")
 			return -2, err

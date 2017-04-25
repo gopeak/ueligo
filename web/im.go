@@ -25,6 +25,13 @@ type FriendType struct {
 	List      []map[string]string	`json:"list"`
 }
 
+type MemberType struct {
+	Owner     map[string]string    `json:"owner"`
+	Members    int			`json:"members"`
+	List      []map[string]string	`json:"list"`
+}
+
+
 func GetUserRow(db *sql.DB, sid string) map[string]string {
 
 	sql_str := `select id,nick,status ,sign, avatar,token  from user where sid=?`
@@ -158,5 +165,35 @@ func getMyGroups(db *sql.DB, uid int) []map[string]string {
 	}
 	fmt.Println(join_group_records)
 	return join_group_records
+
+}
+
+func getMembers( db  *sql.DB, member_id int) []map[string]string {
+
+	sql_str := "SELECT U.id,U.nick, U.sign, U.avatar,U.sid  FROM `user_join_group` G LEFT JOIN user U on G.uid=U.id WHERE  group_id=?"
+	members := make([]map[string]string, 0)
+	rows, err := db.Query(sql_str, member_id)
+	if err != nil {
+		fmt.Println( 504, "服务器错误@"+err.Error())
+		return members
+	}
+	for rows.Next() {
+		//将行数据保存到record字典
+		var id, nick,sign, avatar ,sid string
+		record := make(map[string]string)
+		err = rows.Scan(&id, &nick, &sign,&avatar,&sid)
+		if err != nil {
+			fmt.Println( 505, "服务器错误@"+err.Error())
+			return members
+		}
+		record["id"] = id
+		record["sign"] = sign
+		record["avatar"] = avatar
+		record["username"] =  nick
+		//fmt.Println(record)
+		members = append(members, record)
+	}
+	fmt.Println(members)
+	return members
 
 }
