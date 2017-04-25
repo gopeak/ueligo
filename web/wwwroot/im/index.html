@@ -207,6 +207,7 @@
             var GlobalSid = ""
             var GlobalId = ""
 			var GlobalToken = ""
+            var GlobalContacts = null;
 
             $(document).ready(function(){
 				show_login();
@@ -235,10 +236,10 @@
                             $.post("/login",{user:user,pwd:pwd},function(json){
                                 //json = JSON.parse( result )
                                 if (json.code==1) {
-                                    GlobalId = json.data.id
-                                    GlobalSid = json.data.sid
-									GlobalToken = json.data.token
-
+                                    GlobalId = json.data.id;
+                                    GlobalSid = json.data.sid;
+									GlobalToken = json.data.token;
+                                    GlobalContacts = json.contacts;
                                     layer.closeAll();
 									startWs( GlobalSid )
                                     init();
@@ -466,8 +467,8 @@
 					if(To.type === 'friend'){
 						layim.setChatStatus('<span style="color:#FF5722;">对方正在输入。。。</span>');
 					}
-					app.pushMessage( GlobalSid,data.to.sid,"121")
-
+					app.pushMessage( GlobalSid,data.to.sid,data.mine.content)
+                    return
 					//演示自动回复
 					setTimeout(function(){
 						var obj = {};

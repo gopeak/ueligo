@@ -102,7 +102,7 @@ func handleWorkerStrSplit(conn *net.TCPConn) {
 				conn.Write([]byte(protocol.WrapRespStr("Ping","",0,"")))
 				conn.Close()
 			}else{
-				Invoker( conn,cmd,req_sid,reqid,req_data)
+				Invoker( conn,_type,cmd,req_sid,reqid,req_data)
 			}
 
 
@@ -179,7 +179,7 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 }
 
-func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data string ) string {
+func Invoker( conn *net.TCPConn,_type int,cmd string, req_sid string ,req_id int,req_data string ) string {
 
 	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
 	data:=InvokeObjectMethod( task_obj,cmd )
@@ -187,9 +187,14 @@ func Invoker( conn *net.TCPConn,cmd string, req_sid string ,req_id int,req_data 
 		return data
 	}
 	//fmt.Println( "Invoker:",cmd,req_sid, data )
+
 	resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
 	//fmt.Println( "resp_str:", resp_str )
-	conn.Write(  []byte(resp_str) )
+
+	// req才会返回
+	if _type==protocol.TypeReq {
+		conn.Write(  []byte(resp_str) )
+	}
 	if( global.SingleMode ){
 		if  global.IsAuthCmd(cmd)  && data=="ok" {
 			area.ConnRegister( conn,req_sid)

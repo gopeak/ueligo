@@ -150,7 +150,7 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 func LoginHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
 
-	format_str := `{ "code":%d ,"msg": "%s","data": {}} `
+	format_str := `{ "code":%d ,"msg": "%s", "data": {}} `
 	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 	if r.Method == "GET" {
 		resp := fmt.Sprintf(format_str, 401, "GET no support!")
@@ -189,8 +189,12 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(record)
 		json_encode, _ := json.Marshal(record)
 
+		uid, _ := strconv.Atoi(record["id"])
+		friends := getMyContacts(db.Db, uid)
+		friends_encode, _ := json.Marshal(friends)
+
 		if id != "" {
-			resp = fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s} `, 1, "验证成功", string(json_encode))
+			resp = fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s,"contacts":%s} `, 1, "验证成功", string(json_encode) ,string(friends_encode))
 		} else {
 			resp = fmt.Sprintf(format_str, 404, "用户名密码错误")
 		}

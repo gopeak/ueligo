@@ -105,7 +105,7 @@ func WrapPushStr(  cmd string, from_sid string, req_id int,data string ) string 
 }
 
 func WrapPushRespStr(  from_sid string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "",from_sid ,data) ;
+	str:=fmt.Sprintf("%d||%s||%s||0||%s\n" ,TypePush, "Push",from_sid ,data) ;
 	return str
 }
 
@@ -136,7 +136,7 @@ func WrapBroatcastStr(  cmd string, from_sid string, req_id int,data string ) st
 }
 
 func WrapBroatcastRespStr(  from_sid string, area_id string, data string ) string {
-	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"",from_sid ,area_id,data) ;
+	str:=fmt.Sprintf("%d||%s||%s||%s||%s\n" , TypeBroadcast,"Broadcast",from_sid ,area_id,data) ;
 	return str
 }
 

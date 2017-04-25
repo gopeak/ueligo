@@ -187,6 +187,9 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 		go req_conn.Write(buf)
 	}
 	if _type == protocol.TypePush {
+
+		go req_conn.Write(buf)
+		/*
 		from_sid := msg_arr[2]
 		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
 		fmt.Println( "data_json:",data_json )
@@ -197,8 +200,12 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 		to_sid, _ := data_json.GetString("sid")
 		to_data, _ := data_json.GetString("data")
 		area.Push(to_sid, from_sid, to_data)
+		*/
 	}
 	if _type == protocol.TypeBroadcast {
+
+		go req_conn.Write(buf)
+		/*
 		//from_sid := msg_arr[2]
 		from_sid := msg_arr[2]
 		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
@@ -209,6 +216,7 @@ func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (in
 		area_id, _ := data_json.GetString("area_id")
 		to_data, _ := data_json.GetString("data")
 		area.Broatcast(from_sid, area_id, to_data)
+		*/
 	}
 
 	return 1, nil

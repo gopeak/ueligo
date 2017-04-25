@@ -35,13 +35,16 @@ var App = function( aCanvas) {
 
 	app.onSocketClose = function(e) {
 
+        alert("ws 已经关闭 ")
+
+
 		webSocketService.connectionClosed();
 	};
 
 	app.onSocketMessage = function(e) {
 
 		console.log( e.data )
-		try {
+		//try {
 			data_arr = e.data.split('||')
             _type = data_arr[0]
             _cmd = data_arr[1]
@@ -49,11 +52,20 @@ var App = function( aCanvas) {
             _reqid = data_arr[3]
             _data = data_arr[4]
 
-			var obj = JSON.parse(_data);
-			alert(typeof(obj))
+			if( _type=="3"){
+				var obj = {
+					type:"message",
+					from_sid:_sid,
+					msg:_data
+				}
 
+			}else{
+				var obj = JSON.parse(_data);
+			}
+
+            console.log( obj  )
 			webSocketService.processMessage(obj);
-		} catch(e) {}
+		//} catch(e) {}
 	};
 
 	app.sendMessage = function( msg ) {

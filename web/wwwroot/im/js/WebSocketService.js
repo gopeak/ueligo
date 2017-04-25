@@ -35,7 +35,30 @@ var WebSocketService = function( webSocket) {
 	
 	this.messageHandler = function(data) {
 		console.log( "messageHandler:" );
-		console.log( data );
+
+		var from_sid = data.from_sid
+
+        from_info ={}
+
+        for(var i=0; i<GlobalContacts.length; i++)
+        {
+            if  (GlobalContacts[i].sid==from_sid){
+                from_info = GlobalContacts[i];
+            }
+        }
+        console.log( "from_info:" );
+        console.log( from_info );
+		obj = {
+			username:from_info.username
+			,avatar: from_info.avatar
+			,id: from_info.id
+			,type: "friend"
+			,content: data.msg
+		}
+        layui.use('layim', function(layim){
+            layim.getMessage(obj);
+        });
+
 		
 	}
 	
@@ -59,7 +82,7 @@ var WebSocketService = function( webSocket) {
 	
 	this.processMessage = function(data) {
 		//console.log("processMessage:");
-		console.log(data);
+
 		var fn = webSocketService[data.type + 'Handler'];
 		if (fn) {
 			fn(data);
@@ -119,7 +142,7 @@ var WebSocketService = function( webSocket) {
 			str =  JSON.stringify(msg)
 		}
 
-		return  TypePush+"||||"+sid+"||0||"+str
+		return  TypePush+"||PushMessage||"+sid+"||0||"+str
 
 	}
 
@@ -137,7 +160,9 @@ var WebSocketService = function( webSocket) {
 	}
 
 	this.pushMessage = function( sid, msg  ) {
-		console.log("pushMessage:"+sid+","+msg);
+		console.log("pushMessage:");
+        console.log( sid );
+        console.log( msg );
 		str = this.wrapPushMessage( sid,msg)
 		webSocket.send(str);
 	}

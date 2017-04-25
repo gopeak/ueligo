@@ -233,7 +233,7 @@ func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, err
 	if _type == protocol.TypeReq {
 		// 如果是单机模式,则直接调用
 		if( global.SingleMode ){
-			go worker.Invoker( conn,cmd, req_sid,req_id,req_data )
+			go worker.Invoker( conn,_type,cmd, req_sid,req_id,req_data )
 		}else{
 
 			go req_conn.Write(buf)

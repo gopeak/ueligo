@@ -314,9 +314,13 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 		return
 	}
 	wsconn:=GetWsConn(to_sid)
-	fmt.Println( "push, wsconn:",wsconn.LocalAddr() )
+	fmt.Println( "push, to_sid:", to_sid ,)
 	if( wsconn!=nil ) {
-		wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapPushRespStr( from_sid,to_data)) )
+		fmt.Println( "push, str :", protocol.WrapPushRespStr( from_sid,to_data) )
+		err:=wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapPushRespStr( from_sid,to_data)) )
+		if err!=nil {
+			fmt.Println( "wsconn.WriteMessage err:",err.Error() )
+		}
 		return
 	}
 }

@@ -7,6 +7,8 @@ import (
 	"morego/area"
 	"morego/web"
 	"github.com/antonholmquist/jason"
+	"morego/golog"
+	"strings"
 )
 
 
@@ -82,6 +84,47 @@ func (this TaskType)Authorize(  ) string {
 
 
 }
+
+
+func (this TaskType)Push(   ) string {
+
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	data_json ,err_json:= jason.NewObjectFromBytes( []byte(this.Data ) )
+	if( err_json!=nil ) {
+		golog.Error("todpole message json err:",err_json.Error())
+		return ""
+	}
+	to_sid, _ := data_json.GetString("sid")
+	to_data, _ := data_json.GetString("data")
+	sdk.Push(to_sid, this.Sid, to_data)
+
+	return "";
+
+}
+
+
+func (this TaskType)Broadcast(  ) string {
+
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	data_json ,err_json:= jason.NewObjectFromBytes( []byte(this.Data ) )
+
+	if ( err_json != nil ) {
+		golog.Error("broatcast data json format error")
+		return ""
+	}
+	from_sid := this.Sid
+	area_id, _ := data_json.GetString("area_id")
+	to_data, _ := data_json.GetString("data")
+	to_data = strings.Replace(to_data, "\n", "", -1)
+	if( area_id=="global" ) {
+		golog.Error("broatcast global failed")
+		return ""
+	}else{
+		sdk.Broatcast( from_sid, area_id,to_data )
+	}
+	return ""
+}
+
 
 
 func (this TaskType)GetUserSession(   ) string {
