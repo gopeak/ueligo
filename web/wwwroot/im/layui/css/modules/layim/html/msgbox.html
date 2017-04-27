@@ -1,3 +1,4 @@
+
  
  
 <!DOCTYPE html>
@@ -7,7 +8,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>消息盒子</title>
 
-<link rel="stylesheet" href="http://local.res.layui.com/layui/src/css/layui.css">
+<link rel="stylesheet" href="../../../layui.css">
 <style>
 .layim-msgbox{margin: 15px;}
 .layim-msgbox li{position: relative; margin-bottom: 10px; padding: 0 130px 10px 60px; padding-bottom: 10px; line-height: 22px; border-bottom: 1px dotted #e2e2e2;}
@@ -27,15 +28,12 @@
 
 <ul class="layim-msgbox" id="LAY_view"></ul>
 
-<div style="margin: 0 15px;">
-  <blockquote class="layui-elem-quote">注意：这些都是模拟数据，实际使用时，需将其中的模拟接口改为你的项目真实接口。
-  <br>该模版文件所在目录（相对于layui.js）：/css/modules/layim/html/msgbox.html</blockquote>
-</div>
+
 
 <textarea title="消息模版" id="LAY_tpl" style="display:none;">
 {{# layui.each(d.data, function(index, item){
-  if(item.from){ }}
-    <li data-uid="{{ item.from }}" data-fromGroup="{{ item.from_group }}">
+  if(item.status==1){ }}
+    <li data-uid="{{ item.uid }}"  data-id="{{ item.id }}" data-fromGroup="{{ item.from_group }}">
       <a href="/u/{{ item.from }}/" target="_blank">
         <img src="{{ item.user.avatar }}" class="layui-circle layim-msgbox-avatar">
       </a>
@@ -65,7 +63,7 @@
 -->
 
 
-<script src="http://local.res.layui.com/layui/src/layui.js"></script>
+<script src="/im/layui/layui.js"></script>
 <script>
 layui.use(['layim', 'flow'], function(){
   var layim = layui.layim
@@ -78,23 +76,20 @@ layui.use(['layim', 'flow'], function(){
 
   //请求消息
   var renderMsg = function(page, callback){
-    
-    //实际部署时，请将下述 getmsg.json 改为你的接口地址
-    
-    $.post('getmsg.json', {
-      page: page || 1
-    }, function(res){
+
+    $.getJSON('/sysmsg?sid='+parent.GlobalSid+"&page="+page,   function(res){
       if(res.code != 0){
         return layer.msg(res.msg);
       }
 
       //记录来源用户信息
       layui.each(res.data, function(index, item){
-        cache[item.from] = item.user;
+        cache[item.uid] = item.user;
       });
 
       callback && callback(res.data, res.pages);
     });
+
   };
 
   //消息信息流
@@ -125,6 +120,7 @@ layui.use(['layim', 'flow'], function(){
     //同意
     agree: function(othis){
       var li = othis.parents('li')
+      ,id = li.data('id')
       ,uid = li.data('uid')
       ,from_group = li.data('fromGroup')
       ,user = cache[uid];
@@ -136,31 +132,17 @@ layui.use(['layim', 'flow'], function(){
         ,avatar: user.avatar
         ,group: parent.layui.layim.cache().friend //获取好友分组数据
         ,submit: function(group, index){
-          
-          //将好友追加到主面板
-          parent.layui.layim.addList({
-            type: 'friend'
-            ,avatar: user.avatar //好友头像
-            ,username: user.username //好友昵称
-            ,groupid: group //所在的分组id
-            ,id: uid //好友ID
-            ,sign: user.sign //好友签名
-          });
-          parent.layer.close(index);
-          othis.parent().html('已同意');
-        
-        
-          //实际部署时，请开启下述注释，并改成你的接口地址
-          /*
-          $.post('/im/agreeFriend', {
+
+          $.post('/agree', {
             uid: uid //对方用户ID
-            ,from_group: from_group //对方设定的好友分组
+            ,id: id //消息ID
+            ,sid:parent.GlobalSid
             ,group: group //我设定的好友分组
           }, function(res){
             if(res.code != 0){
               return layer.msg(res.msg);
             }
-
+              user = cache[uid];
             //将好友追加到主面板
             parent.layui.layim.addList({
               type: 'friend'
@@ -173,7 +155,7 @@ layui.use(['layim', 'flow'], function(){
             parent.layer.close(index);
             othis.parent().html('已同意');
           });
-          */
+
           
         }
       });
@@ -182,17 +164,21 @@ layui.use(['layim', 'flow'], function(){
     //拒绝
     ,refuse: function(othis){
       var li = othis.parents('li')
-      ,uid = li.data('uid');
+      ,uid = li.data('uid')
+      ,id = li.data('id')
+      ,user = cache[uid];
 
       layer.confirm('确定拒绝吗？', function(index){
-        $.post('/im/refuseFriend', {
-          uid: uid //对方用户ID
+        $.post('/reject', {
+            uid: uid //对方用户ID
+            ,sid:parent.GlobalSid
+            ,id: id //消息ID
         }, function(res){
-          if(res.code != 0){
-            return layer.msg(res.msg);
-          }
-          layer.close(index);
-          othis.parent().html('<em>已拒绝</em>');
+              if(res.code != 0){
+                  return layer.msg(res.msg);
+              }
+              layer.close(index);
+              othis.parent().html('<em>已拒绝</em>');
         });
       });
     }

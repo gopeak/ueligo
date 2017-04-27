@@ -140,6 +140,14 @@ func RegHandler(w http.ResponseWriter, r *http.Request) {
 			w.Write([]byte(resp))
 			return
 		}
+
+		// 添加一个默认的分组
+		_, err = db.Insert("INSERT INTO `contact_group` (  `uid`, `title` ) VALUES (  ?, ? ) " +
+			"VALUES (  ?, ? )", insert_id,"默认")
+		if err != nil {
+			fmt.Println( "INSERT contact_group err:", err.Error() )
+		}
+
 		fmt.Println("insertid:", insert_id)
 		resp := fmt.Sprintf(format_str, 1, "注册成功")
 		w.Write([]byte(resp))
@@ -297,4 +305,323 @@ func GetMemberHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+func GetRecommendUserHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+
+	root := new(Root)
+
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		r.ParseForm()
+
+
+		sid := r.Form.Get(`sid`)
+		fmt.Println(  sid, mysql.MySQLDriver{})
+		db := new(Mysql)
+		_, err := db.Connect()
+		if err != nil {
+			root.Code = 500
+			root.Msg = "数据库连接失败:" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+		_, ok := my_record[`id`]
+		if !ok {
+			root.Code = 400
+			root.Msg = "用户验证失败"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		id, _ := strconv.Atoi(my_record["id"])
+		root.Data = getRecommendUser(db.Db, id)
+
+		root.Code = 0
+		root.Msg = ""
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+	}
+
+}
+func SystemMsgHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+
+	root := new(Root)
+
+	if r.Method == "GET" {
+		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+		r.ParseForm()
+
+		sid := r.Form.Get(`sid`)
+		fmt.Println(  sid, mysql.MySQLDriver{})
+		db := new(Mysql)
+		_, err := db.Connect()
+		if err != nil {
+			root.Code = 500
+			root.Msg = "数据库连接失败:" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+		_, ok := my_record[`id`]
+		if !ok {
+			root.Code = 400
+			root.Msg = "用户验证失败"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		id, _ := strconv.Atoi(my_record["id"])
+		root.Data = getSysMsgs(db.Db, id)
+
+		root.Code = 0
+		root.Msg = ""
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+	}
+
+}
+
+
+func ReqAddFriendHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	format_str := `{ "code":%d ,"msg": "%s","data": { }} `
+
+	if r.Method != "GET" {
+		resp := fmt.Sprintf(format_str, 401, "POST no support!")
+		w.Write([]byte(resp))
+		return
+
+	} else {
+
+		r.ParseForm()
+
+		sid := r.PostForm.Get(`sid`)
+		req_uid := r.PostForm.Get(`uid`)
+		remark := r.PostForm.Get(`remark`)
+		add_group := r.PostForm.Get(`add_group`)
+		add_time := time.Now().Unix()
+
+		db := new(Mysql)
+		db.Connect()
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+
+		from_uid := my_record["id"]
+		status := "1"
+		readed := "0"
+
+		insert_id, err := db.Insert("INSERT INTO `req_friend` (  `from_uid`, `add_group`, `readed`, `req_uid`, `status`, `remark`, `time`) " +
+			"   VALUES (  ?, ?, ?, ?, ?, ?, ?);", from_uid,add_group,readed,req_uid,status,remark,add_time)
+
+		if err != nil {
+			resp := fmt.Sprintf(format_str, 500, "db.Insert err:", err.Error())
+			w.Write([]byte(resp))
+			return
+		}
+		fmt.Println("insertid:", insert_id)
+		resp := fmt.Sprintf(format_str, 0, "申请成功")
+		w.Write([]byte(resp))
+	}
+
+}
+
+func AgreeHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	format_str := `{ "code":%d ,"msg": "%s","data": { }} `
+	root := new(Root)
+	if r.Method == "GET" {
+		resp := fmt.Sprintf(format_str, 401, "GET no support!")
+		w.Write([]byte(resp))
+		return
+
+	} else {
+
+		r.ParseForm()
+
+
+		id :=r.PostForm.Get("id")
+		add_group := r.PostForm.Get(`group`)
+		sid :=r.PostForm.Get("sid")
+
+		db := new(Mysql)
+		db.Connect()
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+		_, ok := my_record[`id`]
+		if !ok {
+			root.Code = 400
+			root.Msg = "用户验证失败"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		var  from_uid,from_group,req_uid int64
+		rows, err := db.Db.Query( "SELECT  `from_uid`,`add_group`,`req_uid` FROM `req_friend` WHERE `id`=? ", id)
+		if err != nil {
+			root.Code = 401
+			root.Msg = "服务器错误@" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		for rows.Next() {
+			err = rows.Scan(&from_uid, &from_group, &req_uid)
+			if err != nil {
+				root.Code = 500
+				root.Msg = "服务器错误@" + err.Error()
+				json_encode ,_:=json.Marshal( root )
+				w.Write( json_encode )
+				return
+			}
+			break
+		}
+		_uid, _ := strconv.ParseInt(my_record["id"],10,0)
+		if( _uid!= req_uid){
+			root.Code = 401
+			root.Msg = "非当前用户消息"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		//修改状态
+		_,err = db.Update( "UPDATE `req_friend` SET status=2 WHERE id=?",id )
+		if err != nil {
+			root.Code = 501
+			root.Msg = "服务器错,err:"+err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		// 请求者处理
+		_, err = db.Insert("INSERT INTO `contacts` (  `master_uid`, `group_id`, `uid` ) " +
+			                      "VALUES ( ?, ?, ? )", from_uid,from_group,req_uid)
+		if err != nil {
+			root.Code = 502
+			root.Msg = "服务器错,err:"+err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		// 被请求者处理
+		_, err = db.Insert("INSERT INTO `contacts` (  `master_uid`, `group_id`, `uid` ) " +
+			"VALUES ( ?, ?, ? )", req_uid,add_group,from_uid)
+		if err != nil {
+			root.Code = 503
+			root.Msg = "服务器错,err:"+err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		root.Code = 0
+		root.Msg = "处理成功"
+		root.Data = nil
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+	}
+
+}
+
+func RejectHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	format_str := `{ "code":%d ,"msg": "%s","data": { }} `
+	root := new(Root)
+	if r.Method == "GET" {
+		resp := fmt.Sprintf(format_str, 401, "GET no support!")
+		w.Write([]byte(resp))
+		return
+
+	} else {
+
+		r.ParseForm()
+
+		id :=r.PostForm.Get("id")
+		sid :=r.PostForm.Get("sid")
+
+		db := new(Mysql)
+		db.Connect()
+
+		// 获取当前用户信息
+		my_record := GetUserRow(db.Db, sid)
+		_, ok := my_record[`id`]
+		if !ok {
+			root.Code = 400
+			root.Msg = "用户验证失败"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		var  from_uid,from_group,req_uid int64
+		rows, err := db.Db.Query( "SELECT  `from_uid`,`add_group`,`req_uid` FROM `req_friend` WHERE `id`=?", id)
+		if err != nil {
+			root.Code = 401
+			root.Msg = "服务器错误@" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		for rows.Next() {
+			err = rows.Scan( &from_uid, &from_group, &req_uid )
+			if err != nil {
+				root.Code = 500
+				root.Msg = "服务器错误@" + err.Error()
+				json_encode ,_:=json.Marshal( root )
+				w.Write( json_encode )
+				return
+			}
+			break
+		}
+		if err != nil {
+			root.Code = 500
+			root.Msg = "服务器错误@" + err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+		_uid, _ := strconv.ParseInt(my_record["id"],10,0)
+		if( _uid!= req_uid){
+			root.Code = 401
+			root.Msg = "非当前用户消息"
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		//修改状态
+		_,err = db.Update( "UPDATE `req_friend` SET status=2 WHERE id=?",id )
+		if err != nil {
+			root.Code = 501
+			root.Msg = "服务器错,err:"+err.Error()
+			json_encode ,_:=json.Marshal( root )
+			w.Write( json_encode )
+			return
+		}
+
+		root.Code = 0
+		root.Msg = "处理成功"
+		root.Data = nil
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+	}
+
+}
+
+
 

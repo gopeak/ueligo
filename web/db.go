@@ -127,12 +127,12 @@ func (this *Mysql) Update( sql string,args ...interface{}) (int64, error){
 	this.Sql = sql
 	stmt, err := db.Prepare( sql )
 	if err != nil {
-		fmt.Println( "Insert err:"+err.Error())
+		fmt.Println( "Update err:"+err.Error())
 		return 0,err
 	}
 	res, err := stmt.Exec( args... )
 	if err != nil {
-		fmt.Println( "Insert err:"+err.Error())
+		fmt.Println( "Update err:"+err.Error())
 		return 0,err
 	}
 	return res.RowsAffected()
@@ -146,12 +146,12 @@ func (this *Mysql)  Remove( sql string,args ...interface{} )  (int64, error){
 	this.Sql = sql
 	stmt, err := db.Prepare( sql )
 	if err != nil {
-		fmt.Println( "Insert err:"+err.Error())
+		fmt.Println( "Remove err:"+err.Error())
 		return 0,err
 	}
 	res, err := stmt.Exec( args... )
 	if err != nil {
-		fmt.Println( "Insert err:"+err.Error())
+		fmt.Println( "Remove err:"+err.Error())
 		return 0,err
 	}
 	return res.RowsAffected()

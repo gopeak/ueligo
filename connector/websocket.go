@@ -43,6 +43,11 @@ func WebsocketConnector(ip string, port int) {
 	http.HandleFunc("/login", web.LoginHandler)
 	http.HandleFunc("/get_list", web.GetListHandler)
 	http.HandleFunc("/get_member", web.GetMemberHandler)
+	http.HandleFunc("/get_recommend_user", web.GetRecommendUserHandler)
+	http.HandleFunc("/req_add_friend", web.ReqAddFriendHandler)
+	http.HandleFunc("/sysmsg", web.SystemMsgHandler)
+	http.HandleFunc("/agree", web.AgreeHandler)
+	http.HandleFunc("/reject", web.RejectHandler)
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 

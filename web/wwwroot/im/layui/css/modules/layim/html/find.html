@@ -7,30 +7,135 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1">
 <title>发现</title>
 
-<link rel="stylesheet" href="http://local.res.layui.com/layui/src/css/layui.css">
-<style>
+<link rel="stylesheet" href="../../../layui.css">
+  <style>
 
-</style>
+    #recomFace {
+      padding: 20px;
+      padding-right: 0px
+    }
+
+    #recomFace li {
+      float: left;
+      padding: 0 10px 10px 0;
+      width: 80px;
+      height: 80px;
+      cursor: pointer;
+    }
+    #recomFace li img {
+      padding:5px;
+      width: 80px;
+      height: 80px;
+    }
+    .clearfix:after {
+      content: ".";
+      display: block;
+      height: 0;
+      clear: both;
+      visibility: hidden;
+      zoom: 1;
+    }
+    .clearfix li {
+      list-style: none;
+      list-style-position: outside;
+      list-style-type: none;
+    }
+
+  </style>
 </head>
 <body>
+<div class="layui-flow-more"><li class="layim-msgbox-tips">推荐用户</li></div>
+<div>
+    <ul class="clearfix" id="recomFace"  >
 
-<div style="margin: 15px;">
-  <blockquote class="layui-elem-quote">此为自定义的【查找】页面，因需求不一，所以官方暂不提供该模版结构与样式，实际使用时，可移至该文件到你的项目中，对页面自行把控。
-  <br>文件所在目录（相对于layui.js）：/css/modules/layim/html/find.html</blockquote>
+    </ul>
 </div>
 
+<textarea title="添加好友模版" id="show_tpl" style="display:none;">
+{{# layui.each(d.data, function(index, item){
+  if(item.id){ }}
+    <li data="{{ item.id }}" nick="{{ item.username }}" avatar="{{ item.avatar }}"  data-type="reqAddFriend">
+             <img src="{{ item.avatar }}" alt=""><a href="">{{ item.username }}</a>
+    </li>
 
+    </li>
+  {{# } else { }}
 
-<script src="http://local.res.layui.com/layui/src/layui.js"></script>
+  {{# }
+}); }}
+</textarea>
+
+<script src="/im/layui/layui.js"></script>
 <script>
-layui.use(['layim', 'laypage'], function(){
+layui.use(['layim', 'laypage', 'flow','layer'], function(){
   var layim = layui.layim
   ,layer = layui.layer
   ,laytpl = layui.laytpl
   ,$ = layui.jquery
+   ,flow = layui.flow
   ,laypage = layui.laypage;
-  
-  //一些添加好友请求之类的交互参见文档
+
+    //请求消息
+    var renderMsg = function(page, callback){
+
+        $.getJSON('/get_recommend_user?sid='+parent.GlobalSid+"&page="+page,   function(res){
+            if(res.code != 0){
+                return layer.msg(res.msg);
+            }
+            callback && callback(res.data, res.pages);
+
+            $("#recomFace li").click(function () {
+
+                $('#recomFace li').each(function (i) {
+                    $(this).css('background-color', '');
+                });
+                $(this).css('background-color', 'lightblue');
+                //选择分组
+                parent.layui.layim.setFriendGroup({
+                    type: 'friend'
+                    ,username: $(this).attr("nick")
+                    ,avatar: $(this).attr("avatar")
+                    ,group: parent.layui.layim.cache().friend //获取好友分组数据
+                    ,submit: function(group, index){
+
+                        $.getJSON('/req_add_friend?sid='+parent.GlobalSid+"&uid="+parent.GlobalId+"add_group="+$('#LAY_layimGroup').val(),   function(res){
+
+                            alert(res.msg);
+                            if(res.code != 0){
+                                layer.msg(res.msg);
+                            }else{
+                                layer.msg(res.msg);
+                            }
+                        });
+
+
+                    }
+                });
+
+            });
+
+        });
+
+    };
+
+    //消息信息流
+    flow.load({
+        elem: '#recomFace' //流加载容器
+        ,isAuto: false
+        ,end: ''
+        ,done: function(page, next){ //加载下一页
+            renderMsg(page, function(data, pages){
+                var html = laytpl(show_tpl.value).render({
+                    data: data
+                    ,page: page
+                });
+                next(html, page < pages);
+            });
+        }
+    });
+
+
+
   
 });
 </script>

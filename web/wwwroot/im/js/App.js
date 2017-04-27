@@ -35,9 +35,6 @@ var App = function( aCanvas) {
 
 	app.onSocketClose = function(e) {
 
-        alert("ws 已经关闭 ")
-
-
 		webSocketService.connectionClosed();
 	};
 
@@ -69,7 +66,6 @@ var App = function( aCanvas) {
 	};
 
 	app.sendMessage = function( msg ) {
-
 
 	    webSocketService.sendMessage( msg  );
 

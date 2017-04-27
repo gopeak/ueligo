@@ -369,12 +369,12 @@ func ConnRegister(conn *net.TCPConn, user_sid string) {
 
 	//SubscribeChannel("area-global", conn, user_sid)
 
-	_, ok := global.SyncUserConns.Get(user_sid)
-	if !ok {
+	//_, ok := global.SyncUserConns.Get(user_sid)
+	//if !ok {
 		global.SyncUserConns.Set(user_sid, conn)
-	}
+	//}
 
-	_, ok = global.SyncUserSessions.Get(user_sid)
+	_, ok := global.SyncUserSessions.Get(user_sid)
 	if !ok {
 		data := &z_type.Session{
 			conn.RemoteAddr().String(),
@@ -395,12 +395,12 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 	golog.Debug("user_sid: ", user_sid)
 	//SubscribeWsChannel("area-global", ws, user_sid)
 
-	_, ok := global.SyncUserWebsocketConns.Get(user_sid)
-	if !ok {
+	//_, ok := global.SyncUserWebsocketConns.Get(user_sid)
+	//if !ok {
 		global.SyncUserWebsocketConns.Set(user_sid, ws)
-	}
+	//}
 
-	_, ok = global.SyncUserSessions.Get(user_sid)
+	_, ok := global.SyncUserSessions.Get(user_sid)
 	if !ok {
 		data := &z_type.Session{
 			ws.RemoteAddr().String(),
