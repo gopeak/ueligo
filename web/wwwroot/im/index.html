@@ -445,10 +445,11 @@
 				layim.on('ready', function(res){
 
 					//console.log(res.mine);
-					//show_login()
-					layim.msgbox(5); //模拟消息盒子有新消息，实际使用时，一般是动态获得
+
+					//layim.msgbox(5); //模拟消息盒子有新消息，实际使用时，一般是动态获得
 
 					//添加好友（如果检测到该socket）
+                    /*
 					layim.addList({
 						type: 'group'
 						,avatar: "http://tva3.sinaimg.cn/crop.64.106.361.361.50/7181dbb3jw8evfbtem8edj20ci0dpq3a.jpg"
@@ -456,6 +457,7 @@
 						,id: "12333333"
 						,members: 0
 					});
+					*/
 
 
 				});
@@ -466,33 +468,12 @@
 					console.log(data);
 
 					if(To.type === 'friend'){
-						layim.setChatStatus('<span style="color:#FF5722;">对方正在输入。。。</span>');
+                        app.pushMessage( GlobalSid,data.to.sid,  data.mine.content  )
+					}else{
+						app.pushGroupMessage( GlobalSid,  data.to.channel_id,   data.mine.content)
 					}
-					app.pushMessage( GlobalSid,data.to.sid,data.mine.content)
-                    return
-					//演示自动回复
-					setTimeout(function(){
-						var obj = {};
-						if(To.type === 'group'){
-							obj = {
-								username: '模拟群员'+(Math.random()*100|0)
-								,avatar: layui.cache.dir + 'images/face/'+ (Math.random()*72|0) + '.gif'
-								,id: To.id
-								,type: To.type
-								,content: autoReplay[Math.random()*9|0]
-							}
-						} else {
-							obj = {
-								username: To.name
-								,avatar: To.avatar
-								,id: To.id
-								,type: To.type
-								,content: autoReplay[Math.random()*9|0]
-							}
-							layim.setChatStatus('<span style="color:#FF5722;">在线</span>');
-						}
-						layim.getMessage(obj);
-					}, 1000);
+
+
 				});
 
 				//监听查看群员

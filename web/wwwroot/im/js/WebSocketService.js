@@ -146,6 +146,22 @@ var WebSocketService = function( webSocket) {
 
 	}
 
+	this.wrapPushGroupMessage = function( sid,msg ){
+		str = msg
+		if( typeof(msg)=="undefined" ){
+			return false
+		}
+		if( typeof(msg)=="null" ){
+			return false
+		}
+		if( typeof(msg)=="object" ){
+			str =  JSON.stringify(msg)
+		}
+
+		return  TypePush+"||PushGroupMessage||"+sid+"||0||"+str
+
+	}
+
 	this.sendMessage = function( sid, msg  ) {
 
 
@@ -166,6 +182,14 @@ var WebSocketService = function( webSocket) {
 		str = this.wrapPushMessage( sid,msg)
 		webSocket.send(str);
 	}
+	this.pushGroupMessage = function( sid, msg  ) {
+		console.log("pushGroupMessage:");
+		console.log( sid );
+		console.log( msg );
+		str = this.wrapPushGroupMessage( sid,msg)
+		webSocket.send(str);
+	}
+
 
 
     this.joinChannel = function( sid,channel_id  ) {

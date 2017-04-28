@@ -102,9 +102,9 @@ func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 		if( channels.Size()<=0 ){
 			channels = syncmap.New()
 		}
-		if  !channels.Has(sid) {
+		//if  !channels.Has(sid) {
 			channels.Set(sid, ws)
-		}
+		//}
 		global.SyncRpcChannelWsConns.Set( area_id, channels )
 		fmt.Println("Joined  ",area_id," size :", channels.Size() )
 	}
@@ -269,7 +269,11 @@ func Broatcast( sid string,area_id string, msg string) {
 	for item := range channel_wsconns.IterItems() {
 		//fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
+		//wsconn.WritePreparedMessage( )
+		err := wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
+		if err!=nil {
+			fmt.Println("广播 err:", err.Error())
+		}
 
 	}
 }

@@ -41,7 +41,7 @@ var App = function( aCanvas) {
 	app.onSocketMessage = function(e) {
 
 		console.log( e.data )
-		//try {
+		try {
 			data_arr = e.data.split('||')
             _type = data_arr[0]
             _cmd = data_arr[1]
@@ -56,13 +56,16 @@ var App = function( aCanvas) {
 					msg:_data
 				}
 
-			}else{
+			}
+			else{
 				var obj = JSON.parse(_data);
 			}
 
             console.log( obj  )
 			webSocketService.processMessage(obj);
-		//} catch(e) {}
+		} catch(e) {
+			alert(e)
+		}
 	};
 
 	app.sendMessage = function( msg ) {
@@ -79,6 +82,15 @@ var App = function( aCanvas) {
         webSocketService.pushMessage( from_sid, sendObj  );
 
     }
+	app.pushGroupMessage = function( from_sid,area_id,msg ) {
+
+		var sendObj = {
+			area_id: area_id,
+			msg: msg,
+		};
+		webSocketService.pushGroupMessage( from_sid, sendObj  );
+
+	}
 
 	app.authorize = function(token,sid) {
 		webSocketService.authorize(token,sid);

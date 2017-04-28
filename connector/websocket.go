@@ -20,7 +20,7 @@ import (
 	"strconv"
 	"strings"
 	"os"
-	"morego/web"
+	"morego/worker/golang"
 )
 
 var upgrader = websocket.Upgrader{
@@ -33,21 +33,15 @@ func WebsocketConnector(ip string, port int) {
 
 	var addr = flag.String("addr", fmt.Sprintf(":%d", port), "http service address")
 	http.HandleFunc("/ws", WebsocketHandle)
+
 	wd, _ := os.Getwd()
 	http_dir := fmt.Sprintf("%s/web/wwwroot", wd)
 	fmt.Println("Http_dir:", http_dir)
 	http.Handle("/", http.FileServer(http.Dir(http_dir)))
-	http.HandleFunc("/upload_image", web.UploadImageHandler)
-	http.HandleFunc("/upload_file", web.UploadFileHandler)
-	http.HandleFunc("/reg", web.RegHandler)
-	http.HandleFunc("/login", web.LoginHandler)
-	http.HandleFunc("/get_list", web.GetListHandler)
-	http.HandleFunc("/get_member", web.GetMemberHandler)
-	http.HandleFunc("/get_recommend_user", web.GetRecommendUserHandler)
-	http.HandleFunc("/req_add_friend", web.ReqAddFriendHandler)
-	http.HandleFunc("/sysmsg", web.SystemMsgHandler)
-	http.HandleFunc("/agree", web.AgreeHandler)
-	http.HandleFunc("/reject", web.RejectHandler)
+	// 初始化群组
+	golang.InitGlobalGroup()
+	// http请求处理
+	golang.InitHandler()
 
 	log.Fatal(http.ListenAndServe(*addr, nil))
 

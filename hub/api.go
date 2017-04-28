@@ -182,7 +182,7 @@ func (api *Api)ChannelAddSid(sid string, area_id string) bool {
 	have_joined := area.CheckUserJoinChannel(area_id, sid)
 	fmt.Println( "have_joined:", have_joined )
 	// 如果还没有加入场景,则订阅
-	if !have_joined {
+	//if !have_joined {
 		user_conn := area.GetConn(sid)
 		user_wsconn := area.GetWsConn(sid)
 		// 会话如果属于socket
@@ -201,7 +201,7 @@ func (api *Api)ChannelAddSid(sid string, area_id string) bool {
 		}
 		userJoinedChannels = append(userJoinedChannels, area_id)
 		global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
-	}
+	//}
 
 	return true
 
