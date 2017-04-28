@@ -7,18 +7,18 @@
 package area
 
 import (
-	"morego/global"
-	"github.com/gorilla/websocket"
-	"morego/golog"
 	"fmt"
 	"net"
-	"morego/lib/syncmap"
-	z_type "morego/type"
 	"time"
 	//"strings"
-	"morego/protocol"
 	"sync/atomic"
 	"math/rand"
+	"morego/global"
+	"morego/golog"
+	"morego/lib/websocket"
+	"morego/lib/syncmap"
+	"morego/protocol"
+	z_type "morego/type"
 )
 
 // 预创建多个场景
@@ -90,7 +90,6 @@ func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
  */
 func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 
-
 	_item,ok := global.SyncRpcChannelWsConns.Get(area_id)
 	if( !ok ) {
 		//fmt.Println("Channel  ",area_id," no exist! "  )
@@ -103,6 +102,7 @@ func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 			channels = syncmap.New()
 		}
 		//if  !channels.Has(sid) {
+			fmt.Println("SubscribeWsChannel  ",sid, area_id, ws   )
 			channels.Set(sid, ws)
 		//}
 		global.SyncRpcChannelWsConns.Set( area_id, channels )
@@ -239,6 +239,7 @@ func UserUnSubscribeChannel(user_sid string) {
  */
 func Broatcast( sid string,area_id string, msg string) {
 
+	fmt.Println("Broatcast:", sid, area_id, msg )
 	// tcp部分
 	var channel_conns *syncmap.SyncMap
 	_item,ok := global.SyncRpcChannelConns.Get(area_id)
@@ -267,13 +268,15 @@ func Broatcast( sid string,area_id string, msg string) {
 	fmt.Println("WS广播里有:", channel_wsconns.Size(),"个连接")
 	var wsconn *websocket.Conn
 	for item := range channel_wsconns.IterItems() {
-		//fmt.Println("key:", item.Key, "value:", item.Value)
+
 		wsconn = item.Value.(*websocket.Conn)
-		//wsconn.WritePreparedMessage( )
-		err := wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,area_id,msg)) )
+
+		err:=websocket.Message.Send( wsconn, protocol.WrapBroatcastRespStr(sid,area_id,msg))
+		//wnum,err := wsconn.Write([]byte(protocol.WrapBroatcastRespStr(sid,area_id,msg) ) )
 		if err!=nil {
 			fmt.Println("广播 err:", err.Error())
 		}
+		//fmt.Println( "wnum:", wnum )
 
 	}
 }
@@ -297,7 +300,7 @@ func BroatcastGlobal( sid string, msg string) {
 	for item := range global.SyncGlobalChannelWsConns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapBroatcastRespStr(sid,"global",msg)) )
+		go wsconn.Write(   []byte(protocol.WrapBroatcastRespStr(sid,"global",msg)) )
 
 	}
 }
@@ -321,7 +324,7 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	fmt.Println( "push, to_sid:", to_sid ,)
 	if( wsconn!=nil ) {
 		fmt.Println( "push, str :", protocol.WrapPushRespStr( from_sid,to_data) )
-		err:=wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapPushRespStr( from_sid,to_data)) )
+		_,err:=wsconn.Write([]byte(protocol.WrapPushRespStr( from_sid,to_data)) )
 		if err!=nil {
 			fmt.Println( "wsconn.WriteMessage err:",err.Error() )
 		}
@@ -470,7 +473,7 @@ func FreeConn(conn *net.TCPConn, sid string) {
 func FreeWsConn(ws *websocket.Conn, sid string) {
 
 	//ws.Write([]byte{'E', 'O', 'F'})
-	ws.WriteMessage(websocket.CloseMessage,[]byte{'E', 'O', 'F'})
+	ws.Write( []byte{'E', 'O', 'F'} )
 	ws.Close()
 	golog.Warn("Sid closing:", sid)
 	CloseWsConn(sid)

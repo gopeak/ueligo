@@ -12,7 +12,7 @@ import (
 	"strings"
 	//"net"
 	"fmt"
-	"github.com/gorilla/websocket"
+	_"morego/lib/websocket"
 	"morego/protocol"
 	z_type "morego/type"
 )
@@ -127,7 +127,7 @@ func (api *Api)Kick(sid string) bool {
 	user_wsconn := area.GetWsConn(sid)
 	if user_wsconn != nil {
 		// 通知消息退出
-		go user_wsconn.WriteMessage(websocket.TextMessage, []byte(protocol.WrapRespErrStr("kicked")) )
+		go user_wsconn.Write( []byte(protocol.WrapRespErrStr("kicked")) )
 		area.FreeWsConn( user_wsconn,sid)
 	}
 	area.UserUnSubscribeChannel(sid)
@@ -180,7 +180,7 @@ func (api *Api)ChannelAddSid(sid string, area_id string) bool {
 
 	// 检查会话用户是否加入过此场景
 	have_joined := area.CheckUserJoinChannel(area_id, sid)
-	fmt.Println( "have_joined:", have_joined )
+	fmt.Println( "have_joined:",sid, area_id, have_joined )
 	// 如果还没有加入场景,则订阅
 	//if !have_joined {
 		user_conn := area.GetConn(sid)

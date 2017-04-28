@@ -4,35 +4,34 @@ import (
 	"bufio"
 	"fmt"
 	"math/rand"
-	"morego/area"
-	"morego/global"
-	"morego/protocol"
 	"net"
 	"net/http"
 	"sync/atomic"
 	"time"
-	"morego/golog"
-	"github.com/antonholmquist/jason"
-	"github.com/gorilla/websocket"
 	"errors"
 	"flag"
 	"log"
 	"strconv"
 	"strings"
 	"os"
+	"morego/area"
+	"morego/global"
+	"morego/protocol"
+	"morego/golog"
+	"morego/lib/websocket"
 	"morego/worker/golang"
+	"github.com/antonholmquist/jason"
+
 )
 
-var upgrader = websocket.Upgrader{
-	CheckOrigin: func(r *http.Request) bool { return true },
-} // use default options
 
 func WebsocketConnector(ip string, port int) {
 
 	golog.Info("Websocket Connetor bind :", ip, port)
 
 	var addr = flag.String("addr", fmt.Sprintf(":%d", port), "http service address")
-	http.HandleFunc("/ws", WebsocketHandle)
+
+	http.Handle("/ws", websocket.Handler(WebsocketHandle))
 
 	wd, _ := os.Getwd()
 	http_dir := fmt.Sprintf("%s/web/wwwroot", wd)
@@ -50,13 +49,8 @@ func WebsocketConnector(ip string, port int) {
 /**
  *  处理客户端连接
  */
-func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
-	wsconn, err := upgrader.Upgrade(writer, request, nil)
+func WebsocketHandle( wsconn *websocket.Conn ) {
 
-	if err != nil {
-		log.Print("upgrade:", err)
-		return
-	}
 	var max_conns int32
 	fmt.Println(" websocke client connect:", wsconn.RemoteAddr())
 	user_sid := ""
@@ -65,8 +59,7 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 
 	max_conns = int32(global.Config.Connector.MaxConections)
 	if max_conns > 0 && global.SumConnections > max_conns {
-
-		wsconn.WriteMessage(websocket.TextMessage, []byte(global.ERROR_MAX_CONNECTIONS))
+		wsconn.Write( []byte(global.ERROR_MAX_CONNECTIONS) )
 		return
 	}
 
@@ -86,13 +79,11 @@ func WebsocketHandle(writer http.ResponseWriter, request *http.Request) {
 
 	for {
 		var str string
-		_, buf, err := wsconn.ReadMessage()
-		if err != nil {
+		if err = websocket.Message.Receive(wsconn, &str); err != nil {
 			fmt.Println(" websocket.Message.Receive error:", user_sid, "  -->", err.Error())
 			wsconn.Close()
 			break
 		}
-		str = string(buf)
 		//fmt.Println("Client Request: " + str)
 
 		go func(sid string, str string, wsconn *websocket.Conn, req_conn *net.TCPConn) {
@@ -150,7 +141,7 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 		//var l *sync.RWMutex
 		//l = new(sync.RWMutex)
 		//l.Lock()
-		go wsconn.WriteMessage(websocket.TextMessage, buf)
+		go wsconn.Write( buf )
 		//l.Unlock()
 	}
 }

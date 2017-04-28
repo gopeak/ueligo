@@ -7,15 +7,11 @@ package hub
 
 import (
 	"bufio"
-	//json2 "encoding/json"
 	"fmt"
 	"net"
-	//"morego/area"
 	"morego/global"
 	"morego/golog"
 	"github.com/antonholmquist/jason"
-	//"github.com/gorilla/websocket"
-	//z_type "morego/type"
 	"morego/protocol"
 	"strconv"
 	"time"
