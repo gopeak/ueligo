@@ -9,13 +9,15 @@ import (
 	"encoding/json"
 	"time"
 	"reflect"
+	"strings"
 	"morego/protocol"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
+	"morego/worker/golang"
 	"github.com/antonholmquist/jason"
-	"strings"
 )
+
 
 // 初始化worker服务
 func InitWorkerServer() {
@@ -181,7 +183,10 @@ func handleWorkerJson(conn *net.TCPConn) {
 
 func Invoker( conn *net.TCPConn,_type int,cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	task_obj := new(TaskType).Init( conn, cmd, req_sid,req_id,req_data )
+	task_obj := new(golang.TaskType).Init( conn, cmd, req_sid,req_id,req_data )
+
+	fmt.Println( task_obj )
+
 	data:=InvokeObjectMethod( task_obj,cmd )
 	if( data=="" ){
 		return data

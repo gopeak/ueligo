@@ -1,8 +1,7 @@
-package web
+package lib
 
 import (
 	"fmt"
-
  	"database/sql"
  	_"github.com/go-sql-driver/mysql"
 

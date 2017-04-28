@@ -1,4 +1,4 @@
-package worker
+package golang
 
 import (
 	"morego/golog"

@@ -1,42 +1,16 @@
-package worker
+package golang
 
 import (
 	"net"
-
 	"fmt"
 	"morego/area"
-	"morego/web"
 	"github.com/antonholmquist/jason"
 	"morego/golog"
 	"strings"
+
 )
 
 
-
-type TaskType struct {
-
-	Conn * net.TCPConn
-
-	Cmd string
-
-	Sid string
-
-	Reqid int
-
-	Data string
-
-
-}
-
-func (this *TaskType) Init( conn *net.TCPConn,cmd string,sid string,reqid int,data string ) *TaskType{
-
-	this.Cmd = cmd
-	this.Sid = sid
-	this.Reqid = reqid
-	this.Data = data
-	this.Conn = conn
-	return this
-}
 
 
 func (this TaskType)Auth(  ) string {
@@ -53,37 +27,6 @@ func (this TaskType)Auth(  ) string {
 
 }
 
-func (this TaskType)Authorize(  ) string {
-
-	// 从数据库中查询token是否有效
-	db := new(web.Mysql)
-	_, err := db.Connect()
-	if err != nil {
-		json_ret := fmt.Sprintf(`{"ret":"failed","type":"%s","id":"%s" ,"msg":"%s"}`,"failed",this.Sid,"数据库连接失败:" + err.Error())
-		return json_ret
-	}
-
-
-	// 获取当前用户信息
-	data_json ,err_json:= jason.NewObjectFromBytes( []byte(this.Data ) )
-	if( err_json!=nil ) {
-		json_ret := fmt.Sprintf(`{"ret":"failed","type":"%s","id":"%s" ,"msg":"%s"}`,"failed",this.Sid,"解析认证数据失败:" + err_json.Error())
-		return json_ret
-	}
-	_token,_ := data_json.GetString("token")
-	_sid,_ := data_json.GetString("sid")
-	my_record := web.GetUserRow(db.Db, _sid )
-	if( my_record["token"]==_token ){
-		json_ret := fmt.Sprintf(`{"ret":"ok","type":"%s","id":"%s"  }`,"welcome",_sid)
-		return json_ret
-
-	}else{
-		json_ret := fmt.Sprintf(`{"ret":"failed","type":"%s","id":"%s" }`,"failed",this.Sid)
-		return json_ret
-	}
-
-
-}
 
 
 func (this TaskType)Push(   ) string {

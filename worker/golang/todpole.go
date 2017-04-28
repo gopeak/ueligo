@@ -1,4 +1,4 @@
-package worker
+package golang
 
 import (
 	"github.com/antonholmquist/jason"
@@ -6,10 +6,6 @@ import (
 	"fmt" 
 	"strconv"
 )
-
-
-
-
 
 
 
