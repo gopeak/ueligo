@@ -24,12 +24,7 @@ var App = function( aCanvas) {
 				type: 'auth'
 			};
 		// 认证请求
-
-
-		//console.log('Socket opened!', e);
-
 		 app.authorize( GlobalToken, GlobalSid )
-
 
 	};
 
@@ -43,28 +38,39 @@ var App = function( aCanvas) {
 		console.log( e.data )
 		try {
 			data_arr = e.data.split('||')
-            _type = data_arr[0]
-            _cmd = data_arr[1]
-            _sid = data_arr[2]
+            _type  = data_arr[0]
+            _cmd   = data_arr[1]
+            _sid   = data_arr[2]
             _reqid = data_arr[3]
-            _data = data_arr[4]
+            _data  = data_arr[4]
 
-			if( _type=="3"){
+			if( _type=="3" ){
 				var obj = {
 					type:"message",
 					from_sid:_sid,
-					msg:_data
+					msg:JSON.parse(_data),
+                    msg_catlog:"friend",
+                    group_id:0,
+                    group_channel_id:_reqid
 				}
-
 			}
 			else{
-				var obj = JSON.parse(_data);
+				if( _type=="4" ){
+					var obj = {
+						type:"messageGroup",
+						from_sid:_sid,
+						msg:JSON.parse(_data),
+                        msg_catlog:"group",
+                        group_channel_id:_reqid
+					}
+				}else{
+                    var obj = JSON.parse(_data);
+                }
 			}
-
             console.log( obj  )
 			webSocketService.processMessage(obj);
 		} catch(e) {
-			alert(e)
+			console.log(e)
 		}
 	};
 
@@ -73,20 +79,22 @@ var App = function( aCanvas) {
 	    webSocketService.sendMessage( msg  );
 
 	}
-    app.pushMessage = function( from_sid,to_sid,msg ) {
+    app.pushMessage = function( from_sid,from_info,to_sid,msg ) {
 
         var sendObj = {
             sid: to_sid,
+            from_info:from_info,
             msg: msg,
         };
         webSocketService.pushMessage( from_sid, sendObj  );
 
     }
-	app.pushGroupMessage = function( from_sid,area_id,msg ) {
+	app.pushGroupMessage = function( from_sid,from_info,area_id,msg ) {
 
 		var sendObj = {
 			area_id: area_id,
-			msg: msg,
+			content: msg,
+            from_info:from_info
 		};
 		webSocketService.pushGroupMessage( from_sid, sendObj  );
 

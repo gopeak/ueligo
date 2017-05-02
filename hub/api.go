@@ -179,12 +179,13 @@ func (api *Api)ChannelAddSid(sid string, area_id string) bool {
 	}
 
 	// 检查会话用户是否加入过此场景
-	have_joined := area.CheckUserJoinChannel(area_id, sid)
-	fmt.Println( "have_joined:",sid, area_id, have_joined )
+	//have_joined := area.CheckUserJoinChannel(area_id, sid)
+	//fmt.Println( "have_joined:",sid, area_id, have_joined )
 	// 如果还没有加入场景,则订阅
 	//if !have_joined {
 		user_conn := area.GetConn(sid)
 		user_wsconn := area.GetWsConn(sid)
+		fmt.Println( "ChannelAddSid user_wsconn:",user_wsconn )
 		// 会话如果属于socket
 		if user_conn != nil {
 			area.SubscribeChannel(area_id, user_conn, sid)

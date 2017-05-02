@@ -298,7 +298,8 @@ func getSysMsgs(db  *sql.DB, uid int) []SysMsgType {
 }
 
 
-func JoinChannel(db *sql.DB, uid int, sid string ) {
+
+func  JoinChannel(db *sql.DB, uid int, sid string ) {
 
 	mysql := new(lib.Mysql)
 	_, err := mysql.Connect()
@@ -325,3 +326,4 @@ func JoinChannel(db *sql.DB, uid int, sid string ) {
 	}
 
 }
+

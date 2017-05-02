@@ -3,7 +3,7 @@
 		<meta charset="utf-8">
 		<title>Firego+HTML5+WebSocket  Webim</title>
 		<link rel="stylesheet" type="text/css" href="css/main.css" />
-		<meta name="viewport" content="width=device-width; initial-scale=1.0; maximum-scale=1.0; minimum-scale=1.0; user-scalable=0;" />		
+		<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0, user-scalable=0" />
 		<meta name="apple-mobile-web-app-capable" content="YES">
 		<meta name="apple-mobile-web-app-status-bar-style" content="black">
  >
@@ -203,12 +203,15 @@
 		</script>
 
 
+
 		<script>
 
-            var GlobalSid = ""
-            var GlobalId = ""
+            var GlobalSid   = ""
+            var GlobalId    = ""
 			var GlobalToken = ""
-            var GlobalContacts = null;
+            var GlobalMine       = null;
+            var GlobalContacts  = null;
+			var GlobalGroups    = null;
 
             $(document).ready(function(){
 				show_login();
@@ -241,8 +244,10 @@
                                     GlobalSid = json.data.sid;
 									GlobalToken = json.data.token;
                                     GlobalContacts = json.contacts;
+                                    GlobalGroups = json.groups;
+                                    GlobalMine = json.data
                                     layer.closeAll();
-									startWs( GlobalSid )
+									startWs( GlobalSid );
                                     init();
                                 }
                                 layer.msg(json.msg);
@@ -458,27 +463,24 @@
 						,members: 0
 					});
 					*/
-
-
 				});
 
 				//监听发送消息
 				layim.on('sendMessage', function(data){
 					var To = data.to;
+                    var Mine = data.mine;
 					console.log(data);
 
 					if(To.type === 'friend'){
-                        app.pushMessage( GlobalSid,data.to.sid,  data.mine.content  )
+                        app.pushMessage( GlobalSid, Mine, data.to.sid,  data.mine.content  )
 					}else{
-						app.pushGroupMessage( GlobalSid,  data.to.channel_id,   data.mine.content)
+						app.pushGroupMessage( GlobalSid, Mine, data.to.channel_id,   data.mine.content)
 					}
-
-
 				});
 
 				//监听查看群员
 				layim.on('members', function(data){
-					//console.log(data);
+					 console.log(data);
 				});
 
 				//监听聊天窗口的切换

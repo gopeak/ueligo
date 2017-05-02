@@ -2,8 +2,6 @@ var WebSocketService = function( webSocket) {
 	var webSocketService = this;
 	
 	var webSocket = webSocket;
-	//var model = model;
-
 	var TypeReq  = "1";
 	var TypePush = "3";
 	
@@ -13,16 +11,35 @@ var WebSocketService = function( webSocket) {
         webSocketService.hasConnection = true;
         console.log("welcomeHandler:",data);
 
-
+        webSocketService.subscripeGroup()
     };
-
 
 
     this.failedHandler = function(data) {
         webSocketService.hasConnection = true;
         console.log("failedHandler:");
         console.log(data);
-        alert("加入房间失败!")
+        console.log("加入失败!")
+
+    };
+
+    this.subscripeGroupfailedHandler = function(data) {
+        console.log(data);
+        console.log("加入群组失败!")
+
+    };
+
+    this.subscripeGroupHandler = function(data) {
+        console.log(data);
+        console.log("加入群组成功!")
+
+    };
+
+    this.failedHandler = function(data) {
+        webSocketService.hasConnection = true;
+        console.log("failedHandler:");
+        console.log(data);
+        alert("加入失败!")
 
     };
 	
@@ -35,10 +52,8 @@ var WebSocketService = function( webSocket) {
 	
 	this.messageHandler = function(data) {
 		console.log( "messageHandler:" );
-
-		var from_sid = data.from_sid
-
-        from_info ={}
+        from_info = data.msg.from_info
+        var from_sid = data.from_sid
 
         for(var i=0; i<GlobalContacts.length; i++)
         {
@@ -48,19 +63,51 @@ var WebSocketService = function( webSocket) {
         }
         console.log( "from_info:" );
         console.log( from_info );
-		obj = {
-			username:from_info.username
-			,avatar: from_info.avatar
-			,id: from_info.id
-			,type: "friend"
-			,content: data.msg
-		}
+
+        obj = {
+            username:from_info.username
+            ,avatar: from_info.avatar
+            ,id: from_info.id
+            ,type: data.msg_catlog
+            ,content: data.msg.content
+        }
+
+
+        layui.use('layim', function(layim){
+            layim.getMessage(obj);
+        });
+		
+	}
+
+    this.messageGroupHandler = function(data) {
+        console.log( "groupMessageHandler:" );
+
+        from_info = data.msg.from_info
+        console.log( from_info );
+
+        group_id = ""
+        for(var i=0; i<GlobalGroups.length; i++)
+        {
+            if  (GlobalGroups[i].channel_id==data.group_channel_id){
+                group_id = GlobalGroups[i].id;
+            }
+        }
+
+        var obj = {
+            username:from_info.username
+            ,avatar: from_info.avatar
+            ,id: group_id
+            ,fromid:from_info.id
+            ,type: data.msg_catlog
+            ,content: data.msg.content
+        }
+
+
         layui.use('layim', function(layim){
             layim.getMessage(obj);
         });
 
-		
-	}
+    }
 	
 	this.closedHandler = function(data) {
 
@@ -94,25 +141,7 @@ var WebSocketService = function( webSocket) {
 		 
 	};
 	
-	this.sendUpdate = function(tadpole) {
-		
-		//console.log("sendUpdate:")
-		//console.log(tadpole);
-		var sendObj = {
-			type: 'update',
-			x: tadpole.x.toFixed(1),
-			y: tadpole.y.toFixed(1),
-			id:tadpole.id,
-			angle: tadpole.angle.toFixed(3),
-			momentum: tadpole.momentum.toFixed(3)
-		};
 
-		if(tadpole.name) {
-			sendObj['name'] = tadpole.name;
-		}
-        str = this.wrapReqMessage( 'Update',tadpole.id,0,sendObj)
-		webSocket.send(str);
-	}
 
 	this.wrapReqMessage = function( cmd,sid,reqid,msg ){
 		str = msg
@@ -163,8 +192,6 @@ var WebSocketService = function( webSocket) {
 	}
 
 	this.sendMessage = function( sid, msg  ) {
-
-
 		var sendObj = {
 			type: 'message',
 			message: msg,
@@ -191,21 +218,24 @@ var WebSocketService = function( webSocket) {
 	}
 
 
-
-    this.joinChannel = function( sid,channel_id  ) {
-        console.log("joinChannel:"+channel_id);
-
-        str = this.wrapReqMessage( 'JoinChannel',sid ,0,channel_id)
-        webSocket.send(str);
-    }
-	
 	this.authorize = function(token,sid) {
 		var sendObj = {
 			type: 'authorize',
 			token: token,
 			sid: sid
 		};
-        str = this.wrapReqMessage( 'Authorize',"",0,sendObj)
+        str = this.wrapReqMessage( 'Authorize',sid,0,sendObj)
 		webSocket.send(str);
 	}
+
+    this.subscripeGroup = function( ) {
+        var sendObj = {
+            type: 'SubscripeGroup',
+            token: GlobalToken,
+            sid: GlobalSid
+        };
+        str = webSocketService.wrapReqMessage( 'SubscripeGroup',GlobalSid,0,sendObj)
+        webSocket.send(str);
+    }
+
 }

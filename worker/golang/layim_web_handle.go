@@ -240,12 +240,15 @@ func LoginHandler(w http.ResponseWriter, r *http.Request) {
 		fmt.Println(record)
 		json_encode, _ := json.Marshal(record)
 
-		uid, _ := strconv.Atoi(record["id"])
-		friends := getMyContacts(db.Db, uid)
-		friends_encode, _ := json.Marshal(friends)
+		uid, _ := strconv.Atoi( record["id"] )
+		friends := getMyContacts( db.Db, uid )
+		friends_encode, _ := json.Marshal( friends )
+		groups := getMyGroups( db.Db, uid )
+		groups_encode, _ := json.Marshal( groups )
 
 		if id != "" {
-			resp = fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s,"contacts":%s} `, 1, "验证成功", string(json_encode) ,string(friends_encode))
+			resp = fmt.Sprintf(`{ "code":%d ,"msg": "%s","data":%s,"contacts":%s,"groups":%s} `,
+				1, "验证成功", string(json_encode) ,string(friends_encode), string(groups_encode) )
 		} else {
 			resp = fmt.Sprintf(format_str, 404, "用户名密码错误")
 		}
@@ -290,6 +293,7 @@ func GetListHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		uid, _ := strconv.Atoi(my_record["id"])
+
 		_list.Mine = my_record
 		_list.Friend = getFriends(db.Db, uid)
 		_list.Group = getMyGroups( db.Db,uid)
@@ -391,6 +395,8 @@ func GetRecommendUserHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 }
+
+
 func SystemMsgHandler(w http.ResponseWriter, r *http.Request) {
 	//fmt.Println("method:", r.Method) //获取请求的方法
 

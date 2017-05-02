@@ -3,11 +3,9 @@ package connector
 import (
 	"bufio"
 	"fmt"
-	"math/rand"
 	"net"
 	"net/http"
 	"sync/atomic"
-	"time"
 	"errors"
 	"flag"
 	"log"
@@ -53,7 +51,6 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 
 	var max_conns int32
 	fmt.Println(" websocke client connect:", wsconn.RemoteAddr())
-	user_sid := ""
 	//remoteAddr :=conn.RemoteAddr()
 	atomic.AddInt32(&global.SumConnections, 1)
 
@@ -61,10 +58,9 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 	if max_conns > 0 && global.SumConnections > max_conns {
 		wsconn.Write( []byte(global.ERROR_MAX_CONNECTIONS) )
 		return
+
 	}
 
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
-	sid := fmt.Sprintf("%d%d", r.Intn(99999), rand.Intn(999999))
 
 	configAddr := global.GetRandWorkerAddr()
 	fmt.Println("ip_port:", configAddr)
@@ -73,20 +69,21 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 	req_conn, err := net.DialTCP("tcp", nil, tcpAddr)
 	//defer req_conn.Close()
 	checkError(err)
-	go wsHandleWorkerResponse(wsconn, req_conn)
-
+	go wsHandleWorkerResponse(  wsconn, req_conn   )
+	last_sid := ""
 	// 监听客户端发送的数据
 
 	for {
 		var str string
 		if err = websocket.Message.Receive(wsconn, &str); err != nil {
-			fmt.Println(" websocket.Message.Receive error:", user_sid, "  -->", err.Error())
-			wsconn.Close()
+			fmt.Println(" websocket.Message.Receive error:", last_sid, "  -->", err.Error())
+			area.FreeWsConn( wsconn ,last_sid  )
 			break
 		}
 		//fmt.Println("Client Request: " + str)
+		_,_,_,last_sid,_,_ = protocol.ParseReqData( str )
 
-		go func(sid string, str string, wsconn *websocket.Conn, req_conn *net.TCPConn) {
+		go func( str string, wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 
 			ret, ret_err := wsDspatchMsg(str, wsconn, req_conn)
 			if ret_err != nil {
@@ -100,20 +97,19 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 				}
 			}
 
-		}(sid, str, wsconn, req_conn)
+		}( str, wsconn, req_conn)
 
 	}
 
 }
 
-func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
+func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 
 	reader := bufio.NewReader(req_conn)
 
-
 	for {
 		buf, err := reader.ReadBytes('\n')
-		//fmt.Println("worker_task response:", msg)
+		fmt.Println("worker_task response:", string(buf) )
 		if err != nil {
 			fmt.Println("handleWorkerResponse ", "error: ", err.Error())
 			req_conn.Close()
@@ -135,7 +131,8 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 			auth_ret,_ := data_json.GetString("ret")
 			if( auth_ret=="ok"){
 				sid,_ := data_json.GetString("id")
-				area.WsConnRegister( wsconn,sid)
+				area.WsConnRegister( wsconn, sid )
+				fmt.Println("handleWorkerResponse ", "sid: ",  sid )
 			}
 		}
 		//var l *sync.RWMutex
