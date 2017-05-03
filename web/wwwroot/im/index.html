@@ -470,7 +470,7 @@
 					var To = data.to;
                     var Mine = data.mine;
 					console.log(data);
-
+                    Mine.mine = false;
 					if(To.type === 'friend'){
                         app.pushMessage( GlobalSid, Mine, data.to.sid,  data.mine.content  )
 					}else{
@@ -492,6 +492,7 @@
 						//layim.setChatStatus('<span style="color:#FF5722;">在线</span>');
 					} else if(type === 'group'){
 						//模拟系统消息
+						return
 						layim.getMessage({
 							system: true
 							,id: res.data.id

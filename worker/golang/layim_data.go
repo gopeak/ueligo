@@ -12,6 +12,7 @@ type Root struct {
 	Code int             `json:"code"`
 	Msg  string           `json:"msg"`
 	Data interface{}     `json:"data"`
+	Pages int             `json:"pages"`
 }
 
 type ListType struct {
@@ -177,6 +178,7 @@ func getMyGroups(db *sql.DB, uid int) []map[string]string {
 		record["channel_id"] = channel_id
 		record["avatar"] = avatar
 		record["groupname"] = title
+		record["title"] = title
 		//fmt.Println(record)
 		join_group_records = append(join_group_records, record)
 	}
@@ -240,6 +242,48 @@ func getRecommendUser(db  *sql.DB, uid int) []map[string]string {
 		members = append(members, record)
 	}
 	return members
+}
+
+func searchGroup(db  *sql.DB, uid int, name string ) []map[string]string {
+
+	datas := make([]map[string]string, 0)
+	var rows *sql.Rows
+	var err error
+	sql_str:=""
+	if name==""{
+		sql_str = "SELECT id, title, channel_id, pic, remark  FROM `global_group` WHERE " +
+			"id not in ( SELECT group_id from  user_join_group where uid=?)"
+		rows, err  = db.Query(sql_str, uid,)
+
+	}else{
+		sql_str = "SELECT id, title, channel_id, pic, remark  FROM `global_group` WHERE" +
+			"( id not in    ( SELECT group_id from  user_join_group where uid=?)  )" +
+			" AND (locate (? , title) > 0 )"
+
+		rows, err  = db.Query(sql_str, uid, name,)
+	}
+	//fmt.Println( sql_str )
+	if err != nil {
+		fmt.Println(504, "服务器错误@" + err.Error())
+		return datas
+	}
+	for rows.Next() {
+		//将行数据保存到record字典
+		var id, title, channel_id, pic, remark string
+		record := make(map[string]string)
+		err = rows.Scan(&id, &title, &channel_id, &pic, &remark )
+		if err != nil {
+			fmt.Println(505, "服务器错误@" + err.Error())
+			return datas
+		}
+		record["id"] = id
+		record["title"] = title
+		record["channel_id"] = channel_id
+		record["pic"] = pic
+		record["remark"] = remark
+		datas = append(datas, record)
+	}
+	return datas
 }
 
 func getSysMsgs(db  *sql.DB, uid int) []SysMsgType {

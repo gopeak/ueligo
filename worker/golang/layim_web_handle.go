@@ -28,6 +28,10 @@ func InitHandler(){
 	http.HandleFunc("/sysmsg", SystemMsgHandler)
 	http.HandleFunc("/agree", AgreeHandler)
 	http.HandleFunc("/reject", RejectHandler)
+	http.HandleFunc("/search_group", searchGroupHandler)
+	http.HandleFunc("/add_group", ReqAddGroupHandler)
+
+
 }
 
 // 初始化群组
@@ -42,6 +46,7 @@ func InitGlobalGroup(){
 	rows, err := mysql.Db.Query( sql_str )
 	if err != nil {
 		fmt.Println(504, "服务器错误@" + err.Error())
+		return
 	}
 	for rows.Next() {
 		//将行数据保存到record字典
@@ -361,8 +366,6 @@ func GetRecommendUserHandler(w http.ResponseWriter, r *http.Request) {
 	if r.Method == "GET" {
 		w.Header().Set("Content-Type", "application/json;charset=UTF-8")
 		r.ParseForm()
-
-
 		sid := r.Form.Get(`sid`)
 		fmt.Println(  sid, mysql.MySQLDriver{})
 		db := new(lib.Mysql)
@@ -393,6 +396,138 @@ func GetRecommendUserHandler(w http.ResponseWriter, r *http.Request) {
 		json_encode ,_:=json.Marshal( root )
 		w.Write( json_encode )
 	}
+
+}
+
+
+func searchGroupHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+
+	root := new(Root)
+	if r.Method != "GET" {
+		root.Code = 400
+		root.Msg = "请使用GET请求"
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+
+	}
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	r.ParseForm()
+	name := ""
+	sid := r.Form.Get(`sid`)
+	name = r.Form.Get(`name`)
+	fmt.Println(  sid, mysql.MySQLDriver{})
+	db := new(lib.Mysql)
+	_, err := db.Connect()
+	if err != nil {
+		root.Code = 500
+		root.Msg = "数据库连接失败:" + err.Error()
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+
+	// 获取当前用户信息
+	my_record := GetUserRow(db.Db, sid)
+	_, ok := my_record[`id`]
+	if !ok {
+		root.Code = 400
+		root.Msg = "用户验证失败"
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+	id, _ := strconv.Atoi(my_record["id"])
+	root.Data = searchGroup(db.Db, id, name )
+
+	root.Code = 0
+	root.Msg = ""
+	root.Pages = 1   // @todo 未做分页
+	json_encode ,_:=json.Marshal( root )
+	w.Write( json_encode )
+
+
+}
+
+func ReqAddGroupHandler(w http.ResponseWriter, r *http.Request) {
+	//fmt.Println("method:", r.Method) //获取请求的方法
+	w.Header().Set("Content-Type", "application/json;charset=UTF-8")
+	root := new(Root)
+	if r.Method != "GET" {
+		root.Code = 400
+		root.Msg = "请使用GET请求"
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+
+	}
+	r.ParseForm()
+	sid := r.Form.Get(`sid`)
+	group_id := r.Form.Get(`group_id`)
+
+	db := new(lib.Mysql)
+	db.Connect()
+
+	// 获取当前用户信息
+	my_record := GetUserRow(db.Db, sid)
+	uid := my_record["id"]
+
+	sql_str :="SELECT title, pic, channel_id, remark  FROM `global_group` WHERE   `id`=?"
+	var  title, pic, channel_id, remark string
+	err := db.Db.QueryRow( sql_str, group_id ).Scan( &title, &pic, &channel_id, &remark )
+	if err != nil {
+		root.Code = 500
+		root.Msg = "群组不存在:"+err.Error()
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+
+
+	sql_str ="SELECT id FROM `user_join_group` WHERE  `uid` =? AND `group_id`=?"
+	rows, err := db.Db.Query(sql_str, uid,group_id)
+	if err != nil {
+		root.Code = 500
+		root.Msg = "服务器错误:"+err.Error()
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+	if rows.Next() {
+		root.Code = 505
+		root.Msg = "您已经加入过该群组"
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+
+	_, err = db.Insert("INSERT INTO `user_join_group` (  `uid`, `group_id` ) " +
+		"   VALUES (  ?, ? );", uid, group_id)
+
+	if err != nil {
+		root.Code = 500
+		root.Msg = "服务器错误:"+err.Error()
+		json_encode ,_:=json.Marshal( root )
+		w.Write( json_encode )
+		return
+	}
+	record := make(map[string]string)
+	record["id"] = group_id
+	record["pic"] = pic
+	record["title"] = title
+	record["channel_id"] = channel_id
+	record["remark"] = remark
+
+	// 订阅群组消息
+	sdk:=new(Sdk).Init("JoinChannel",sid,0,"" )
+	sdk.ChannelAddSid( sid ,channel_id )
+
+	root.Code = 0
+	root.Msg = "添加成功"
+	root.Data = record
+	json_encode ,_:=json.Marshal( root )
+	w.Write( json_encode )
 
 }
 
@@ -451,9 +586,7 @@ func ReqAddFriendHandler(w http.ResponseWriter, r *http.Request) {
 		return
 
 	} else {
-
 		r.ParseForm()
-
 		sid := r.PostForm.Get(`sid`)
 		req_uid := r.PostForm.Get(`uid`)
 		remark := r.PostForm.Get(`remark`)
@@ -482,7 +615,6 @@ func ReqAddFriendHandler(w http.ResponseWriter, r *http.Request) {
 		resp := fmt.Sprintf(format_str, 0, "申请成功")
 		w.Write([]byte(resp))
 	}
-
 }
 
 func AgreeHandler(w http.ResponseWriter, r *http.Request) {

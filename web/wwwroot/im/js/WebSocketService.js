@@ -69,6 +69,7 @@ var WebSocketService = function( webSocket) {
             ,avatar: from_info.avatar
             ,id: from_info.id
             ,type: data.msg_catlog
+			,mine:false
             ,content: data.msg.content
         }
 
@@ -83,7 +84,6 @@ var WebSocketService = function( webSocket) {
         console.log( "groupMessageHandler:" );
 
         from_info = data.msg.from_info
-        console.log( from_info );
 
         group_id = ""
         for(var i=0; i<GlobalGroups.length; i++)
@@ -98,10 +98,12 @@ var WebSocketService = function( webSocket) {
             ,avatar: from_info.avatar
             ,id: group_id
             ,fromid:from_info.id
-            ,type: data.msg_catlog
+			,mine:false
+            ,type: "group"
             ,content: data.msg.content
         }
-
+        console.log( "messageGroupHandler obj:" );
+        console.log( obj );
 
         layui.use('layim', function(layim){
             layim.getMessage(obj);
