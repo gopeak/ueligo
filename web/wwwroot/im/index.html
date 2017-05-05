@@ -257,6 +257,14 @@
                             layer.close();
                             show_reg()
                         }
+                        ,success: function(layero){
+							$(document).on('keydown', function(e){
+								if(e.keyCode == 13){
+									var btn = layero.find('.layui-layer-btn');
+									btn.find('.layui-layer-btn0').click()
+								}
+							})
+						}
                     });
 				    $('#user').focus();
 
@@ -296,6 +304,18 @@
                         , btn2: function () {
                             layer.close();
                             show_login()
+                        }
+                        ,success: function(layero){
+                            $(document).on('keydown', function(e){
+                                if(e.keyCode == 13){
+                                    var btn = layero.find('.layui-layer-btn');
+                                    btn.find('.layui-layer-btn0').click()
+                                }
+                                if(e.keyCode == 27){
+                                    var btn = layero.find('.layui-layer-btn');
+                                    btn.find('.layui-layer-btn1').click()
+                                }
+                            })
                         }
                     });
                 });
