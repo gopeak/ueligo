@@ -20,6 +20,7 @@ import (
 	"morego/worker/golang"
 	"github.com/antonholmquist/jason"
 
+	"encoding/json"
 )
 
 
@@ -60,8 +61,6 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 		return
 
 	}
-
-
 	configAddr := global.GetRandWorkerAddr()
 	fmt.Println("ip_port:", configAddr)
 	tcpAddr, err := net.ResolveTCPAddr("tcp4", configAddr)
@@ -74,30 +73,38 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 	// 监听客户端发送的数据
 
 	for {
-		var str string
-		if err = websocket.Message.Receive(wsconn, &str); err != nil {
+		var buf []byte
+		if err = websocket.Message.Receive(wsconn, &buf); err != nil {
 			fmt.Println(" websocket.Message.Receive error:", last_sid, "  -->", err.Error())
 			area.FreeWsConn( wsconn ,last_sid  )
 			break
 		}
+
+		protocolJson := protocol.Json.Init()
+		req_obj,err := protocolJson.GetReqObj( buf )
+		if err != nil {
+			 golog.Error( "WebsocketHandle protocolJson.GetReqObj err : "+string(buf) +err.Error() )
+			continue
+		}
+		last_sid = req_obj.Header.Sid
 		//fmt.Println("Client Request: " + str)
-		_,_,_,last_sid,_,_ = protocol.ParseReqData( str )
+		//_,_,_,last_sid,_,_ = protocol.ParseReqData( str )
 
-		go func( str string, wsconn *websocket.Conn, req_conn *net.TCPConn ) {
+		go func( req_obj protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 
-			ret, ret_err := wsDspatchMsg(str, wsconn, req_conn)
+			ret, ret_err := wsDspatchMsg(req_obj, wsconn, req_conn)
 			if ret_err != nil {
 				if ret < 0 {
-					fmt.Println(ret_err.Error(), str)
+					fmt.Println(ret_err.Error())
 					return
 				}
 				if ret == 0 {
-					fmt.Println(ret_err.Error(), str)
+					fmt.Println(ret_err.Error())
 					return
 				}
 			}
 
-		}( str, wsconn, req_conn)
+		}( req_obj , wsconn, req_conn)
 
 	}
 
@@ -119,18 +126,16 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 		if( strings.Replace(string(buf), "\n", "", -1)==""){
 			continue
 		}
-		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
 
-		if global.IsAuthCmd(cmd)  {
+		protocolJson := protocol.Json.Init()
+		resp_obj,err := protocolJson.GetRespObj( buf )
+
+		if global.IsAuthCmd( resp_obj.Header.Cmd )  {
 			fmt.Println( "AuthCcmd:",string(buf) )
-			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
-			if( err_json!=nil ) {
-				golog.Error("auth  json err:",err_json.Error())
-				continue
-			}
-			auth_ret,_ := data_json.GetString("ret")
+
+			auth_ret,_ := resp_obj.Data.ret
 			if( auth_ret=="ok"){
-				sid,_ := data_json.GetString("id")
+				sid,_ := resp_obj.Data.sid
 				area.WsConnRegister( wsconn, sid )
 				fmt.Println("handleWorkerResponse ", "sid: ",  sid )
 			}
@@ -148,62 +153,32 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 /**
  * 根据消息类型分发处理
  */
-func wsDspatchMsg(str string, wsconn *websocket.Conn, req_conn *net.TCPConn) (int, error) {
+func wsDspatchMsg( req_obj protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-	msg_arr := strings.Split(str, "||")
-	if len(msg_arr) < 5 {
-		wsconn.Close()
-		err = errors.New("request data length error")
-		return -1, err
-	}
-	_type, _ := strconv.Atoi(msg_arr[0])
-	cmd := msg_arr[1]
-	req_sid := msg_arr[2]
-	buf := []byte(str)
+
+	buf ,_ := json.Marshal( req_obj )
 	buf = append(buf, '\n')
 
 	//  认证检查
-	if cmd != "user.getUser" && !area.CheckSid(req_sid) {
-		area.FreeWsConn(wsconn, req_sid)
+	if !global.IsAuthCmd( req_obj.Header.Cmd )  && !area.CheckSid( req_obj.Header.Sid ) {
+		area.FreeWsConn(wsconn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
 	// 请求
-	if _type == protocol.TypeReq {
+	if req_obj.Type == protocol.TypeReq {
 		go req_conn.Write(buf)
 	}
-	if _type == protocol.TypePush {
+	if req_obj.Type == protocol.TypePush {
 
 		go req_conn.Write(buf)
-		/*
-		from_sid := msg_arr[2]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
-		fmt.Println( "data_json:",data_json )
-		if json_err != nil {
-			err = errors.New("push data json format error")
-			return -2, err
-		}
-		to_sid, _ := data_json.GetString("sid")
-		to_data, _ := data_json.GetString("data")
-		area.Push(to_sid, from_sid, to_data)
-		*/
+
 	}
-	if _type == protocol.TypeBroadcast {
+	if req_obj.Type == protocol.TypeBroadcast {
 
 		go req_conn.Write(buf)
-		/*
-		//from_sid := msg_arr[2]
-		from_sid := msg_arr[2]
-		data_json, json_err := jason.NewObjectFromBytes([]byte(msg_arr[4]))
-		if json_err != nil {
-			err = errors.New("broatcast data json format error")
-			return -3, err
-		}
-		area_id, _ := data_json.GetString("area_id")
-		to_data, _ := data_json.GetString("data")
-		area.Broatcast(from_sid, area_id, to_data)
-		*/
+
 	}
 
 	return 1, nil

@@ -4,17 +4,15 @@ websocket  使用json格式
 
 
 请求数据包
-{ "header":{ "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
+{ "header":{ "no_resp":false, "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
 
 
 响应数据包
 { "header":{ "cmd":"", "seq_id":0,  "sid":"", "gzip":true  }  , "type":"response",  "status":0, "msg":"",  "data":{}  }
 
+{ "header":{ "chanel_id":"", "sid":""   }  , "type":"broatcast",   "data":{}  }
 
-{ "header":{ "chanel_id":"", "sid":"", "gzip":true  }  , "type":"broatcast",   "data":{}  }
-
-
-{ "header":{  "sid":"", "gzip":true  }  , "type":"recvice",   "data":{}  }
+{ "header":{  "sid":""  }  , "type":"recvice",   "data":{}  }
 
 
 
