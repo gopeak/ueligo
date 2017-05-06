@@ -9,7 +9,6 @@ import (
 	"errors"
 	"flag"
 	"log"
-	"strconv"
 	"strings"
 	"os"
 	"morego/area"
@@ -18,7 +17,6 @@ import (
 	"morego/golog"
 	"morego/lib/websocket"
 	"morego/worker/golang"
-	"github.com/antonholmquist/jason"
 
 	"encoding/json"
 )
@@ -79,8 +77,8 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 			area.FreeWsConn( wsconn ,last_sid  )
 			break
 		}
-
-		protocolJson := protocol.Json.Init()
+		protocolJson := new(protocol.Json)
+		protocolJson.Init()
 		req_obj,err := protocolJson.GetReqObj( buf )
 		if err != nil {
 			 golog.Error( "WebsocketHandle protocolJson.GetReqObj err : "+string(buf) +err.Error() )
@@ -92,7 +90,7 @@ func WebsocketHandle( wsconn *websocket.Conn ) {
 
 		go func( req_obj protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 
-			ret, ret_err := wsDspatchMsg(req_obj, wsconn, req_conn)
+			ret, ret_err := wsDspatchMsg( req_obj, wsconn, req_conn )
 			if ret_err != nil {
 				if ret < 0 {
 					fmt.Println(ret_err.Error())
@@ -126,25 +124,39 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn ) {
 		if( strings.Replace(string(buf), "\n", "", -1)==""){
 			continue
 		}
-
-		protocolJson := protocol.Json.Init()
-		resp_obj,err := protocolJson.GetRespObj( buf )
-
-		if global.IsAuthCmd( resp_obj.Header.Cmd )  {
-			fmt.Println( "AuthCcmd:",string(buf) )
-
-			auth_ret,_ := resp_obj.Data.ret
-			if( auth_ret=="ok"){
-				sid,_ := resp_obj.Data.sid
-				area.WsConnRegister( wsconn, sid )
-				fmt.Println("handleWorkerResponse ", "sid: ",  sid )
-			}
-		}
+		WorkerResponseProcess( wsconn, nil, buf )
 		//var l *sync.RWMutex
 		//l = new(sync.RWMutex)
 		//l.Lock()
 		go wsconn.Write( buf )
 		//l.Unlock()
+	}
+}
+
+func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn , buf []byte) {
+
+	protocolJson := new( protocol.Json )
+	protocolJson.Init()
+	resp_obj,_ := protocolJson.GetRespObj( buf )
+
+	if global.IsAuthCmd( resp_obj.Header.Cmd )  {
+		fmt.Println( "AuthCcmd:",string(buf) )
+		ret_data,_ := resp_obj.Data.([]byte)
+		auth_ret := new( golang.ReturnType )
+		err_json:= json.Unmarshal( ret_data, auth_ret )
+		if( err_json!=nil ) {
+			golog.Error("auth  json err:",err_json.Error())
+		}
+		if( auth_ret.Ret=="ok"){
+			if conn!=nil {
+				area.ConnRegister( conn, auth_ret.Sid )
+			}
+			if wsconn!=nil {
+				area.WsConnRegister( wsconn, auth_ret.Sid )
+			}
+
+			fmt.Println("handleWorkerResponse ", "sid: ",  auth_ret.Sid )
+		}
 	}
 }
 
@@ -160,26 +172,19 @@ func wsDspatchMsg( req_obj protocol.ReqRoot, wsconn *websocket.Conn, req_conn *n
 	buf ,_ := json.Marshal( req_obj )
 	buf = append(buf, '\n')
 
-	//  认证检查
+	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
 	if !global.IsAuthCmd( req_obj.Header.Cmd )  && !area.CheckSid( req_obj.Header.Sid ) {
 		area.FreeWsConn(wsconn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
-	// 请求
-	if req_obj.Type == protocol.TypeReq {
+	// 提交给worker  @todo判断单机模式下不需要请求worker
+	if req_conn!=nil {
 		go req_conn.Write(buf)
 	}
-	if req_obj.Type == protocol.TypePush {
 
-		go req_conn.Write(buf)
 
-	}
-	if req_obj.Type == protocol.TypeBroadcast {
 
-		go req_conn.Write(buf)
-
-	}
 
 	return 1, nil
 }

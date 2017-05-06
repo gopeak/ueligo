@@ -3,7 +3,7 @@
 -- http://www.phpmyadmin.net
 --
 -- Host: 127.0.0.1
--- Generation Time: 2017-04-28 12:41:16
+-- Generation Time: 2017-05-06 13:35:58
 -- 服务器版本： 10.1.10-MariaDB
 -- PHP Version: 7.0.4
 
@@ -81,16 +81,20 @@ CREATE TABLE `global_group` (
   `id` int(11) NOT NULL,
   `title` varchar(20) NOT NULL DEFAULT '',
   `channel_id` varchar(32) NOT NULL DEFAULT '',
-  `pic` varchar(120) NOT NULL DEFAULT ''
+  `pic` varchar(120) NOT NULL DEFAULT '',
+  `remark` varchar(500) NOT NULL DEFAULT ''
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 --
 -- 转存表中的数据 `global_group`
 --
 
-INSERT INTO `global_group` (`id`, `title`, `channel_id`, `pic`) VALUES
-(1, '前端群', 'channel_id_1', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0'),
-(2, 'Fly社区官方群', 'channel_id_2', 'http://tp2.sinaimg.cn/5488749285/50/5719808192/1');
+INSERT INTO `global_group` (`id`, `title`, `channel_id`, `pic`, `remark`) VALUES
+(1, '前端群', 'channel_id_1', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0', ''),
+(2, 'Fly社区官方群', 'channel_id_2', 'http://tp2.sinaimg.cn/5488749285/50/5719808192/1', ''),
+(3, '前端群2', 'channel_id_3', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0', ''),
+(4, '前端群4', 'channel_id_4', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0', ''),
+(5, '前端群5', 'channel_id_5', 'http://tp2.sinaimg.cn/2211874245/180/40050524279/0', '');
 
 -- --------------------------------------------------------
 
@@ -125,7 +129,9 @@ INSERT INTO `req_friend` (`id`, `type`, `from_uid`, `add_group`, `readed`, `req_
 (7, 1, 1, 0, 0, 0, 1, '', 1493295118, 0),
 (8, 1, 1, 0, 0, 0, 1, '', 1493295160, 0),
 (9, 1, 1, 0, 0, 0, 1, '', 1493295166, 0),
-(10, 1, 1, 0, 0, 0, 1, '', 1493347415, 1493347415);
+(10, 1, 1, 0, 0, 0, 1, '', 1493347415, 1493347415),
+(11, 1, 1, 0, 0, 0, 1, '', 1493717747, 1493717747),
+(12, 1, 1, 0, 0, 0, 1, '', 1493717753, 1493717753);
 
 -- --------------------------------------------------------
 
@@ -155,10 +161,10 @@ CREATE TABLE `user` (
 INSERT INTO `user` (`id`, `user`, `pwd`, `sid`, `nick`, `age`, `sign`, `reg_time`, `is_online`, `status`, `avatar`, `token`) VALUES
 (1, 'user', '123456', '', 'nick1', 0, '', 0, 0, 'offline', '/im/avatar/femalecodertocat.png', ''),
 (2, 'user2', '123456', '', 'nick2', 0, '', 0, 0, 'offline', '/im/avatar/mountietocat.png', ''),
-(4, 'weichaoduo', '121', '4c56ff4ce4aaf9573aa5dff913df997a', '纸飞机', 32, '在深邃的编码世界，做一枚轻盈的纸飞机', 1492770152, 0, 'offline', '/im/avatar/octocat-de-los-muertos.jpg', '8292935870'),
+(4, 'weichaoduo', '121', '1950501661', '纸飞机', 32, '在深邃的编码世界，做一枚轻盈的纸飞机', 1492770152, 0, 'offline', '/im/avatar/octocat-de-los-muertos.jpg', '62980976412'),
 (5, 'weichaoduo2', '121', '4c56ff4ce4aaf9573aa5dff913df9972', '121', 0, '', 1492858341, 0, 'offline', '/im/avatar/privateinvestocat.jpg', '80770675596'),
 (6, 'simarui', '121', '87289608001', '司马睿', 0, '', 1493036784, 0, 'offline', '/im/avatar/twenty-percent-cooler-octocat.png', '73544123084'),
-(7, 'simarui2', '121', '1850501660', 'simarui2', 0, '', 1493105196, 0, 'offline', '/im/avatar/twenty-percent-cooler-octocat.png', '18797293051');
+(7, 'simarui2', '121', '1850501660', 'simarui2', 0, '', 1493105196, 0, 'offline', '/im/avatar/twenty-percent-cooler-octocat.png', '78570265142');
 
 -- --------------------------------------------------------
 
@@ -177,9 +183,11 @@ CREATE TABLE `user_join_group` (
 --
 
 INSERT INTO `user_join_group` (`id`, `uid`, `group_id`) VALUES
-(1, 4, 1),
-(2, 4, 2),
-(3, 7, 1);
+(25, 4, 3),
+(22, 7, 1),
+(23, 7, 2),
+(24, 7, 3),
+(26, 7, 5);
 
 --
 -- Indexes for dumped tables
@@ -204,7 +212,8 @@ ALTER TABLE `contact_group`
 -- Indexes for table `global_group`
 --
 ALTER TABLE `global_group`
-  ADD PRIMARY KEY (`id`);
+  ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `channel_id` (`channel_id`);
 
 --
 -- Indexes for table `req_friend`
@@ -229,6 +238,7 @@ ALTER TABLE `user`
 --
 ALTER TABLE `user_join_group`
   ADD PRIMARY KEY (`id`),
+  ADD UNIQUE KEY `uid_2` (`uid`,`group_id`),
   ADD KEY `uid` (`uid`);
 
 --
@@ -249,12 +259,12 @@ ALTER TABLE `contact_group`
 -- 使用表AUTO_INCREMENT `global_group`
 --
 ALTER TABLE `global_group`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=3;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=6;
 --
 -- 使用表AUTO_INCREMENT `req_friend`
 --
 ALTER TABLE `req_friend`
-  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=11;
+  MODIFY `id` int(10) UNSIGNED NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 --
 -- 使用表AUTO_INCREMENT `user`
 --
@@ -264,7 +274,7 @@ ALTER TABLE `user`
 -- 使用表AUTO_INCREMENT `user_join_group`
 --
 ALTER TABLE `user_join_group`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=4;
+  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=27;
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;

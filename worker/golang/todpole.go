@@ -12,9 +12,9 @@ import (
 
 func (this TaskType)Message(   ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
 
-	data_json ,err_json:= jason.NewObjectFromBytes( []byte(this.Data ) )
+	data_json ,err_json:= jason.NewObjectFromBytes( this.Data.([]byte) )
 	if( err_json!=nil ) {
 		golog.Error("todpole message json err:",err_json.Error())
 		return ""
@@ -28,7 +28,7 @@ func (this TaskType)Message(   ) string {
 		return ""
 	}
 	//broatcast_msg := fmt.Sprintf(`{"type":"message","message":"%s","id":"%s" }`,message,sid)
-	sdk.Broatcast( sid,"area-global",this.Data  )
+	sdk.Broatcast( sid,"area-global",this.Data.(string) )
 	//json_ret := fmt.Sprintf(`{"type":"messageresp","id":"%s" }`,sid)
 	return "";
 
@@ -37,9 +37,9 @@ func (this TaskType)Message(   ) string {
 
 func (this TaskType)Update(   ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
 
-	data_json ,err_json:= jason.NewObjectFromBytes( []byte(this.Data ) )
+	data_json ,err_json:= jason.NewObjectFromBytes( this.Data.([]byte) )
 	if( err_json!=nil ) {
 		golog.Error("todpole message json err:",err_json.Error())
 		return ""

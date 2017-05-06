@@ -11,17 +11,16 @@ type Json struct {
 
 	ProtocolObj ProtocolType
 	Data []byte
-	Init func()
 
 }
 
 func (this *Json) Init(  ) *Json{
 
-	this.ProtocolObj = new( ProtocolType)
-	this.ProtocolObj.ReqObj = new( ReqRoot )
-	this.ProtocolObj.RespObj = new( ResponseRoot )
-	this.ProtocolObj.BroatcastObj = new( BroatcastRoot )
-	this.ProtocolObj.PushObj = new( PushRoot )
+	this.ProtocolObj =   ProtocolType{}
+	this.ProtocolObj.ReqObj = ReqRoot{}
+	this.ProtocolObj.RespObj = ResponseRoot{}
+	this.ProtocolObj.BroatcastObj = BroatcastRoot{}
+	this.ProtocolObj.PushObj = PushRoot{}
 	return this
 }
 
@@ -51,18 +50,17 @@ func (this *Json)GetPushObj(  data []byte  )  (PushRoot , error)  {
 }
 
 
-func (this *Json)SetReqObj(  ReqObj ReqRoot   )  {
+func (this *Json) WrapRespObj(  req_obj ReqRoot,invoker_ret interface{} ,status int ,msg string )  ResponseRoot   {
 
-	 this.ProtocolObj.ReqObj = ReqObj
-}
+	resp_header_obj := RespHeader{}
+	resp_header_obj.Cmd = req_obj.Header.Cmd
+	resp_header_obj.SeqId = req_obj.Header.SeqId
+	resp_header_obj.Gzip = req_obj.Header.Gzip
+	resp_header_obj.Sid = req_obj.Header.Sid
+	this.ProtocolObj.RespObj.Data = invoker_ret
+	this.ProtocolObj.RespObj.Status = status
+	this.ProtocolObj.RespObj.Msg = msg
 
-func (this *Json)SetBroatcastObj(  BroatcastObj BroatcastRoot )  {
-
-	this.ProtocolObj.BroatcastObj = BroatcastObj
-}
-
-func (this *Json)SetPushObj(  PushObj PushRoot )  {
-
-	this.ProtocolObj.PushObj = PushObj
+	return this.ProtocolObj.RespObj
 }
 

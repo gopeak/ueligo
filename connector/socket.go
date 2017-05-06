@@ -12,12 +12,10 @@ import (
 	"morego/global"
 	"morego/golog"
 	"morego/protocol"
-	"morego/worker"
-	"github.com/antonholmquist/jason"
-
 	"os"
 	"time"
 	"sync"
+	"encoding/json"
 )
 
 var ConnMlock *sync.RWMutex
@@ -103,20 +101,7 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 		if( strings.Replace(string(buf), "\n", "", -1)==""){
 			continue
 		}
-		_,_,cmd,_,_,msg_data := protocol.ParseRplyData(string(buf))
-		//fmt.Println( "handleWorkerResponse",string(buf) )
-		if global.IsAuthCmd(cmd) {
-			data_json ,err_json:= jason.NewObjectFromBytes( []byte(msg_data ) )
-			if( err_json!=nil ) {
-				golog.Error("auth  json err:",err_json.Error())
-				continue
-			}
-			auth_ret,_ := data_json.GetString("ret")
-			if( auth_ret=="ok"){
-				sid,_ := data_json.GetString("id")
-				area.ConnRegister( conn,sid)
-			}
-		}
+		WorkerResponseProcess( nil, conn, buf )
 		conn.Write(buf)
 
 	}
@@ -169,32 +154,41 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
+	last_sid := ""
 	for {
 		if !global.Config.Enable {
-			//conn.Write([]byte(fmt.Sprintf("%s\r\n", global.DISBALE_RESPONSE)))
-			conn.Close()
+			area.FreeConn(conn, last_sid)
 			break
 		}
 
-		str, err := reader.ReadString('\n')
+		buf, err := reader.ReadBytes('\n')
 		if err != nil {
-			area.FreeConn(conn, sid)
+			area.FreeConn(conn, last_sid)
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-		if( strings.Replace(str, "\n", "", -1)==""){
+		if( strings.Replace(string(buf), "\n", "", -1)==""){
 			continue
 		}
 		// fmt.Println( "HandleConn str: ", str )
-		ret, ret_err := dispatchMsg(str, conn, req_conn)
+
+		protocolJson := new(protocol.Json)
+		protocolJson.Init()
+		req_obj,err := protocolJson.GetReqObj( buf )
+		if err != nil {
+			golog.Error( "SocketHandle protocolJson.GetReqObj err : "+string(buf) +err.Error()  )
+			continue
+		}
+		last_sid = req_obj.Header.Sid
+		ret, ret_err := dispatchMsg( req_obj, conn, req_conn)
 
 		if ( ret_err != nil ) {
 			if ( ret < 0 ) {
-				fmt.Println(ret_err.Error(), str)
+				fmt.Println( ret_err.Error() )
 				continue
 			}
 			if ( ret == 0 ) {
-				fmt.Println(ret_err.Error(), str)
+				fmt.Println( ret_err.Error() )
 				break
 			}
 		}
@@ -205,75 +199,24 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 /**
  * 根据消息类型分发处理
  */
-func dispatchMsg(str string, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
+func dispatchMsg( req_obj protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-	msg_arr := strings.Split(str, "||")
-	if len(msg_arr) < 5 {
-		conn.Close()
-		err = errors.New("request data length error")
-		return -1, err
-	}
 
-	msg_err,_type,cmd,req_sid,req_id,req_data := protocol.ParseRplyData(str)
-	if msg_err!=nil {
-		return -1, msg_err
-	}
-	buf := []byte(str)
-	//buf = append( buf, '\n')
+	buf ,_ := json.Marshal( req_obj )
+	buf = append(buf, '\n')
 
-	//  认证检查
-	if ( !global.IsAuthCmd(cmd) && !area.CheckSid(req_sid) ) {
-		area.FreeConn(conn, req_sid)
+	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
+	if !global.IsAuthCmd( req_obj.Header.Cmd )  && !area.CheckSid( req_obj.Header.Sid ) {
+		area.FreeConn(conn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
-
-	// 请求
-	if _type == protocol.TypeReq {
-		// 如果是单机模式,则直接调用
-		if( global.SingleMode ){
-			go worker.Invoker( conn,_type,cmd, req_sid,req_id,req_data )
-		}else{
-
-			go req_conn.Write(buf)
-		}
+	// 提交给worker  @todo判断单机模式下不需要请求worker
+	if req_conn!=nil {
+		go req_conn.Write(buf)
 	}
 
-	if _type == protocol.TypePush {
-		from_sid := msg_arr[protocol.MSG_SID_INDEX]
-		req_data =msg_arr[protocol.MSG_DATA_INDEX]
-		req_data = strings.Replace(req_data, "\n", "", -1)
-		data_json, json_err := jason.NewObjectFromBytes([]byte(req_data))
-		if ( json_err != nil ) {
-			err = errors.New("push data json format error")
-			return -2, err
-		}
-		to_sid, _ := data_json.GetString("sid")
-		to_data, _ := data_json.GetString("data")
-		area.Push(to_sid, from_sid, to_data)
-	}
-
-	if _type == protocol.TypeBroadcast {
-		//from_sid := msg_arr[2]
-		from_sid := msg_arr[protocol.MSG_SID_INDEX]
-		req_data =msg_arr[protocol.MSG_DATA_INDEX]
-		req_data = strings.Replace(req_data, "\n", "", -1)
-		data_json, json_err := jason.NewObjectFromBytes([]byte(req_data))
-		if ( json_err != nil ) {
-			err = errors.New("broatcast data json format error")
-			return -3, err
-		}
-		area_id, _ := data_json.GetString("area_id")
-		to_data, _ := data_json.GetString("data")
-		if( area_id=="global" ) {
-			err = errors.New("broatcast global failed")
-			return -4, err
-		}else{
-			area.Broatcast( from_sid, area_id,to_data )
-		}
-
-	}
 
 	return 1, nil
 }
