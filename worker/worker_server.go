@@ -1,22 +1,20 @@
 package worker
 
 import (
-
-	"strconv"
 	"bufio"
-	"fmt"
-	"net"
 	"encoding/json"
-	"time"
-	"reflect"
-	"strings"
-	"morego/protocol"
+	"fmt"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
+	"morego/protocol"
 	"morego/worker/golang"
+	"net"
+	"reflect"
+	"strconv"
+	"strings"
+	"time"
 )
-
 
 // 初始化worker服务
 func InitWorkerServer() {
@@ -62,10 +60,8 @@ func WorkerServer(host string, port int) {
 
 		go handleWorker(conn)
 
-
 	} //end for {
 }
-
 
 func handleWorker(conn *net.TCPConn) {
 
@@ -75,7 +71,7 @@ func handleWorker(conn *net.TCPConn) {
 	for {
 		buf, err := reader.ReadBytes('\n')
 		if err != nil {
-			if( err.Error()!="EOF"){
+			if err.Error() != "EOF" {
 				fmt.Println("HandleWork connection error: ", err.Error())
 			}
 
@@ -83,63 +79,74 @@ func handleWorker(conn *net.TCPConn) {
 			conn.Close()
 			break
 		}
-		if( strings.Replace( string(buf), "\n", "", -1)==""){
+		if strings.Replace(string(buf), "\n", "", -1) == "" {
 			continue
 		}
-		if string(buf)=="ping" {
-			conn.Write([]byte( "pong\n") )
+		if string(buf) == "ping" {
+			conn.Write([]byte("pong\n"))
 			conn.Close()
 			break
 		}
 		//fmt.Println( "HandleWorkerStr str: ",str)
 		go func(buf []byte, conn *net.TCPConn) {
 
-			//msg_err,_type,cmd,req_sid,reqid,req_data := protocol.ParseReqData( str )
 			protocolJson := new(protocol.Json)
 			protocolJson.Init()
-			req_obj,_ := protocolJson.GetReqObj( buf )
-			Invoker( conn, req_obj )
+			req_obj, _ := protocolJson.GetReqObj(buf)
+			Invoker(conn, req_obj)
 
 		}(buf, conn)
 	}
 }
 
+func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 
-func Invoker( conn *net.TCPConn, req_obj protocol.ReqRoot  ) []byte {
+	task_obj := new(golang.TaskType).Init(conn, req_obj)
 
-	task_obj := new(golang.TaskType).Init( conn, req_obj )
-
-	fmt.Println( task_obj )
-
-	invoker_ret:=InvokeObjectMethod( task_obj,req_obj.Header.Cmd )
-
+	invoker_ret := InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
+	fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
-	if req_obj.Type==protocol.TypeReq  && !req_obj.Header.NoResp {
+	if req_obj.Type == "req" && !req_obj.Header.NoResp {
 		protocolJson := new(protocol.Json)
 		protocolJson.Init()
-		protocolJson.WrapRespObj( req_obj, invoker_ret, 200,"" )
-		buf,_ := json.Marshal( protocolJson.ProtocolObj.RespObj )
+		protocolJson.WrapRespObj(req_obj, invoker_ret, 200, "")
+		buf, _ := json.Marshal(protocolJson.ProtocolObj.RespObj)
 		buf = append(buf, '\n')
-		conn.Write( buf )
+		conn.Write(buf)
 	}
-	if( global.SingleMode ){
-		if  global.IsAuthCmd(req_obj.Header.Cmd)   {
-			area.ConnRegister( conn,req_obj.Header.Sid )
+	if global.SingleMode {
+		if global.IsAuthCmd(req_obj.Header.Cmd) {
+			area.ConnRegister(conn, req_obj.Header.Sid)
 		}
 	}
 	return invoker_ret
 
 }
 
-
-func InvokeObjectMethod(object interface{}, methodName string, args ...interface{}) []byte{
+func InvokeObjectMethod(object interface{}, methodName string, args ...interface{}) interface{} {
 
 	inputs := make([]reflect.Value, len(args))
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	//fmt.Println( "methodName:",methodName )
+	fmt.Println("methodName:", methodName)
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
-	return ret.Bytes()
+
+	ret_data := ""
+	switch vtype := ret.Interface().(type) {
+
+	case string:
+
+		ret_data = ret.Interface().(string)
+
+	case golang.ReturnType:
+
+		return ret.Interface().(golang.ReturnType)
+	default:
+
+		fmt.Println("vtype:", vtype)
+
+	}
+	return ret_data
 
 }

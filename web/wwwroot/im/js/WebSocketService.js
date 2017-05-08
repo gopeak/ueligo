@@ -2,56 +2,61 @@ var WebSocketService = function( webSocket) {
 	var webSocketService = this;
 	
 	var webSocket = webSocket;
-	var TypeReq  = "1";
-	var TypePush = "3";
+	var TypeReq  = "req";
+	var TypePush = "push";
+    var TypeBreoatcast= "broatcast";
 	
 	this.hasConnection = false;
 	
-	this.welcomeHandler = function(data) {
+	this.welcomeHandler = function(json_obj) {
+
         webSocketService.hasConnection = true;
-        console.log("welcomeHandler:",data);
+        console.log("welcomeHandler:",json_obj);
 
         webSocketService.subscripeGroup()
     };
 
 
-    this.failedHandler = function(data) {
+    this.failedHandler = function(json_obj) {
         webSocketService.hasConnection = true;
         console.log("failedHandler:");
-        console.log(data);
+        console.log(json_obj);
         console.log("加入失败!")
 
     };
 
-    this.subscripeGroupfailedHandler = function(data) {
-        console.log(data);
+    this.subscripeGroupfailedHandler = function(json_obj) {
+        console.log(json_obj);
         console.log("加入群组失败!")
 
     };
 
-    this.subscripeGroupHandler = function(data) {
-        console.log(data);
+    this.subscripeGroupHandler = function(json_obj) {
+        console.log(json_obj);
         console.log("加入群组成功!")
 
     };
 
-    this.failedHandler = function(data) {
+    this.failedHandler = function(json_obj) {
         webSocketService.hasConnection = true;
         console.log("failedHandler:");
-        console.log(data);
+        console.log(json_obj);
         alert("加入失败!")
 
     };
 	
-	this.updateHandler = function(data) {
+	this.updateHandler = function(json_obj) {
 		var newtp = false;
 		//console.log( "updateHandler:" );
-		 console.log( data );
+		 console.log( json_obj );
  
 	}
 	
-	this.messageHandler = function(data) {
+	this.pushHandler = function(json_obj ) {
 		console.log( "messageHandler:" );
+        console.log( json_obj );
+		data  = json_obj.data
+
         from_info = data.msg.from_info
         var from_sid = data.from_sid
 
@@ -68,11 +73,10 @@ var WebSocketService = function( webSocket) {
             username:from_info.username
             ,avatar: from_info.avatar
             ,id: from_info.id
-            ,type: data.msg_catlog
+            ,type: "friend"
 			,mine:false
             ,content: data.msg.content
         }
-
 
         layui.use('layim', function(layim){
             layim.getMessage(obj);
@@ -80,8 +84,9 @@ var WebSocketService = function( webSocket) {
 		
 	}
 
-    this.messageGroupHandler = function(data) {
+    this.broatcastHandler = function( json_obj ) {
         console.log( "groupMessageHandler:" );
+		data  = json_obj.data
 
         from_info = data.msg.from_info
 
@@ -111,11 +116,13 @@ var WebSocketService = function( webSocket) {
 
     }
 	
-	this.closedHandler = function(data) {
+	this.closedHandler = function(json_obj) {
 
 	}
 	
-	this.redirectHandler = function(data) {
+	this.redirectHandler = function( json_obj ) {
+
+		data = json_obj.data
 		if (data.url) {
 			if (authWindow) {
 				authWindow.document.location = data.url;
@@ -125,16 +132,21 @@ var WebSocketService = function( webSocket) {
 		}
 	}
 	
-	this.noneHandler = function(data) {
+	this.noneHandler = function(json_obj) {
 		 
 	}
 	
-	this.processMessage = function(data) {
-		//console.log("processMessage:");
+	this.processMessage = function( json_obj ) {
+	    console.log("processMessage:");
+        var fn
+        if( json_obj.type=="response"){
+             fn = webSocketService[json_obj.data.type + 'Handler'];
+        }else{
+             fn = webSocketService[json_obj.type + 'Handler'];
+        }
 
-		var fn = webSocketService[data.type + 'Handler'];
 		if (fn) {
-			fn(data);
+			fn(json_obj);
 		}
 	}
 	
@@ -143,54 +155,64 @@ var WebSocketService = function( webSocket) {
 		 
 	};
 	
-
-
-	this.wrapReqMessage = function( cmd,sid,reqid,msg ){
-		str = msg
-		if( typeof(msg)=="undefined" ){
-			return false
-		}
-		if( typeof(msg)=="null" ){
-			return false
-		}
-		if( typeof(msg)=="object" ){
-			str =  JSON.stringify(msg)
-		}
-
-		return  TypeReq+"||"+cmd+"||"+sid+"||"+reqid+"||"+str
+	this.wrapReqMessage = function( _cmd,sid,reqid,msg ){
+	    // { "header":{ "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
+		var req_obj = {
+            header: {
+				cmd:_cmd,
+				seq_id:reqid,
+				sid:sid, 
+				token:GlobalToken,
+				version:"1.0",
+				no_resp:false,
+				gzip:false
+			},
+            type:TypeReq,
+            data: msg,
+        };
+        console.log( req_obj );
+		return  JSON.stringify(req_obj) 
 
 	}
 
+ 
 	this.wrapPushMessage = function( sid,msg ){
-		str = msg
-		if( typeof(msg)=="undefined" ){
-			return false
-		}
-		if( typeof(msg)=="null" ){
-			return false
-		}
-		if( typeof(msg)=="object" ){
-			str =  JSON.stringify(msg)
-		}
-
-		return  TypePush+"||PushMessage||"+sid+"||0||"+str
-
+		//  { "header":{ "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
+		var req_obj = {
+            header: {
+				cmd:"PushMessage",
+				seq_id:0,
+				sid:sid, 
+				token:GlobalToken,
+				version:"1.0",
+				no_resp:true,
+				gzip:false
+			},
+            type:TypePush,
+            data: msg,
+        };
+        console.log( req_obj );
+		return  JSON.stringify(req_obj)
 	}
+	 
 
 	this.wrapPushGroupMessage = function( sid,msg ){
-		str = msg
-		if( typeof(msg)=="undefined" ){
-			return false
-		}
-		if( typeof(msg)=="null" ){
-			return false
-		}
-		if( typeof(msg)=="object" ){
-			str =  JSON.stringify(msg)
-		}
-
-		return  TypePush+"||PushGroupMessage||"+sid+"||0||"+str
-
+		//  { "header":{ "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
+		var req_obj = {
+            header: {
+				cmd:"PushGroupMessage",
+				seq_id:0,
+				sid:sid, 
+				token:GlobalToken,
+				version:"1.0",
+				no_resp:true,
+				gzip:false
+			},
+            type:TypeBreoatcast,
+            data: msg,
+        };
+        console.log( req_obj );
+        return  JSON.stringify(req_obj)
 	}
 
 	this.sendMessage = function( sid, msg  ) {
@@ -200,9 +222,9 @@ var WebSocketService = function( webSocket) {
 			id:sid
 		};
         str = this.wrapReqMessage( 'Message',sid,0,sendObj)
-		console.log("sendMessage:"+str);
 		webSocket.send(str);
 	}
+	 
 
 	this.pushMessage = function( sid, msg  ) {
 		console.log("pushMessage:");
@@ -212,9 +234,7 @@ var WebSocketService = function( webSocket) {
 		webSocket.send(str);
 	}
 	this.pushGroupMessage = function( sid, msg  ) {
-		console.log("pushGroupMessage:");
-		console.log( sid );
-		console.log( msg );
+
 		str = this.wrapPushGroupMessage( sid,msg)
 		webSocket.send(str);
 	}

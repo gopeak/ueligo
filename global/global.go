@@ -115,7 +115,7 @@ func CheckError(err error) {
 
 func IsAuthCmd( cmd string ) bool {
 
-	fmt.Println( "global.AuthCmds:",AuthCmds )
+	//fmt.Println( "global.AuthCmds:",AuthCmds )
 	for _,c:= range AuthCmds{
 		if( c==cmd ){
 			return true

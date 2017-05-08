@@ -2,28 +2,26 @@ package connector
 
 import (
 	"bufio"
-	"fmt"
-	"net"
-	"sync/atomic"
-	"strings"
+	"encoding/json"
 	"errors"
-	"strconv"
+	"fmt"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
 	"morego/protocol"
+	"net"
 	"os"
-	"time"
+	"strconv"
+	"strings"
 	"sync"
-	"encoding/json"
+	"sync/atomic"
+	"time"
 )
 
 var ConnMlock *sync.RWMutex
 var ChannelMlock *sync.RWMutex
 var SessionMlock *sync.RWMutex
 var UserChannelsMlock *sync.RWMutex
-
-
 
 /**
  * 监听客户端连接
@@ -76,16 +74,13 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			return
 		}
 
-
 		go handleClientMsg(conn, req_conn, area.CreateSid())
 		go handleWorkerResponse(conn, req_conn)
 		//go handleClientMsgSingle( conn ,CreateSid() )
 
-
 	} //end for {
 
 }
-
 
 func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 
@@ -98,21 +93,20 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 			req_conn.Close()
 			break
 		}
-		if( strings.Replace(string(buf), "\n", "", -1)==""){
+		if strings.Replace(string(buf), "\n", "", -1) == "" {
 			continue
 		}
-		WorkerResponseProcess( nil, conn, buf )
+		WorkerResponseProcess(nil, conn, buf)
 		conn.Write(buf)
 
 	}
 }
 
-
-func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
+func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 
 	//声明一个管道用于接收解包的数据
-	qps := 0;// make(chan int64, 0)
-	reader := bufio.NewReader(  conn  )
+	qps := 0 // make(chan int64, 0)
+	reader := bufio.NewReader(conn)
 
 	for {
 		if !global.Config.Enable {
@@ -121,15 +115,15 @@ func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 			break
 		}
 
-		buf,err := reader.ReadBytes('\n')
+		buf, err := reader.ReadBytes('\n')
 		if err != nil {
 			//fmt.Println("err ReadString:", err.Error())
 			conn.Close()
 			break
 		}
 		qps++
-		if( qps%100==0){
-			fmt.Println( "qps: ", qps )
+		if qps%100 == 0 {
+			fmt.Println("qps: ", qps)
 		}
 		atomic.AddInt64(&global.Qps, 1)
 		str := string(buf)
@@ -137,7 +131,7 @@ func handleClientMsgSingle(conn *net.TCPConn,   sid string) {
 
 		msg_arr := strings.Split(str, "||")
 		if len(msg_arr) < 5 {
-			conn.Write([]byte(protocol.WrapRespErrStr("request data length error-->"+str)))
+			conn.Write([]byte(protocol.WrapRespErrStr("request data length error-->" + str)))
 			continue
 		}
 		cmd := "user.getSession" //msg_arr[1];
@@ -167,28 +161,28 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-		if( strings.Replace(string(buf), "\n", "", -1)==""){
+		if strings.Replace(string(buf), "\n", "", -1) == "" {
 			continue
 		}
 		// fmt.Println( "HandleConn str: ", str )
 
 		protocolJson := new(protocol.Json)
 		protocolJson.Init()
-		req_obj,err := protocolJson.GetReqObj( buf )
+		req_obj, err := protocolJson.GetReqObj(buf)
 		if err != nil {
-			golog.Error( "SocketHandle protocolJson.GetReqObj err : "+string(buf) +err.Error()  )
+			golog.Error("SocketHandle protocolJson.GetReqObj err : " + string(buf) + err.Error())
 			continue
 		}
 		last_sid = req_obj.Header.Sid
-		ret, ret_err := dispatchMsg( req_obj, conn, req_conn)
+		ret, ret_err := dispatchMsg(req_obj, conn, req_conn)
 
-		if ( ret_err != nil ) {
-			if ( ret < 0 ) {
-				fmt.Println( ret_err.Error() )
+		if ret_err != nil {
+			if ret < 0 {
+				fmt.Println(ret_err.Error())
 				continue
 			}
-			if ( ret == 0 ) {
-				fmt.Println( ret_err.Error() )
+			if ret == 0 {
+				fmt.Println(ret_err.Error())
 				break
 			}
 		}
@@ -199,24 +193,23 @@ func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 /**
  * 根据消息类型分发处理
  */
-func dispatchMsg( req_obj protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
+func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
 
-	buf ,_ := json.Marshal( req_obj )
+	buf, _ := json.Marshal(req_obj)
 	buf = append(buf, '\n')
 
 	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
-	if !global.IsAuthCmd( req_obj.Header.Cmd )  && !area.CheckSid( req_obj.Header.Sid ) {
+	if !global.IsAuthCmd(req_obj.Header.Cmd) && !area.CheckSid(req_obj.Header.Sid) {
 		area.FreeConn(conn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
 	// 提交给worker  @todo判断单机模式下不需要请求worker
-	if req_conn!=nil {
+	if req_conn != nil {
 		go req_conn.Write(buf)
 	}
-
 
 	return 1, nil
 }
@@ -226,6 +219,7 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 	req_conn.Write(buf)
 	return
 	//fmt.Println("worker agent from ", worker_idf, " receive 3:", msg)
+	/*
 	msg := protocol.GetRootAsData(buf, 0)
 	//  do some thing
 	cmd := string(msg.Cmd())
@@ -233,9 +227,9 @@ func reqWorker(buf []byte, req_conn *net.TCPConn) {
 	req_sid := string(msg.Sid())
 	req_id := int64(msg.ReqId())
 	golog.Info("HandleConn data:", cmd, data, req_sid, req_id)
+	*/
 
 }
-
 
 func checkError(err error) {
 	if err != nil {
@@ -260,7 +254,3 @@ func user_tick(conn *net.TCPConn) {
 		go conn.Write([]byte(fmt.Sprintf("%s\r\n", ping)))
 	}
 }
-
-
-
-

@@ -19,6 +19,7 @@ import (
 	"morego/lib/syncmap"
 	"morego/protocol"
 	z_type "morego/type"
+	"encoding/json"
 )
 
 // 预创建多个场景
@@ -58,6 +59,43 @@ func CheckChannelExist(area_id string) bool {
 
 }
 
+func  ChannelAddSid(sid string, area_id string) bool {
+
+	exist := CheckChannelExist(area_id)
+	//fmt.Println( area_id," CheckChannelExist:", exist )
+	if !exist {
+		return false
+	}
+
+	// 检查会话用户是否加入过此场景
+	//have_joined := area.CheckUserJoinChannel(area_id, sid)
+	//fmt.Println( "have_joined:",sid, area_id, have_joined )
+	// 如果还没有加入场景,则订阅
+	//if !have_joined {
+	user_conn := GetConn(sid)
+	user_wsconn :=  GetWsConn(sid)
+	//fmt.Println( "ChannelAddSid user_wsconn:",user_wsconn )
+	// 会话如果属于socket
+	if user_conn != nil {
+		 SubscribeChannel(area_id, user_conn, sid)
+	}
+	// 会话如果属于websocket
+	if user_wsconn != nil {
+		 SubscribeWsChannel(area_id, user_wsconn, sid)
+	}
+	// 该用户加入过的场景列表
+	var userJoinedChannels = make([]string, 0, 1000)
+	tmp, ok := global.SyncUserJoinedChannels.Get(sid)
+	if ok {
+		userJoinedChannels = tmp.([]string)
+	}
+	userJoinedChannels = append(userJoinedChannels, area_id)
+	global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
+	//}
+	return true
+
+}
+
 /**
  *  socket连接 加入到场景中
  */
@@ -67,7 +105,6 @@ func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
 	var channels *syncmap.SyncMap
 	_item,ok := global.SyncRpcChannelConns.Get(area_id)
 	if( !ok ) {
-		fmt.Println("Channel  ",area_id," no exist! "  )
 		golog.Error( "Channel  ",area_id," no exist! "  )
 		return
 	}else{
@@ -79,7 +116,7 @@ func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
 			channels.Set(sid, conn)
 		}
 		global.SyncRpcChannelConns.Set( area_id, channels )
-		fmt.Println("Joined  ",area_id," size :", channels.Size() )
+		//fmt.Println("Joined  ",area_id," size :", channels.Size() )
 	}
 
 
@@ -102,11 +139,11 @@ func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 			channels = syncmap.New()
 		}
 		//if  !channels.Has(sid) {
-			fmt.Println("SubscribeWsChannel  ",sid, area_id, ws   )
+			//fmt.Println("SubscribeWsChannel  ",sid, area_id, ws   )
 			channels.Set(sid, ws)
 		//}
 		global.SyncRpcChannelWsConns.Set( area_id, channels )
-		fmt.Println("Joined  ",area_id," size :", channels.Size() )
+		//fmt.Println("Joined  ",area_id," size :", channels.Size() )
 	}
 
 }
@@ -237,7 +274,7 @@ func UserUnSubscribeChannel(user_sid string) {
 /**
  *  在场景中广播消息
  */
-func Broatcast( sid string,area_id string, msg string) {
+func Broatcast( sid string,area_id string, msg interface{} ) {
 
 	fmt.Println("Broatcast:", sid, area_id, msg )
 	// tcp部分
@@ -249,12 +286,16 @@ func Broatcast( sid string,area_id string, msg string) {
 	channel_conns = _item.(*syncmap.SyncMap)
 	var conn *net.TCPConn
 	fmt.Println("广播里有:", channel_conns.Size(),"个连接")
-
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	for item := range channel_conns.IterItems() {
 		//fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
 		//fmt.Println( protocol.WrapBroatcastRespStr(sid,area_id,msg) )
-		conn.Write([]byte( protocol.WrapBroatcastRespStr(sid,area_id,msg) ))
+
+		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( area_id, sid, msg) )
+		buf = append(buf, '\n')
+		conn.Write( buf )
 	}
 
 	// websocket部分
@@ -270,38 +311,38 @@ func Broatcast( sid string,area_id string, msg string) {
 	for item := range channel_wsconns.IterItems() {
 
 		wsconn = item.Value.(*websocket.Conn)
-
-		err:=websocket.Message.Send( wsconn, protocol.WrapBroatcastRespStr(sid,area_id,msg))
-		//wnum,err := wsconn.Write([]byte(protocol.WrapBroatcastRespStr(sid,area_id,msg) ) )
+		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( area_id, sid, msg) )
+		err:=websocket.Message.Send( wsconn,buf )
 		if err!=nil {
 			fmt.Println("广播 err:", err.Error())
 		}
 		//fmt.Println( "wnum:", wnum )
-
 	}
 }
 
 /**
  *  在场景中广播消息
  */
-func BroatcastGlobal( sid string, msg string) {
+func BroatcastGlobal( sid string, msg interface{}) {
 
 	var conn *net.TCPConn
 	fmt.Println("广播里有:", global.SyncGlobalChannelConns.Size(),"个连接")
-
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	for item := range global.SyncGlobalChannelConns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
-		//fmt.Println( WrapBroatcastRespStr(sid,"global",msg) )
-		conn.Write([]byte( protocol.WrapBroatcastRespStr(sid,"global",msg) ))
+		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( "global", sid, msg) )
+		buf = append(buf, '\n')
+		go conn.Write( buf )
 	}
 
 	var wsconn *websocket.Conn
 	for item := range global.SyncGlobalChannelWsConns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
-		go wsconn.Write(   []byte(protocol.WrapBroatcastRespStr(sid,"global",msg)) )
-
+		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( "global", sid, msg) )
+		go wsconn.Write( buf )
 	}
 }
 
@@ -316,17 +357,25 @@ func UnSubGlobalChannel( sid string ) {
  */
 func Push(  to_sid string ,from_sid string,to_data string ) {
 	conn :=  GetConn(to_sid)
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	if( conn!=nil ) {
-		conn.Write([]byte(protocol.WrapPushRespStr( from_sid,to_data)))
+		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
+		buf = append(buf, '\n')
+		_,err:=conn.Write( buf )
+		if err!=nil {
+			fmt.Println( "conn.Writeerr:",err.Error() )
+		}
 		return
 	}
 	wsconn:=GetWsConn(to_sid)
 	fmt.Println( "push, to_sid:", to_sid ,)
 	if( wsconn!=nil ) {
-		fmt.Println( "push, str :", protocol.WrapPushRespStr( from_sid,to_data) )
-		_,err:=wsconn.Write([]byte(protocol.WrapPushRespStr( from_sid,to_data)) )
+		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
+		buf = append(buf, '\n')
+		_,err:=wsconn.Write( buf )
 		if err!=nil {
-			fmt.Println( "wsconn.WriteMessage err:",err.Error() )
+			fmt.Println( "wsconn.Write err:",err.Error() )
 		}
 		return
 	}

@@ -1,14 +1,12 @@
 package golang
 
 import (
-	"net"
 	"morego/protocol"
+	"net"
 )
 
-
 type TaskType struct {
-
-	Conn * net.TCPConn
+	Conn *net.TCPConn
 
 	Cmd string
 
@@ -18,26 +16,20 @@ type TaskType struct {
 
 	Data interface{}
 
-	ReqObj protocol.ReqRoot
-
+	ReqObj *protocol.ReqRoot
 }
 
+type ReturnType struct {
+	Ret string `json:"ret"`
 
-type  ReturnType struct {
+	Type string `json:"type"`
 
-	Ret  string
+	Sid string `json:"sid"`
 
-	Type string
-
-	Sid string
-
-	Msg string
-
-
+	Msg string `json:"msg"`
 }
 
-
-func (this *TaskType) Init( conn *net.TCPConn  , req_obj protocol.ReqRoot ) *TaskType{
+func (this *TaskType) Init(conn *net.TCPConn, req_obj *protocol.ReqRoot) *TaskType {
 
 	//  cmd string,sid string,reqid int,data string
 	this.Cmd = req_obj.Header.Cmd
@@ -48,4 +40,3 @@ func (this *TaskType) Init( conn *net.TCPConn  , req_obj protocol.ReqRoot ) *Tas
 	this.ReqObj = req_obj
 	return this
 }
-

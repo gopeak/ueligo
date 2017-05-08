@@ -4,16 +4,14 @@ package golog
 
 import (
 	"fmt"
+	"morego/global"
 	"os"
 	"runtime"
-	"morego/global"
 	"time"
 
 	log "github.com/Sirupsen/logrus"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
-	//"github.com/weekface/mgorus"
-	//"github.com/rifflock/lfshook"
 )
 
 var Log *log.Logger

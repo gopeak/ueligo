@@ -2,7 +2,10 @@
 	"comment": "",
 	"ignore": "test",
 	"package": [
-
+		{
+			"path": "appengine/cloudsql",
+			"revision": ""
+		},
 		{
 			"checksumSHA1": "7YHBDrGrtpWlJHx2wL6qCmgQdVk=",
 			"path": "github.com/BurntSushi/toml",
@@ -20,6 +23,12 @@
 			"path": "github.com/StackExchange/wmi",
 			"revision": "f3e2bae1e0cb5aef83e319133eabfee30013a4a5",
 			"revisionTime": "2015-05-20T19:46:26Z"
+		},
+		{
+			"checksumSHA1": "R0ECT6rryeBHladD9QX6P6IjF8o=",
+			"path": "github.com/antonholmquist/jason",
+			"revision": "962e09b85496e2e158eec1567fb4c826ce3d55d1",
+			"revisionTime": "2016-08-29T10:40:12Z"
 		},
 		{
 			"checksumSHA1": "6X3O3mfvOyiwV2iAb5GjxARs08c=",
@@ -56,6 +65,22 @@
 			"path": "github.com/go-ole/go-ole/oleutil",
 			"revision": "572eabb84c424e76a0d39d31510dd7dfd62f70b2",
 			"revisionTime": "2016-03-11T03:06:26Z"
+		},
+		{
+			"checksumSHA1": "YZOt9YSRvKa2keRZK4WmPNipChY=",
+			"path": "github.com/go-sql-driver/mysql",
+			"revision": "ae5a66df4d33ba404d639bd0fc9189cd5ee79bcf",
+			"revisionTime": "2017-05-02T18:08:56Z"
+		},
+		{
+			"path": "github.com/go-sql-sriver/mysql",
+			"revision": ""
+		},
+		{
+			"checksumSHA1": "OV+/R43DDDJ/Gxrx9oQob/K7sL0=",
+			"path": "github.com/golang/snappy",
+			"revision": "553a641470496b2327abcac10b36396bd98e45c9",
+			"revisionTime": "2017-02-15T23:32:05Z"
 		},
 		{
 			"checksumSHA1": "GO4NXfZN8n0zzckFw9G6YqJuooE=",

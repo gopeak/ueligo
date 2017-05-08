@@ -27,11 +27,11 @@ type Sdk struct {
 
 	Reqid int
 
-	Data string
+	Data interface{}
 
 }
 
-func (this *Sdk) Init(cmd string,sid string,reqid int,data string) *Sdk{
+func (this *Sdk) Init(cmd string,sid string,reqid int,data interface{}) *Sdk{
 
 	this.Cmd = cmd
 	this.Sid = sid

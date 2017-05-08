@@ -36,42 +36,10 @@ var App = function( aCanvas) {
 	app.onSocketMessage = function(e) {
 
 		console.log( e.data )
-		try {
-			data_arr = e.data.split('||')
-            _type  = data_arr[0]
-            _cmd   = data_arr[1]
-            _sid   = data_arr[2]
-            _reqid = data_arr[3]
-            _data  = data_arr[4]
+		data_json = JSON.parse( e.data )
 
-			if( _type=="3" ){
-				var obj = {
-					type:"message",
-					from_sid:_sid,
-					msg:JSON.parse(_data),
-                    msg_catlog:"friend",
-                    group_id:0,
-                    group_channel_id:_reqid
-				}
-			}
-			else{
-				if( _type=="4" ){
-					var obj = {
-						type:"messageGroup",
-						from_sid:_sid,
-						msg:JSON.parse(_data),
-                        msg_catlog:"group",
-                        group_channel_id:_reqid
-					}
-				}else{
-                    var obj = JSON.parse(_data);
-                }
-			}
-            console.log( obj  )
-			webSocketService.processMessage(obj);
-		} catch(e) {
-			console.log(e)
-		}
+		webSocketService.processMessage(data_json);
+
 	};
 
 	app.sendMessage = function( msg ) {

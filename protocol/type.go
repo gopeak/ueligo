@@ -6,7 +6,7 @@ package protocol
 
 // 接收广播数据包 { "header":{ "chanel_id":"", "sid":""   }  , "type":"broatcast",   "data":{}  }
 
-// 接收点对点数据包 { "header":{  "sid":""  }  , "type":"recvice",   "data":{}  }
+// 接收点对点数据包 { "header":{  "sid":""  }  , "type":"push",   "data":{}  }
 
 type ProtocolType struct {
 
@@ -23,13 +23,13 @@ type ProtocolType struct {
 }
 
 type BaseRoot struct {
-	Type int             `json:"type"`
+	Type string             `json:"type"`
 	Header  interface{}            `json:"header"`
 	Data interface{}     `json:"data"`
 }
 
 type ReqRoot struct {
-	Type int             `json:"type"`
+	Type string             `json:"type"`
 	Header  ReqHeader           `json:"header"`
 	Data interface{}     `json:"data"`
 }
@@ -46,7 +46,7 @@ type ReqHeader struct {
 
 
 type ResponseRoot struct {
-	Type int               `json:"type"`
+	Type string               `json:"type"`
 	Header  RespHeader     `json:"header"`
 	Data interface{}      `json:"data"`
 	Status int             `json:"status"`
@@ -61,7 +61,7 @@ type RespHeader struct {
 }
 
 type BroatcastRoot struct {
-	Type int             `json:"type"`
+	Type string             `json:"type"`
 	Header  BroatcastHeader           `json:"header"`
 	Data interface{}     `json:"data"`
 }
@@ -72,7 +72,7 @@ type BroatcastHeader struct {
 }
 
 type PushRoot struct {
-	Type int             `json:"type"`
+	Type string             `json:"type"`
 	Header  PushHeader           `json:"header"`
 	Data interface{}     `json:"data"`
 }

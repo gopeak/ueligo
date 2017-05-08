@@ -8,10 +8,11 @@ import (
 	"morego/lib/syncmap"
 	"time"
 	//json2 "encoding/json"
+	"morego/golog"
 	z_type "morego/type"
 	"net"
+
 	"github.com/garyburd/redigo/redis"
-	"simple/golog"
 	//"morego/protocol"
 )
 
@@ -78,34 +79,33 @@ func LoadSessionFromRedis() {
 	}
 }
 
-
 func TickWorkerServer() {
 	// 先暂停10秒
 	time.Sleep(5 * time.Second)
-	timer := time.Tick(10* time.Second)
+	timer := time.Tick(10 * time.Second)
 	for now := range timer {
 		//fmt.Println("now", now)
 		ch_success := make(chan string, 0)
-		for _,data :=  range global.Config.WorkerServer.Servers{
-			go func( data []interface{}  ) {
+		for _, data := range global.Config.WorkerServer.Servers {
+			go func(data []interface{}) {
 				worker_host, _ := data[0].(string)
 				worker_port_str, _ := data[1].(string)
 				ip_port := worker_host + ":" + worker_port_str
 
 				//fmt.Println("tcpAddr: ",index," ", ip_port)
-				conn, err_req := net.DialTimeout("tcp", ip_port, 5 * time.Second)
-				if ( err_req != nil ) {
-					golog.Error("检测到 workerserver:", ip_port, " 连接异常!",now)
+				conn, err_req := net.DialTimeout("tcp", ip_port, 5*time.Second)
+				if err_req != nil {
+					golog.Error("检测到 workerserver:", ip_port, " 连接异常!", now)
 					for i, addr := range global.WorkerServers {
-						if (addr == ip_port) {
-							global.WorkerServers = append(global.WorkerServers[:i], global.WorkerServers[i + 1:]...)
+						if addr == ip_port {
+							global.WorkerServers = append(global.WorkerServers[:i], global.WorkerServers[i+1:]...)
 						}
 					}
-					ch_success <- ip_port+err_req.Error()
+					ch_success <- ip_port + err_req.Error()
 				} else {
 					exist := false
 					for _, addr := range global.WorkerServers {
-						if (addr == ip_port) {
+						if addr == ip_port {
 							exist = true
 							break
 						}
@@ -113,7 +113,7 @@ func TickWorkerServer() {
 					if !exist {
 						global.WorkerServers = append(global.WorkerServers, ip_port)
 					}
-					ch_success <- ip_port+"ok"
+					ch_success <- ip_port + "ok"
 				}
 				//fmt.Println("result: ", ip_port, " ok")
 				//req_str:= fmt.Sprintf("%d||%s||%s||%d||%s\n", protocol.TypePing, "Ping", "", 0, "")
@@ -121,13 +121,13 @@ func TickWorkerServer() {
 				conn.Close()
 			}(data)
 		}
-		sum :=0
-		for i:=0;i<len(global.Config.WorkerServer.Servers)+1;i++ {
+		sum := 0
+		for i := 0; i < len(global.Config.WorkerServer.Servers)+1; i++ {
 			select {
-			case  <-ch_success:
+			case <-ch_success:
 				//fmt.Println("recv_result:", r)
 				sum++
-				if( sum==len(global.Config.WorkerServer.Servers)){
+				if sum == len(global.Config.WorkerServer.Servers) {
 					break
 				}
 

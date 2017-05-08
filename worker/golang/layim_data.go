@@ -366,7 +366,7 @@ func  JoinChannel(db *sql.DB, uid int, sid string ) {
 		}
 		sdk:=new(Sdk).Init("JoinChannel",sid,0,"" )
 		sdk.ChannelAddSid( sid ,channel_id )
-		fmt.Println( "JoinChannel...",  sid ,channel_id )
+		//fmt.Println( "JoinChannel...",  sid ,channel_id )
 	}
 
 }
