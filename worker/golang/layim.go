@@ -72,9 +72,21 @@ func (this TaskType)PushMessage(   ) string {
 
 	data := this.Data.(map[string]interface{})
 	to_sid := data["sid"].(string)
-	message := data["msg"].(string)
+	/*
+	req_hub_data := PushReqHub{}
+	req_hub_data.Sid = data["sid"].(string)
+	req_hub_data.Msg = data["msg"].(string)
+	req_hub_data.Info = make(map[string]string)
+	switch _ := data["from_info"].(type) {
+	case string:
+		//req_hub_data = data["from_info"].(string)
+	case map[string]string:
+		req_hub_data.Info = data["from_info"].(map[string]string)
+	default:
+	}
+	*/
 
-	sdk.Push( this.Sid,to_sid,message  )
+	sdk.Push(  this.Sid, to_sid,  data )
 	return "";
 }
 
@@ -85,9 +97,8 @@ func (this TaskType)PushGroupMessage(   ) string {
 
 	data := this.Data.(map[string]interface{})
 	area_id := data["area_id"].(string)
-	message := data["msg"].(string)
 
-	sdk.Broatcast( this.Sid,area_id, message )
+	sdk.Broatcast( this.Sid,area_id, data )
 	return "";
 }
 

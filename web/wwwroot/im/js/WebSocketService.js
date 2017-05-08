@@ -54,10 +54,10 @@ var WebSocketService = function( webSocket) {
 	
 	this.pushHandler = function(json_obj ) {
 		console.log( "messageHandler:" );
-        console.log( json_obj );
-		data  = json_obj.data
 
-        from_info = data.msg.from_info
+		data  = JSON.parse(json_obj.data)
+        console.log( data);
+        from_info = data.from_info
         var from_sid = data.from_sid
 
         for(var i=0; i<GlobalContacts.length; i++)
@@ -66,8 +66,8 @@ var WebSocketService = function( webSocket) {
                 from_info = GlobalContacts[i];
             }
         }
-        console.log( "from_info:" );
-        console.log( from_info );
+       // console.log( "from_info:" );
+        //console.log( from_info );
 
         obj = {
             username:from_info.username
@@ -75,9 +75,10 @@ var WebSocketService = function( webSocket) {
             ,id: from_info.id
             ,type: "friend"
 			,mine:false
-            ,content: data.msg.content
+            ,content: data.msg
         }
-
+        console.log( " layim.getMessage(obj):" );
+        console.log( obj );
         layui.use('layim', function(layim){
             layim.getMessage(obj);
         });
@@ -85,10 +86,10 @@ var WebSocketService = function( webSocket) {
 	}
 
     this.broatcastHandler = function( json_obj ) {
-        console.log( "groupMessageHandler:" );
-		data  = json_obj.data
+       // console.log( "groupMessageHandler:" );
+		data  = JSON.parse(json_obj.data)
 
-        from_info = data.msg.from_info
+        from_info = data.from_info
 
         group_id = ""
         for(var i=0; i<GlobalGroups.length; i++)
@@ -105,7 +106,7 @@ var WebSocketService = function( webSocket) {
             ,fromid:from_info.id
 			,mine:false
             ,type: "group"
-            ,content: data.msg.content
+            ,content: data.msg
         }
         console.log( "messageGroupHandler obj:" );
         console.log( obj );

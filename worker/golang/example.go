@@ -36,13 +36,12 @@ func (this TaskType)Auth(  ) ReturnType {
 
 func (this TaskType)Push(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data.(string))
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
 
 	data := this.Data.(map[string]interface{})
 	to_sid := data["sid"].(string)
-	to_data := data["data"].(string)
 
-	sdk.Push(to_sid, this.Sid, to_data)
+	sdk.Push(to_sid, this.Sid, data )
 
 	return "";
 
@@ -51,7 +50,7 @@ func (this TaskType)Push(   ) interface{} {
 
 func (this TaskType)Broadcast(  ) interface{}{
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
 	from_sid := this.Sid
 	data := this.Data.(map[string]interface{})
@@ -63,7 +62,7 @@ func (this TaskType)Broadcast(  ) interface{}{
 		golog.Error("broatcast global failed")
 		return ""
 	}else{
-		sdk.Broatcast( from_sid, area_id,to_data )
+		sdk.Broatcast( from_sid, area_id, data )
 	}
 	return ""
 }

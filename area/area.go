@@ -369,7 +369,7 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 		return
 	}
 	wsconn:=GetWsConn(to_sid)
-	fmt.Println( "push, to_sid:", to_sid ,)
+	fmt.Println( "push, to_sid:", to_sid , to_data)
 	if( wsconn!=nil ) {
 		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
 		buf = append(buf, '\n')

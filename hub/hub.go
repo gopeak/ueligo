@@ -270,7 +270,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Push json err:",err1.Error()+err2.Error() )
 			return
 		}
-		ret :=api.Push(from_sid, to_sid ,to_data )
+		ret :=api.Push( from_sid, to_sid ,to_data )
 		str :="0"
 		if ret{
 			str = "1"

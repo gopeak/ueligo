@@ -12,7 +12,7 @@ import (
 
 func (this TaskType)Message(   ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
 	data_json ,err_json:= jason.NewObjectFromBytes( this.Data.([]byte) )
 	if( err_json!=nil ) {

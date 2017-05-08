@@ -11,6 +11,7 @@ import (
 	"morego/protocol"
 	"morego/hub"
 	"bufio"
+	"encoding/json"
 )
 
 
@@ -30,6 +31,15 @@ type Sdk struct {
 	Data interface{}
 
 }
+
+type PushReqHub struct {
+
+	Sid bool
+	Msg string
+	Info map[string]string
+
+}
+
 
 func (this *Sdk) Init(cmd string,sid string,reqid int,data interface{}) *Sdk{
 
@@ -339,34 +349,34 @@ func (this *Sdk) ChannelKickSid( sid string, area_id string) bool {
 
 }
 
-func (this *Sdk) Push(from_sid string, to_sid string, msg string) bool {
+func (this *Sdk) Push( from_sid string ,to_sid string , data  map[string]interface{} ) bool {
 
+	json,_:= json.Marshal( data )
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Push( from_sid, to_sid, msg  )
+		return api.Push ( from_sid,to_sid, string(json)  )
 	}
-	json:=fmt.Sprintf(`{"from_sid":"%s","to_sid":"%s","msg":"%s"}`,from_sid, to_sid, msg )
-	return this.PushHub( "Push",json)
+
+	return this.PushHub( "Push",string(json) )
 
 }
 
-func (this *Sdk) PushBySids(from_sid string,to_sids []string, msg string) bool {
+func (this *Sdk) PushBySids(from_sid string,to_sids []string, data  map[string]interface{}) bool {
 
 	for _,to_sid:=   range to_sids {
-		this.Push(from_sid, to_sid, msg)
+		this.Push(from_sid, to_sid, data )
 	}
 	return true
 
 }
 
-func (this *Sdk) Broatcast(sid string ,area_id string,msg string) bool {
-
+func (this *Sdk) Broatcast(sid string ,area_id string,  data  map[string]interface{} ) bool {
+	json,_:= json.Marshal( data )
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Broadcast( sid,area_id,  msg  )
+		return api.Broadcast( sid,area_id,  string(json)  )
 	}
-	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s","msg":"%s"}`,sid, area_id, msg )
-	return this.PushHub( "Broatcast",json)
+	return this.PushHub( "Broatcast",string(json) )
 
 }
 

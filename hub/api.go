@@ -179,9 +179,9 @@ func (api *Api)ChannelKickSid(sid string, area_id string) bool {
 
 }
 
-func (api *Api)Push(from_sid string, to_sid string, msg string) bool {
+func (api *Api)Push( from_sid string ,to_sid string , data  string  ) bool {
 
-	area.Push(to_sid, from_sid, msg)
+	area.Push( to_sid, from_sid, data  )
 	return true
 
 }
