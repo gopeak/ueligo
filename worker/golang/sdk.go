@@ -76,10 +76,11 @@ func (this *Sdk) connect() bool{
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
 func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
-	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,data)
-	fmt.Println( "req_str:", req_str)
+	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,this.Reqid,data)
+	fmt.Println( "req_str:", string(req_buf) )
 	this.connect()
-	this.HubConn.Write([]byte(req_str))
+	req_buf = append(req_buf, '\n')
+	this.HubConn.Write( req_buf )
 	reader := bufio.NewReader(this.HubConn)
 
 	for {
@@ -95,12 +96,12 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 				return err.Error(),false
 
 			}
-			resp_err, resp_cmd, _, _, msg_data := protocol.ParseHubRplyData(string(buf))
+			resp_cmd,_,resp_err,msg_data := protocol.ReadHubResp(buf)
 
 			if resp_cmd == req_cmd{
 				// 如果服务返回错误
 				if( resp_err!=nil  ){
-					golog.Error( "ReqHub resp err:",resp_err.Error())
+					golog.Error( "ReqHub resp err:",resp_err )
 					return msg_data,false
 				}
 				this.HubConn.Close()
@@ -114,10 +115,10 @@ func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
 func (this *Sdk) PushHub( req_cmd string , data string ) bool {
 
-	req_str := protocol.WrapReqHubStr( req_cmd,this.Sid,this.Reqid,data)
-
+	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,this.Reqid,data)
+	req_buf = append(req_buf, '\n')
 	this.connect()
-	_,err:=this.HubConn.Write([]byte(req_str))
+	_,err:=this.HubConn.Write( req_buf )
 
 	if( err!=nil ) {
 		return false

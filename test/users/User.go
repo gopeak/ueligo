@@ -3,7 +3,7 @@
 package users
 
 import (
-	flatbuffers "morego/lib/google/flatbuffers/go"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 type User struct {
 	_tab flatbuffers.Table

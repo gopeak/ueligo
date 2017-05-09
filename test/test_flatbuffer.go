@@ -3,9 +3,8 @@ package main
 
 import (
 	"fmt"
-
 	"./users"
-	flatbuffers "morego/lib/google/flatbuffers/go"
+	flatbuffers "github.com/google/flatbuffers/go"
 )
 
 // main.go part 2 of 4

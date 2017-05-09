@@ -31,7 +31,6 @@ func HubServer() {
 		golog.Error("Hub listenTCP Exception:", err.Error())
 		return
 	}
-
 	hubListen(listen)
 }
 
@@ -97,43 +96,49 @@ func closeHubConn(conn *net.TCPConn) {
 func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	//  Process messages as they arrive
-	fmt.Println( "hubDispath str:", string(msg))
+
+	cmd,_,reqid,data_buf :=protocol.ReadHubReq( msg )
+	data := string( data_buf )
+	/*
 	msg_err,cmd,sid,reqid,data := protocol.ParseHubReqData(string(msg))
 	if( msg_err!=nil ){
 		fmt.Println( "hubDispath err:",msg_err.Error(),cmd,sid,reqid,data )
 		return
 	}
+	*/
 	api := new(Api)
 	fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
-		conn.Write([]byte(string(global.AppConfig.Enable)))
-		conn.Close()
+		conn.Write( protocol.MakeHubResp(cmd,0,"",api.GetBase())  )
 		return
 	}
 	if cmd == "GetEnableStatus" {
-		conn.Write([]byte(string(global.AppConfig.Enable)))
+		conn.Write( protocol.MakeHubResp(cmd,0,"",string(global.AppConfig.Enable))  )
+		return
 	}
 	if cmd == "Enable" {
 		global.AppConfig.Enable = 1
-		conn.Write([]byte(string(global.AppConfig.Enable)))
+		conn.Write( protocol.MakeHubResp(cmd,0,"","1")  )
+		return
 	}
 	if cmd == "Disable" {
 		global.AppConfig.Enable = 0
-		conn.Write([]byte(string(`1`)))
+		conn.Write( protocol.MakeHubResp(cmd,0,"","1")  )
+		return
 	}
 	if cmd == "Get" {
 		str,err:=Get(data)
 		if( err!=nil ) {
-			conn.Write([]byte(protocol.WrapHubRespErrStr(err.Error(),cmd)))
+			conn.Write([]byte(protocol.MakeHubResp(cmd,0,err.Error(),"")))
 			return
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write([]byte(protocol.MakeHubResp(cmd,  reqid, "", str)))
 		return
 	}
 
 	if cmd == "Set" {
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub Set json err:",err_json.Error())
 			return
@@ -156,7 +161,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if cmd == "GetSession" {
 		str :=api.GetSession(data)
 		fmt.Println( "api.GetSession:",str)
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
@@ -166,12 +171,12 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 	if cmd == "CreateChannel" {
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub Set json err:",err_json.Error())
 			return
@@ -187,7 +192,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 
 	}
@@ -198,25 +203,25 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 	if cmd == "GetChannels" {
 		ret :=api.GetChannels()
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 	}
 
 	if cmd == "GetSidsByChannel" {
 		ret :=api.GetSidsByChannel( data )
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 	}
 
 	if cmd == "ChannelAddSid" {
 		fmt.Println("ChannelKickSid", data )
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub ChannelAddSid json err:",err_json.Error())
 			return
@@ -232,12 +237,12 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 	if cmd == "ChannelKickSid" {
 
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub ChannelKickSid json err:",err_json.Error())
 			return
@@ -253,12 +258,12 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 	if cmd == "Push" {
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub Push json err:",err_json.Error())
 			return
@@ -275,7 +280,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
@@ -285,13 +290,13 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 
 	if cmd == "Broatcast" {
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub Broatcast json err:",err_json.Error())
 			return
@@ -308,13 +313,13 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 	if cmd == "UpdateSession" {
 
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub UpdateSession json err:",err_json.Error())
 			return
@@ -330,22 +335,22 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,str)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
 
 	if cmd == "GetUserJoinedChannel" {
-		data_json ,err_json:= jason.NewObjectFromBytes( []byte(data) )
+		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			err_str :="Hub UpdateSession json err:"+err_json.Error()
 			golog.Error( err_str )
-			conn.Write([]byte(protocol.WrapRespErrStr(err_json.Error())))
+			conn.Write( protocol.MakeHubResp(cmd,reqid,err_json.Error(),"" )  )
 			return
 		}
 		sid, _ := data_json.GetString("sid")
 		ret :=api.GetUserJoinedChannel(sid )
 
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,ret)))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 
 	}
@@ -353,7 +358,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if cmd == "GetAllSession" {
 
 		ret :=api.GetAllSession()
-		conn.Write([]byte(protocol.WrapHubRespStr(cmd, sid, reqid,string(ret))))
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 
 	}

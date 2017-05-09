@@ -120,7 +120,6 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 		}
 	}
 	return invoker_ret
-
 }
 
 func InvokeObjectMethod(object interface{}, methodName string, args ...interface{}) interface{} {
@@ -134,18 +133,21 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 
 	ret_data := ""
 	switch vtype := ret.Interface().(type) {
-
+	case float64:
+		ret_data = ret.Interface().(float32)
+	case float32:
+		ret_data = ret.Interface().(float32)
+	case int:
+		ret_data = ret.Interface().(int)
 	case string:
-
 		ret_data = ret.Interface().(string)
-
+	case map[string]string:
+		ret_data = ret.Interface().(map[string]string)
 	case golang.ReturnType:
-
 		return ret.Interface().(golang.ReturnType)
 	default:
-
 		fmt.Println("vtype:", vtype)
-
+		golog.Error( "返回的类型无法处理:",vtype)
 	}
 	return ret_data
 
