@@ -274,7 +274,7 @@ func UserUnSubscribeChannel(user_sid string) {
 /**
  *  在场景中广播消息
  */
-func Broatcast( sid string,area_id string, msg interface{} ) {
+func Broatcast( sid string,area_id string, msg string ) {
 
 	fmt.Println("Broatcast:", sid, area_id, msg )
 	// tcp部分
@@ -312,11 +312,12 @@ func Broatcast( sid string,area_id string, msg interface{} ) {
 
 		wsconn = item.Value.(*websocket.Conn)
 		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( area_id, sid, msg) )
-		err:=websocket.Message.Send( wsconn,buf )
+		fmt.Println( "WrapBroatcastRespObj:", string(buf) )
+		write_len,err:= wsconn.Write( buf )
 		if err!=nil {
 			fmt.Println("广播 err:", err.Error())
 		}
-		//fmt.Println( "wnum:", wnum )
+		fmt.Println( "write_len:", write_len )
 	}
 }
 

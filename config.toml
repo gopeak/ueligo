@@ -12,7 +12,7 @@
     loglevel	=	"error"
     rpc_type	=	"go"  # string | flatbuffer 
     pack_type	=	"bufferio"
-    single_mode	=	true
+    single_mode	=	false
 	
 	[log]
 		log_level	=	"error"

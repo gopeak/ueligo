@@ -64,10 +64,9 @@ var WebSocketService = function( webSocket) {
         {
             if  (GlobalContacts[i].sid==from_sid){
                 from_info = GlobalContacts[i];
+                break;
             }
         }
-       // console.log( "from_info:" );
-        //console.log( from_info );
 
         obj = {
             username:from_info.username
@@ -86,16 +85,17 @@ var WebSocketService = function( webSocket) {
 	}
 
     this.broatcastHandler = function( json_obj ) {
-       // console.log( "groupMessageHandler:" );
+
 		data  = JSON.parse(json_obj.data)
-
+        console.log(  data );
         from_info = data.from_info
-
+        console.log(  from_info );
         group_id = ""
         for(var i=0; i<GlobalGroups.length; i++)
         {
-            if  (GlobalGroups[i].channel_id==data.group_channel_id){
+            if  (GlobalGroups[i].channel_id==data.area_id){
                 group_id = GlobalGroups[i].id;
+                break;
             }
         }
 
@@ -106,7 +106,7 @@ var WebSocketService = function( webSocket) {
             ,fromid:from_info.id
 			,mine:false
             ,type: "group"
-            ,content: data.msg
+            ,content: data.content
         }
         console.log( "messageGroupHandler obj:" );
         console.log( obj );
@@ -192,7 +192,6 @@ var WebSocketService = function( webSocket) {
             type:TypePush,
             data: msg,
         };
-        console.log( req_obj );
 		return  JSON.stringify(req_obj)
 	}
 	 
@@ -212,7 +211,6 @@ var WebSocketService = function( webSocket) {
             type:TypeBreoatcast,
             data: msg,
         };
-        console.log( req_obj );
         return  JSON.stringify(req_obj)
 	}
 

@@ -7,19 +7,11 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
-	"morego/global"
 )
 
-func Packet(message string) ([]byte, error) {
-    
-    return []byte( message+"\n" ), nil
-    fmt.Println( global.PackSplitType  )
-    if global.PackSplitType =="breakline" {    
-    	
-	    return []byte( message +"\n" ), nil
-	}
-      
-	var length int32 = int32(len(message))
+func Packet(buf []byte) ([]byte, error) {
+
+	var length int32 = int32(len( string(buf) ))
 	fmt.Println( "Set length :", length )
 	var pkg *bytes.Buffer = new(bytes.Buffer)
 	err := binary.Write(pkg, binary.LittleEndian, length)
@@ -27,7 +19,7 @@ func Packet(message string) ([]byte, error) {
 		return nil, err
 	}
 
-	err = binary.Write(pkg, binary.LittleEndian, []byte(message))
+	err = binary.Write(pkg, binary.LittleEndian, buf )
 	if err != nil {
 		return nil, err
 	} 
@@ -38,12 +30,7 @@ func Packet(message string) ([]byte, error) {
 
 func Unpack(reader *bufio.Reader) ([]byte, error) {
     
-    return reader.ReadBytes('\n')
-    //if global.PackSplitType =="breakline" {    
-    	
-    //	return reader.ReadBytes('\n')
-	//} 
-    
+
 	lengthByte, _ := reader.Peek(4)
 	lengthBuff := bytes.NewBuffer(lengthByte)
 	var length int32

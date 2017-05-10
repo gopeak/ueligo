@@ -4,6 +4,7 @@ import (
 	"fmt"
  	"database/sql"
  	_"github.com/go-sql-driver/mysql"
+	"github.com/BurntSushi/toml"
 
 )
 
@@ -13,14 +14,38 @@ type Mysql struct {
 
 	Sql string
 
-	//LastInsertid int
+        Config MysqlConfigType
+}
 
+type MysqlConfigType struct {
+	Database        string		`toml:"database"`
+	User       	string		`toml:"user"`
+	Password        string		`toml:"password"`
+	Host            string		`toml:"host"`
+	Port      	string		`toml:"port"`
+	Charset         string		`toml:"charset"`
+	Timeout         string		`toml:"timeout"`
 }
 
 
+
+func (this *Mysql) InitConfig() {
+
+
+}
+
 func (this *Mysql) Connect() (bool,error){
 	var err error
-	this.Db, err = sql.Open("mysql", "root:@tcp(127.0.0.1:3306)/webim?timeout=90s&collation=utf8mb4_unicode_ci")
+	var config   MysqlConfigType
+	_, err = toml.DecodeFile("worker/golang/db.toml", &config )
+	if  err != nil {
+		fmt.Println("toml.DecodeFile error:", err.Error())
+		return false, err
+	}
+	connect_str := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=%ss&collation=%s",config.User,
+		config .Password,config .Host,config .Port,config.Database,config.Timeout,config.Charset)
+	fmt.Println( "connect_str:",connect_str )
+	this.Db, err = sql.Open("mysql",connect_str)
 	if err != nil {
 		fmt.Println("sql.Open err:",err.Error())
 		return false,err

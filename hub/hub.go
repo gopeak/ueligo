@@ -15,7 +15,6 @@ import (
 	"morego/protocol"
 	"strconv"
 	"time"
-	"strings"
 )
 
 /**
@@ -63,7 +62,8 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		msg, err := reader.ReadBytes('\n')
+		//buf, err := reader.ReadBytes('\n')
+		buf ,err := protocol.Unpack( reader)
 		if err != nil {
 			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
 			// 超时处理
@@ -74,11 +74,8 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 			break
 
 		}
-		//fmt.Println("handleHub  from :" , msg)
-		if( strings.Replace(string(msg), "\n", "", -1)==""){
-			continue
-		}
-		go hubWorkeDispath(msg, conn)
+
+		go hubWorkeDispath( buf , conn)
 
 	}
 
@@ -270,14 +267,19 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		}
 		from_sid,err1 := data_json.GetString("from_sid")
 		to_sid,err2 := data_json.GetString("to_sid")
-		to_data,err2 := data_json.GetString("msg")
-		if( err1!=nil || err2!=nil )  {
-			golog.Error("Hub Push json err:",err1.Error()+err2.Error() )
+		if err1!=nil    {
+			golog.Error("Hub Push json err:",err1.Error())
 			return
 		}
-		ret :=api.Push( from_sid, to_sid ,to_data )
+		if err2!=nil    {
+			golog.Error("Hub Push json err:",err2.Error())
+			return
+		}
+
+		ret := api.Push( from_sid, to_sid ,string(data_buf) )
+
 		str :="0"
-		if ret{
+		if ret {
 			str = "1"
 		}
 		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
@@ -302,14 +304,17 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		sid,err1 := data_json.GetString("sid")
-		area_sid,err2 := data_json.GetString("area_sid")
-		to_data,err2 := data_json.GetString("msg")
-		if( err1!=nil || err2!=nil )  {
-			golog.Error("Hub data_json json err:",err1.Error()+err2.Error() )
+		area_sid,err2 := data_json.GetString("area_id")
+		if( err1!=nil )  {
+			golog.Error("Hub data_json json err:",err1.Error())
 			return
 		}
-		ret :=api.Broadcast(sid, area_sid ,to_data )
-		str :="0"
+		if(  err2!=nil )  {
+			golog.Error("Hub data_json json err:",err2.Error() )
+			return
+		}
+		ret := api.Broadcast( sid, area_sid ,string(data_buf) )
+		str := "0"
 		if ret{
 			str = "1"
 		}

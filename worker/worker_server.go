@@ -131,24 +131,51 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	fmt.Println("methodName:", methodName)
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 
-	ret_data := ""
 	switch vtype := ret.Interface().(type) {
-	case float64:
-		ret_data = ret.Interface().(float32)
+
+	case nil:
+		return nil
+	case bool:
+		return ret.Interface().(bool)
+
 	case float32:
-		ret_data = ret.Interface().(float32)
+		return ret.Interface().(float32)
+	case float64:
+		return ret.Interface().(float32)
 	case int:
-		ret_data = ret.Interface().(int)
+		return ret.Interface().(int)
+	case uint8:
+		return ret.Interface().(uint8)
+	case uint16:
+		return ret.Interface().(uint16)
+	case uint32:
+		return ret.Interface().(uint32)
+	case uint64:
+		return ret.Interface().(uint64)
+	case int8:
+		return ret.Interface().(int8)
+	case int16:
+		return ret.Interface().(int16)
+	case int32:
+		return ret.Interface().(int32)
+	case int64:
+		return ret.Interface().(int64)
+	case []byte:
+		return  ret.Interface().([]byte)
 	case string:
-		ret_data = ret.Interface().(string)
+		return  ret.Interface().(string)
+	case []string:
+		return ret.Interface().([]string)
 	case map[string]string:
-		ret_data = ret.Interface().(map[string]string)
+		return ret.Interface().(map[string]string)
+	case map[string]interface{}:
+		return ret.Interface().(map[string]interface{})
 	case golang.ReturnType:
 		return ret.Interface().(golang.ReturnType)
 	default:
 		fmt.Println("vtype:", vtype)
 		golog.Error( "返回的类型无法处理:",vtype)
 	}
-	return ret_data
+	return ""
 
 }

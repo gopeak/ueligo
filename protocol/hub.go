@@ -4,7 +4,7 @@ package protocol
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	"./hub"
+	"morego/protocol/hub"
 )
 
 
@@ -15,9 +15,9 @@ func MakeHubReq(  cmd string, sid string, req_id int32 , data string) []byte {
 	b.Reset()
 
 	// create the name object and get its offset:
-	cmd_position := b.CreateByteString(cmd)
-	sid_position := b.CreateByteString(sid)
-	data_position := b.CreateByteString(data)
+	cmd_position := b.CreateByteString( []byte(cmd) )
+	sid_position := b.CreateByteString( []byte(sid) )
+	data_position := b.CreateByteString( []byte(data) )
 
 	// write the User object:
 	hub.HubReqStart(b)
@@ -55,9 +55,9 @@ func MakeHubResp(  cmd string,   req_id int32 ,err string,data string) []byte {
 	b.Reset()
 
 	// create the name object and get its offset:
-	cmd_position := b.CreateByteString(cmd)
-	err_position := b.CreateByteString(err)
-	data_position := b.CreateByteString(data)
+	cmd_position := b.CreateByteString( []byte(cmd) )
+	err_position := b.CreateByteString( []byte(err) )
+	data_position := b.CreateByteString( []byte(data) )
 
 	// write the User object:
 	hub.HubRespStart(b)
