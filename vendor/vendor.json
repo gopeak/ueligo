@@ -3,10 +3,6 @@
 	"ignore": "test",
 	"package": [
 		{
-			"path": "appengine/cloudsql",
-			"revision": ""
-		},
-		{
 			"checksumSHA1": "7YHBDrGrtpWlJHx2wL6qCmgQdVk=",
 			"path": "github.com/BurntSushi/toml",
 			"revision": "bbd5bb678321a0d6e58f1099321dfa73391c1b6f",
@@ -95,6 +91,12 @@
 			"revisionTime": "2017-03-02T22:46:13Z"
 		},
 		{
+			"checksumSHA1": "84Paw7jhJNd9NwCvWASQ4Y9+ZaA=",
+			"path": "github.com/robfig/cron",
+			"revision": "df38d32658d8788cd446ba74db4bb5375c4b0cb3",
+			"revisionTime": "2017-03-09T13:24:18Z"
+		},
+		{
 			"checksumSHA1": "NYWfsw6Bcx2mJ7sZw5HrwGHnPNU=",
 			"path": "github.com/shirou/gopsutil/cpu",
 			"revision": "e8f7a95747d711f34ddfe9dd9b825a84bd059dec",
@@ -117,6 +119,10 @@
 			"path": "github.com/weekface/mgorus",
 			"revision": "c5a051503cfee8ef91dcc8a8fa45dbbcf3431970",
 			"revisionTime": "2015-12-07T02:20:08Z"
+		},
+		{
+			"path": "gopkg.in/fatih/pool.v2",
+			"revision": ""
 		},
 		{
 			"checksumSHA1": "qUjZHcoophrdExVVHkLUkK+AzPw=",
