@@ -13,15 +13,10 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"sync"
 	"sync/atomic"
 	"time"
 )
 
-var ConnMlock *sync.RWMutex
-var ChannelMlock *sync.RWMutex
-var SessionMlock *sync.RWMutex
-var UserChannelsMlock *sync.RWMutex
 
 /**
  * 监听客户端连接

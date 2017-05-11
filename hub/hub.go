@@ -96,13 +96,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	cmd,_,reqid,data_buf :=protocol.ReadHubReq( msg )
 	data := string( data_buf )
-	/*
-	msg_err,cmd,sid,reqid,data := protocol.ParseHubReqData(string(msg))
-	if( msg_err!=nil ){
-		fmt.Println( "hubDispath err:",msg_err.Error(),cmd,sid,reqid,data )
-		return
-	}
-	*/
+
 	api := new(Api)
 	fmt.Println( "hubWorkeDispath cmd:", cmd )
 

@@ -2,10 +2,10 @@ package hub
 
 import (
 	"fmt"
-	"morego/lib/robfig/cron"
+	"github.com/robfig/cron"
 )
 
-// https://godoc.org/morego/lib/robfig/cron
+// https://godoc.org/github.com/robfig/cron
 func CronTest() {
 	c := cron.New()
 	c.AddFunc("0 30 * * * *", func() { fmt.Println("Every hour on the half hour") })

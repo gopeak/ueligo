@@ -4,17 +4,19 @@ import (
 	"bufio"
 	"encoding/json"
 	"fmt"
-	"morego/area"
-	"morego/global"
-	"morego/golog"
-	"morego/protocol"
-	"morego/worker/golang"
 	"net"
 	"reflect"
 	"strconv"
 	"strings"
 	"time"
+	"morego/area"
+	"morego/global"
+	"morego/golog"
+	"morego/protocol"
+	"morego/worker/golang"
+
 )
+
 
 // 初始化worker服务
 func InitWorkerServer() {
@@ -30,7 +32,11 @@ func InitWorkerServer() {
 			go WorkerServer(host, port)
 		}
 	}
+
+	golang.InitConnectionHubPool()
 }
+
+
 
 /**
  * 监听客户端连接

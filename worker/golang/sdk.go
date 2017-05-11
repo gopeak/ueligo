@@ -2,7 +2,7 @@ package golang
 
 import (
 	"morego/golog"
-	"morego/lib/robfig/cron"
+	"github.com/robfig/cron"
 	"morego/global"
 	z_type "morego/type"
 	"fmt"
@@ -12,6 +12,9 @@ import (
 	"morego/hub"
 	"bufio"
 	"encoding/json"
+	"morego/lib/syncmap"
+	"morego/lib/conn_pool/pool"
+
 )
 
 
@@ -40,6 +43,11 @@ type PushReqHub struct {
 
 }
 
+type AfterWorkCallback func(   resp_buf string ) (string)
+
+var ReqSeqCaalbacks *syncmap.SyncMap
+
+var HubConnsPool  pool.Pool
 
 func (this *Sdk) Init(cmd string,sid string,reqid int,data interface{}) *Sdk{
 
@@ -72,6 +80,97 @@ func (this *Sdk) connect() bool{
 	return true
 
 }
+
+
+func InitConnectionHubPool() {
+
+	// create a factory() to be used with channel based pool
+	var err error
+	ReqSeqCaalbacks = syncmap.New()
+	factory    := func() (*net.TCPConn, error) {
+
+		data :=  global.Config.WorkerServer.ToHub
+		hub_host := data[0]
+		hub_port_str := data[1]
+		ip_port := hub_host + ":" + hub_port_str
+
+		tcpAddr, _ := net.ResolveTCPAddr("tcp4", ip_port)
+		hubconn, err_req := net.DialTCP("tcp", nil, tcpAddr)
+		if( err_req!=nil ){
+			go handleReqHubResponse( hubconn )
+		}
+		return hubconn,err_req
+
+	}
+	HubConnsPool, err = pool.NewChannelPool(10, 50, factory)
+
+	if err != nil {
+		golog.Error("InitConnectionHubPool err:", err.Error())
+		return
+	}
+
+}
+
+
+// 侦听Hub server返回的数据，然后回调worker的函数
+func handleReqHubResponse(conn *net.TCPConn) {
+
+	reader := bufio.NewReader(conn)
+
+	for {
+		buf ,err := protocol.Unpack( reader)
+		if err != nil {
+			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
+			// 超时处理
+			golog.Error( "handleReqHubResponse err:", err.Error() )
+			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
+				break
+			}
+			continue
+
+		}
+		resp_cmd,req_id,resp_err,msg_data := protocol.ReadHubResp(buf)
+		if resp_err!=""{
+			golog.Error( "handleReqHubResponse ReadHubResp err:",resp_err )
+			continue
+		}
+		callback_key:=resp_cmd+fmt.Sprintf("%d", req_id)
+		fmt.Println( "callback_key:", callback_key )
+		_item,ok := ReqSeqCaalbacks.Get( callback_key )
+		if( ok ) {
+			callback := _item.( AfterWorkCallback )
+			callback( string(msg_data) )
+			ReqSeqCaalbacks.Delete( callback_key )
+		}
+
+	}
+
+}
+
+
+// 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
+func (this *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCallback  ) (string,bool) {
+
+	req_id := time.Now().UTC().UnixNano()
+	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,int32(req_id),data)
+	//fmt.Println( "req_str:", string(req_buf) )
+	this.connect()
+	req_buf,_ = protocol.Packet( req_buf )
+
+	req_hub_conn,err := HubConnsPool.Get()
+	if( err!=nil ){
+		golog.Error( "worker.HubConnsPool.Get err:" , req_hub_conn)
+	}
+
+	callback_key:=req_cmd+fmt.Sprintf("%d", req_id )
+	ReqSeqCaalbacks.Set( callback_key, handler )
+	_,err = req_hub_conn.Write( req_buf )
+	if err!=nil {
+		golog.Error( "req_hub_conn.Write err:" , err.Error() )
+	}
+	return "",false
+}
+
 
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
 func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
@@ -126,6 +225,8 @@ func (this *Sdk) PushHub( req_cmd string , data string ) bool {
 
 	return true
 }
+
+
 
 // 获取服务器的根路径
 func (this *Sdk)  GetBase() string {

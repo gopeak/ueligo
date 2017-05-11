@@ -15,6 +15,8 @@ type Mysql struct {
 	Sql string
 
         Config MysqlConfigType
+
+	Connected bool
 }
 
 type MysqlConfigType struct {
@@ -29,30 +31,31 @@ type MysqlConfigType struct {
 
 
 
-func (this *Mysql) InitConfig() {
-
-
-}
 
 func (this *Mysql) Connect() (bool,error){
 	var err error
 	var config   MysqlConfigType
-	_, err = toml.DecodeFile("worker/golang/db.toml", &config )
-	if  err != nil {
-		fmt.Println("toml.DecodeFile error:", err.Error())
-		return false, err
+	if( !this.Connected ){
+		_, err = toml.DecodeFile("worker/golang/db.toml", &config )
+		if  err != nil {
+			fmt.Println("toml.DecodeFile error:", err.Error())
+			this.Connected = false
+			return false, err
+		}
+		connect_str := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=%ss&collation=%s",config.User,
+			config .Password,config .Host,config .Port,config.Database,config.Timeout,config.Charset)
+		fmt.Println( "connect_str:",connect_str )
+		this.Db, err = sql.Open("mysql",connect_str)
+		if err != nil {
+			fmt.Println("sql.Open err:",err.Error())
+			this.Connected = false
+			return false,err
+		}
+		this.Db.SetMaxOpenConns(2000)
+		this.Db.SetMaxIdleConns(1000)
+		this.Db.Ping()
+		this.Connected = true
 	}
-	connect_str := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=%ss&collation=%s",config.User,
-		config .Password,config .Host,config .Port,config.Database,config.Timeout,config.Charset)
-	fmt.Println( "connect_str:",connect_str )
-	this.Db, err = sql.Open("mysql",connect_str)
-	if err != nil {
-		fmt.Println("sql.Open err:",err.Error())
-		return false,err
-	}
-	this.Db.SetMaxOpenConns(2000)
-	this.Db.SetMaxIdleConns(1000)
-	this.Db.Ping()
 	return true,nil
 }
 

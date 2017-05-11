@@ -12,7 +12,7 @@ import (
 func Packet(buf []byte) ([]byte, error) {
 
 	var length int32 = int32(len( string(buf) ))
-	fmt.Println( "Set length :", length )
+	// fmt.Println( "Set length :", length )
 	var pkg *bytes.Buffer = new(bytes.Buffer)
 	err := binary.Write(pkg, binary.LittleEndian, length)
 	if err != nil {
@@ -38,7 +38,7 @@ func Unpack(reader *bufio.Reader) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println( "Get length :", length )
+	// fmt.Println( "Get length :", length )
 	if int32(reader.Buffered()) < length+4 {
 		return nil, err
 	}

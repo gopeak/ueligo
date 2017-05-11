@@ -17,7 +17,6 @@ import (
 	"os"
 	"strings"
 	"sync/atomic"
-
 	"encoding/json"
 )
 

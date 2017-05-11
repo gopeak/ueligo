@@ -2,7 +2,7 @@ package hub
 
 import (
 	"morego/golog"
-	"morego/lib/robfig/cron"
+	"github.com/robfig/cron"
 	json_orgin "encoding/json"
 	"morego/area"
 	"morego/global"

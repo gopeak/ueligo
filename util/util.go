@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"os"
 	"morego/golog"
+	"strings"
 )
 
 func saveFile(str string, n int) {
@@ -26,5 +27,18 @@ func saveFile(str string, n int) {
 	f.Close()
 
 }
+
+//  转义json字符串
+func EncodeJsonStr(str string) string {
+	str = strings.Replace(str, `"`, `\"`, -1)
+	return str
+}
+
+// 反解json字符串
+func DecodeJsonStr(str string) string {
+	str = strings.Replace(str, `\"`, `"`, -1)
+	return str
+}
+
 
 
