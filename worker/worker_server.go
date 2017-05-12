@@ -32,8 +32,8 @@ func InitWorkerServer() {
 			go WorkerServer(host, port)
 		}
 	}
-
-	golang.InitConnectionHubPool()
+	time.Sleep( 1*time.Second)
+	golang.InitReqHubPool()
 }
 
 

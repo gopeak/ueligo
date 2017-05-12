@@ -14,7 +14,8 @@ import (
 	"encoding/json"
 	"morego/lib/syncmap"
 	"morego/lib/conn_pool/pool"
-
+	"morego/util"
+	"strconv"
 )
 
 
@@ -49,6 +50,9 @@ var ReqSeqCaalbacks *syncmap.SyncMap
 
 var HubConnsPool  pool.Pool
 
+var ReqHubConns  =  make( []*net.TCPConn, 0 )
+var InitialCap  int
+
 func (this *Sdk) Init(cmd string,sid string,reqid int,data interface{}) *Sdk{
 
 	this.Cmd = cmd
@@ -82,13 +86,15 @@ func (this *Sdk) connect() bool{
 }
 
 
-func InitConnectionHubPool() {
+
+func   InitReqHubPool() {
 
 	// create a factory() to be used with channel based pool
-	var err error
 	ReqSeqCaalbacks = syncmap.New()
-	factory    := func() (*net.TCPConn, error) {
 
+	InitialCap  = 10
+
+	factory    := func() (*net.TCPConn, error) {
 		data :=  global.Config.WorkerServer.ToHub
 		hub_host := data[0]
 		hub_port_str := data[1]
@@ -96,53 +102,58 @@ func InitConnectionHubPool() {
 
 		tcpAddr, _ := net.ResolveTCPAddr("tcp4", ip_port)
 		hubconn, err_req := net.DialTCP("tcp", nil, tcpAddr)
-		if( err_req!=nil ){
-			go handleReqHubResponse( hubconn )
-		}
+		//fmt.Println( "InitConnectionHubPool hubconn ", hubconn )
+
 		return hubconn,err_req
-
 	}
-	HubConnsPool, err = pool.NewChannelPool(10, 50, factory)
+	for i := 0; i < InitialCap; i++ {
 
-	if err != nil {
-		golog.Error("InitConnectionHubPool err:", err.Error())
-		return
+		var err_req error
+		conn, err_req:= factory()
+		if( err_req!=nil ) {
+			golog.Error( "InitConnectionHubPool hubconn  err:", err_req.Error() )
+			continue
+		}
+		ReqHubConns = append( ReqHubConns, conn )
+		go handleReqHubResponse( conn )
 	}
-
 }
 
 
 // 侦听Hub server返回的数据，然后回调worker的函数
-func handleReqHubResponse(conn *net.TCPConn) {
+func  handleReqHubResponse(conn *net.TCPConn) {
 
+	time.Sleep( 2*time.Second)
 	reader := bufio.NewReader(conn)
-
+	defer func() {
+		err := recover()
+		if err != nil {
+			conn.Close()
+			fmt.Println( "ReadHubResp err :", err)
+		}
+	}()
 	for {
 		buf ,err := protocol.Unpack( reader)
 		if err != nil {
-			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
-			// 超时处理
-			golog.Error( "handleReqHubResponse err:", err.Error() )
-			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-				break
-			}
-			continue
-
+			fmt.Println( "Hub handleWorker connection error: ", err.Error())
+			conn.Close()
+			break
 		}
 		resp_cmd,req_id,resp_err,msg_data := protocol.ReadHubResp(buf)
 		if resp_err!=""{
 			golog.Error( "handleReqHubResponse ReadHubResp err:",resp_err )
 			continue
 		}
-		callback_key:=resp_cmd+fmt.Sprintf("%d", req_id)
+		callback_key:=resp_cmd + req_id
 		fmt.Println( "callback_key:", callback_key )
+
 		_item,ok := ReqSeqCaalbacks.Get( callback_key )
 		if( ok ) {
 			callback := _item.( AfterWorkCallback )
+			fmt.Println( "callback func :", callback  )
 			callback( string(msg_data) )
 			ReqSeqCaalbacks.Delete( callback_key )
 		}
-
 	}
 
 }
@@ -151,20 +162,23 @@ func handleReqHubResponse(conn *net.TCPConn) {
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
 func (this *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCallback  ) (string,bool) {
 
-	req_id := time.Now().UTC().UnixNano()
-	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,int32(req_id),data)
-	//fmt.Println( "req_str:", string(req_buf) )
-	this.connect()
+	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
+	req_buf := protocol.MakeHubReq( req_cmd, this.Sid, req_id, data )
 	req_buf,_ = protocol.Packet( req_buf )
 
-	req_hub_conn,err := HubConnsPool.Get()
-	if( err!=nil ){
-		golog.Error( "worker.HubConnsPool.Get err:" , req_hub_conn)
-	}
+	index := util.RandInt64(0, int64(len(ReqHubConns)))
+	req_hub_conn  := ReqHubConns[index]
 
-	callback_key:=req_cmd+fmt.Sprintf("%d", req_id )
+	//req_hub_conn,err := HubConnsPool.Get()
+	fmt.Println( "ReqHubConns:", ReqHubConns )
+	if( req_hub_conn==nil  ){
+		golog.Error( "req_hub_conn is nil "  )
+		return "", false
+	}
+	callback_key:=req_cmd+ req_id
 	ReqSeqCaalbacks.Set( callback_key, handler )
-	_,err = req_hub_conn.Write( req_buf )
+	fmt.Println( "ReqHubAsync:", callback_key )
+	_,err := req_hub_conn.Write( req_buf )
 	if err!=nil {
 		golog.Error( "req_hub_conn.Write err:" , err.Error() )
 	}
@@ -175,46 +189,19 @@ func (this *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCal
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
 func (this *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
-	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,int32(this.Reqid),data)
-	fmt.Println( "req_str:", string(req_buf) )
-	this.connect()
+	req_buf := protocol.MakeHubReq( req_cmd, this.Sid, strconv.Itoa( int(this.Reqid) ), data )
 	req_buf,_ = protocol.Packet( req_buf )
-	this.HubConn.Write( req_buf )
-	reader := bufio.NewReader(this.HubConn)
+	fmt.Println( "req_str:", string(req_buf) )
 
-	for {
-		buf, err := reader.ReadBytes('\n')
-		select {
-
-		case <- time.After(5 * time.Second):
-			return "time 5 second",false
-
-		default:
-			if err != nil {
-				this.HubConn.Close()
-				return err.Error(),false
-
-			}
-			resp_cmd,_,resp_err,msg_data := protocol.ReadHubResp(buf)
-
-			if resp_cmd == req_cmd{
-				// 如果服务返回错误
-				if( resp_err!=""  ){
-					golog.Error( "ReqHub resp err:",resp_err )
-					return string(msg_data),false
-				}
-				this.HubConn.Close()
-				return string(msg_data),true
-			}
-		}
-	}
-
+	index := util.RandInt64(0, int64(len(ReqHubConns)))
+	req_hub_conn  := ReqHubConns[index]
+	req_hub_conn.Write( req_buf )
 	return "",false
 }
 
 func (this *Sdk) PushHub( req_cmd string , data string ) bool {
 
-	req_buf := protocol.MakeHubReq( req_cmd,this.Sid,int32(this.Reqid),data)
+	req_buf := protocol.MakeHubReq( req_cmd,this.Sid, strconv.Itoa( int(this.Reqid) ), data )
 	req_buf,_ = protocol.Packet( req_buf )
 	this.connect()
 	_,err:=this.HubConn.Write( req_buf )

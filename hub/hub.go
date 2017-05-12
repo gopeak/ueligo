@@ -63,7 +63,7 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 
 	for {
 		//buf, err := reader.ReadBytes('\n')
-		buf ,err := protocol.Unpack( reader)
+		buf ,err := protocol.Unpack( reader )
 		if err != nil {
 			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
 			// 超时处理
@@ -72,9 +72,7 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 			}
 			closeHubConn(conn)
 			break
-
 		}
-
 		go hubWorkeDispath( buf , conn)
 
 	}
@@ -101,27 +99,35 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
-		conn.Write( protocol.MakeHubResp(cmd,0,"",api.GetBase())  )
+
+		flatbuf := protocol.MakeHubResp(cmd,reqid,"",api.GetBase())
+		wrote_buf,_:=protocol.Packet( flatbuf )
+		n,errw := conn.Write( wrote_buf )
+		if errw!=nil {
+			fmt.Println( "hubWorkeDispath err:", errw.Error() )
+		}
+		fmt.Println( "hubWorkeDispath GetBase write:",n, api.GetBase()  )
+		//conn.Close()
 		return
 	}
 	if cmd == "GetEnableStatus" {
-		conn.Write( protocol.MakeHubResp(cmd,0,"",string(global.AppConfig.Enable))  )
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(global.AppConfig.Enable))  )
 		return
 	}
 	if cmd == "Enable" {
 		global.AppConfig.Enable = 1
-		conn.Write( protocol.MakeHubResp(cmd,0,"","1")  )
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"","1")  )
 		return
 	}
 	if cmd == "Disable" {
 		global.AppConfig.Enable = 0
-		conn.Write( protocol.MakeHubResp(cmd,0,"","1")  )
+		conn.Write( protocol.MakeHubResp(cmd,reqid,"","1")  )
 		return
 	}
 	if cmd == "Get" {
 		str,err:=Get(data)
 		if( err!=nil ) {
-			conn.Write([]byte(protocol.MakeHubResp(cmd,0,err.Error(),"")))
+			conn.Write([]byte(protocol.MakeHubResp(cmd,reqid,err.Error(),"")))
 			return
 		}
 		conn.Write([]byte(protocol.MakeHubResp(cmd,  reqid, "", str)))

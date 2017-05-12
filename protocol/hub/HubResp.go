@@ -37,12 +37,12 @@ func (rcv *HubResp) Err() []byte {
 	return nil
 }
 
-func (rcv *HubResp) ReqId() int32 {
+func (rcv *HubResp) ReqId() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
-	return 0
+	return nil
 }
 
 func (rcv *HubResp) Data() []byte {
@@ -56,6 +56,6 @@ func (rcv *HubResp) Data() []byte {
 func HubRespStart(builder *flatbuffers.Builder) { builder.StartObject(4) }
 func HubRespAddCmd(builder *flatbuffers.Builder, cmd flatbuffers.UOffsetT) { builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(cmd), 0) }
 func HubRespAddErr(builder *flatbuffers.Builder, err flatbuffers.UOffsetT) { builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(err), 0) }
-func HubRespAddReqId(builder *flatbuffers.Builder, reqId int32) { builder.PrependInt32Slot(2, reqId, 0) }
+func HubRespAddReqId(builder *flatbuffers.Builder, reqId flatbuffers.UOffsetT) { builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(reqId), 0) }
 func HubRespAddData(builder *flatbuffers.Builder, data flatbuffers.UOffsetT) { builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(data), 0) }
 func HubRespEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT { return builder.EndObject() }

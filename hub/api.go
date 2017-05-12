@@ -7,7 +7,6 @@ import (
 	"morego/area"
 	"morego/global"
 	"os"
-	"path/filepath"
 	"strings"
 	_"morego/lib/websocket"
 	"morego/protocol"
@@ -24,14 +23,13 @@ type Api struct {
 // 获取服务器的根路径
 func (api *Api)GetBase() string {
 
-	dir, err := filepath.Abs(filepath.Dir(os.Args[0]))
+	dir, err:= os.Getwd()
 	if err != nil {
 		golog.Error("GetBase Error ", err.Error())
 	}
 	return strings.Replace(dir, "\\", "/", -1)
 
 }
-
 
 
 func (api *Api)GetEnableStatus() bool {

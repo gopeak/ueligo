@@ -68,7 +68,7 @@ func (this TaskType)SubscripeGroup(  ) ReturnType {
 func (this TaskType)PushMessage(   ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
-	fmt.Println( "PushMessage:",this.Sid, this.Data )
+	fmt.Println( "PushMessage:", this.Sid, this.Data )
 
 	data := this.Data.(map[string]interface{})
 	to_sid := data["sid"].(string)
@@ -78,7 +78,7 @@ func (this TaskType)PushMessage(   ) string {
 		fmt.Println( "GetBaseCallback:", resp )
 		return ""
 	}
-	sdk.ReqHubAsync( "GetBase","121",GetBaseCallback )
+	sdk.ReqHubAsync( "GetBase", "", GetBaseCallback )
 
 	sdk.Push(  this.Sid, to_sid,  data )
 	return "";

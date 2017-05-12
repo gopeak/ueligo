@@ -3,7 +3,6 @@ package protocol
  
  
 import (
-    "fmt"
 	"bufio"
 	"bytes"
 	"encoding/binary"
