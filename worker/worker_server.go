@@ -14,20 +14,47 @@ import (
 	"morego/golog"
 	"morego/protocol"
 	"morego/worker/golang"
+	"github.com/BurntSushi/toml"
 
 )
 
 
+
+type WorkerConfigType struct {
+
+	Loglevel     string		`toml:"loglevel"`
+	RpcType      string		`toml:"rpc_type"`
+	SingleMode   bool	  	`toml:"single_mode"`
+	Servers [][]string       	`toml:"servers"`
+	ToHub []string  		`toml:"to_hub"`
+	//Mysql MysqlConfigType 		`toml:"mysql"`
+
+}
+
+
+
+
+var 	WorkerConfig   WorkerConfigType
+
 // 初始化worker服务
 func InitWorkerServer() {
 
-	for _, data := range global.Config.WorkerServer.Servers {
+	var err error
+	_, err = toml.DecodeFile("worker/worker.toml", &WorkerConfig )
+	if  err != nil {
+		fmt.Println("toml.DecodeFile error:", err.Error())
+		return
+	}
+	for _, data := range WorkerConfig.Servers {
 
-		host, _ := data[0].(string)
-		port_str, _ := data[1].(string)
-		worker_language, _ := data[2].(string)
+		if len( data )<=2 {
+			fmt.Println("worker.toml servers length err:" ,data )
+			continue
+		}
+		host := data[0]
+		port_str := data[1]
+		worker_language  := data[2]
 		port, _ := strconv.Atoi(port_str)
-		//fmt.Println("worker_language:", worker_language)
 		if worker_language == "go" {
 			go WorkerServer(host, port)
 		}
@@ -110,7 +137,7 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	task_obj := new(golang.TaskType).Init(conn, req_obj)
 
 	invoker_ret := InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
-	fmt.Println("invoker_ret", invoker_ret)
+	//fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
 	if req_obj.Type == "req" && !req_obj.Header.NoResp {
 		protocolJson := new(protocol.Json)
@@ -134,7 +161,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	fmt.Println("methodName:", methodName)
+	//fmt.Println("methodName:", methodName)
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 
 	switch vtype := ret.Interface().(type) {

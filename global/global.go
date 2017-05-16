@@ -16,7 +16,7 @@ import (
 const (
 	ERROR_PACKET_RATES    = `{"cmd":"error_","data":{"ret":503,"msg":"packet rate limit" }}`        //
 	ERROR_MAX_CONNECTIONS = `{"cmd":"error_","data":{"ret":503,"msg":"Max connection limit" }}`     //
-	ERROR_RESPONSE        = `{"cmd":"error_","data":{"ret":500,"msg":"RecvMessage error" }}`        //
+	ERROR_RESPONSE        = `{"cmd":"error_","data":{"ret":500,"msg":"RecvMessage error" }}`          //
 	DISBALE_RESPONSE      = `{"cmd":"error_","data":{"ret":501,"msg":"Server has been stopped!" }}` //
 )
 

@@ -87,7 +87,7 @@ func (this TaskType)PushMessage(   ) string {
 func (this TaskType)PushGroupMessage(   ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data  )
-	fmt.Println( "PushGroupMessage:",this.Sid, this.Data )
+	//fmt.Println( "PushGroupMessage:",this.Sid, this.Data )
 
 	data := this.Data.(map[string]interface{})
 	area_id := data["area_id"].(string)

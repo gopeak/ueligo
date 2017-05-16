@@ -79,7 +79,7 @@ func (this TaskType)GetUserSession(   ) interface{} {
 func (this TaskType)JoinChannel(   ) interface{} {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
-	fmt.Println( "JoinChannel",this.Data  )
+	//fmt.Println( "JoinChannel",this.Data  )
 	if(   sdk.ChannelAddSid( this.Sid ,this.Data.(string) ) ){
 		return "ok"
 	}else{

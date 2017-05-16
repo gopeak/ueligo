@@ -27,16 +27,16 @@ type MysqlConfigType struct {
 	Port      	string		`toml:"port"`
 	Charset         string		`toml:"charset"`
 	Timeout         string		`toml:"timeout"`
+	MaxOpenConns    int 		`toml:"max_open_conns"`
+	MaxIdleConns    int 		`toml:"max_idle_conns"`
 }
-
-
 
 
 func (this *Mysql) Connect() (bool,error){
 	var err error
 	var config   MysqlConfigType
 	if( !this.Connected ){
-		_, err = toml.DecodeFile("worker/golang/db.toml", &config )
+		_, err = toml.DecodeFile("worker/worker.toml", &config )
 		if  err != nil {
 			fmt.Println("toml.DecodeFile error:", err.Error())
 			this.Connected = false
@@ -51,15 +51,15 @@ func (this *Mysql) Connect() (bool,error){
 			this.Connected = false
 			return false,err
 		}
-		this.Db.SetMaxOpenConns(2000)
-		this.Db.SetMaxIdleConns(1000)
+		this.Db.SetMaxOpenConns(config.MaxOpenConns)
+		this.Db.SetMaxIdleConns(config.MaxIdleConns)
 		this.Db.Ping()
 		this.Connected = true
 	}
 	return true,nil
 }
 
-//插入demo
+//插入 封装
 func (this *Mysql)  Insert(  sql string, args ...interface{}  ) ( int64, error) {
 
 	stmt, err := this.Db.Prepare( sql )
@@ -76,7 +76,7 @@ func (this *Mysql)  Insert(  sql string, args ...interface{}  ) ( int64, error) 
 
 }
 
-//查询demo
+//查询多行封装
 func (this *Mysql) GetRows( sql string, args ...interface{} ) []map[string]string {
 	db :=this.Db
 	this.Sql = sql
@@ -112,7 +112,7 @@ func (this *Mysql) GetRows( sql string, args ...interface{} ) []map[string]strin
 	return rets
 }
 
-//查询demo
+//查询单行封装
 func (this *Mysql) GetRow( sql string,  args ...interface{})  map[string]string {
 	db :=this.Db
 	this.Sql = sql

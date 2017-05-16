@@ -28,7 +28,6 @@ func Packet(buf []byte) ([]byte, error) {
 }
 
 func Unpack(reader *bufio.Reader) ([]byte, error) {
-    
 
 	lengthByte, _ := reader.Peek(4)
 	lengthBuff := bytes.NewBuffer(lengthByte)
