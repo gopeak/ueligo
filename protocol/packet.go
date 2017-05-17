@@ -6,7 +6,9 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/binary"
+
 )
+
 
 func Packet(buf []byte) ([]byte, error) {
 
@@ -26,6 +28,8 @@ func Packet(buf []byte) ([]byte, error) {
     return pkg.Bytes(), nil
 	 
 }
+
+
 
 func Unpack(reader *bufio.Reader) ([]byte, error) {
 
@@ -48,5 +52,5 @@ func Unpack(reader *bufio.Reader) ([]byte, error) {
 	}
 	return  pack[4:] , nil
 }
- 
-  
+
+
