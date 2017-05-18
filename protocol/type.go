@@ -24,46 +24,46 @@ type ProtocolType struct {
 
 type BaseRoot struct {
 	Type string             `json:"type"`
-	Header  interface{}            `json:"header"`
-	Data interface{}     `json:"data"`
+	Header  interface{}    `json:"header"`
+	Data interface{}       `json:"data"`
 }
 
 type ReqRoot struct {
-	Type string             `json:"type"`
-	Header  ReqHeader           `json:"header"`
-	Data interface{}     `json:"data"`
+	Type string            	 `json:"type"`
+	Header  ReqHeader        `json:"header"`
+	Data interface{}     	 `json:"data"`
 }
 
 type ReqHeader struct {
-	Cmd    string      `json:"cmd"`
-	SeqId  int          `json:"seq_id"`
-	Sid    string     `json:"sid"`
-	NoResp bool         `json:"no_resp"`
-	Token    string     `json:"token"`
-	Version    string     `json:"version"`
-	Gzip    bool     `json:"gzip"`
+	Cmd    string      	`json:"cmd"`
+	SeqId  int          	`json:"seq_id"`
+	Sid    string     	`json:"sid"`
+	NoResp bool         	`json:"no_resp"`
+	Token    string     	`json:"token"`
+	Version    string     	`json:"version"`
+	Gzip    bool     	`json:"gzip"`
 }
 
 
 type ResponseRoot struct {
-	Type string               `json:"type"`
-	Header  RespHeader     `json:"header"`
+	Type string             `json:"type"`
+	Header  RespHeader     	`json:"header"`
 	Data interface{}      `json:"data"`
-	Status int             `json:"status"`
-	Msg string             `json:"msg"`
+	Status int              `json:"status"`
+	Msg string              `json:"msg"`
 }
 
 type RespHeader struct {
-	Cmd    string      `json:"cmd"`
-	SeqId  int          `json:"seq_id"`
-	Sid    string       `json:"sid"`
-	Gzip    bool        `json:"gzip"`
+	Cmd    string        `json:"cmd"`
+	SeqId  int           `json:"seq_id"`
+	Sid    string        `json:"sid"`
+	Gzip    bool         `json:"gzip"`
 }
 
 type BroatcastRoot struct {
-	Type string             `json:"type"`
-	Header  BroatcastHeader           `json:"header"`
-	Data interface{}     `json:"data"`
+	Type string             	`json:"type"`
+	Header  BroatcastHeader          `json:"header"`
+	Data interface{}     		`json:"data"`
 }
 
 type BroatcastHeader struct {

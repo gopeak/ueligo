@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	//"crypto/md5"
 	"fmt"
 	"morego/protocol"
 	"net"
@@ -12,15 +11,11 @@ import (
 func main() {
 
 	go Server("0.0.0.0", 7003)
-
 	time.Sleep(3 * time.Second)
-
 	go client_side()
-
 	select {
 
 	}
-
 }
 
 
@@ -57,12 +52,18 @@ func handleClientMsg(conn *net.TCPConn) {
 	fmt.Println("HandleConn client: ", conn.RemoteAddr() )
 	for {
 
-		header, data, err := protocol.DecodePacket( reader )
-		fmt.Println("  server recvice header: ", string(header), " data:", string(data))
+		_,header, data, err := protocol.DecodePacket( reader )
+		fmt.Println("server recvice header: ", string(header), " data:", string(data))
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())
 			break
 		}
+		resp_buf,err := protocol.EncodePacket( int32(protocol.TypeReply), header,data)
+		if err != nil {
+			fmt.Println("HandleConn protocol.EncodePacket error: ", err.Error())
+			break
+		}
+		conn.Write( resp_buf )
 
 
 	}
@@ -87,23 +88,24 @@ func client_side() {
 	//fmt.Println( conn )
 	reader := bufio.NewReader(conn)
 
-	header := []byte( `{"cmd":"Auth","sid":"123456"}`)
-	data := []byte(`{"user":"simarui","pass":123"}`)
-	buf,err := protocol.EncodePacket( header, data)
+	header := []byte( `{"cmd":"Auth","sid":"1234516","ver":"1.2","seq":12123,"token":"sssssssssss121"}`)
+	data := []byte(`{"user":"simarui","pass":123","data":"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww122"}`)
+	buf,err := protocol.EncodePacket( int32(protocol.TypeReq), header, data)
 	if ( err != nil ) {
-		fmt.Println(" protocol.EncodePacket error: ", err.Error())
+		fmt.Println("protocol.EncodePacket error: ", err.Error())
 		return
 	}
-	fmt.Println(" conn.Write: ", string(buf) )
+	fmt.Println("conn.Write:", string(buf) )
 	conn.Write( buf )
 	for {
-		resp_header, resp_data, err := protocol.DecodePacket(reader)
+		_type,resp_header, resp_data, err := protocol.DecodePacket(reader)
 		if err != nil {
 			fmt.Println(" connection error: ", err.Error())
 			break
 		}
-		fmt.Println("  resp header: ", string(resp_header), " data:", string(resp_data))
+
+		fmt.Println( "resp _type: ", _type )
+		fmt.Println( "resp header: ", string(resp_header), " data:", string(resp_data) )
 		break
 	}
-
 }

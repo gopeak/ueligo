@@ -2,7 +2,7 @@ package golang
 
 import (
 	"net"
-	"fmt"
+	_"fmt"
 	"morego/area"
 	"morego/golog"
 	"strings"

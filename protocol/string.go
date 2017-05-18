@@ -27,8 +27,7 @@ const (
 	TypePush = 3
 	TypeBroadcast = 4
 	TypeError = 5
-	TypeJoinChannel = 6
-	TypePing = 7
+	TypePing = 6
 )
 
 /**
