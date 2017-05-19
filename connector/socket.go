@@ -69,7 +69,7 @@ func listenAcceptTCP(listen *net.TCPListener) {
 			return
 		}
 
-		go handleClientMsg(conn, req_conn, area.CreateSid())
+		go handleClient(conn, req_conn, area.CreateSid())
 		go handleWorkerResponse(conn, req_conn)
 		//go handleClientMsgSingle( conn ,CreateSid() )
 
@@ -139,38 +139,27 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 	}
 }
 
-func handleClientMsg(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
+func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
 	last_sid := ""
+	defer area.FreeConn(conn, last_sid)
 	for {
 		if !global.Config.Enable {
 			area.FreeConn(conn, last_sid)
 			break
 		}
-
-		buf, err := reader.ReadBytes('\n')
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		req_obj ,err := protocolPacket.GetReqObjByReader( reader )
 		if err != nil {
+			golog.Error("SocketHandle protocolPacket.GetReqObjByReader err : "  + err.Error())
 			area.FreeConn(conn, last_sid)
-			//fmt.Println( "HandleConn connection error: ", err.Error())
 			break
 		}
-		if strings.Replace(string(buf), "\n", "", -1) == "" {
-			continue
-		}
-		// fmt.Println( "HandleConn str: ", str )
-
-		protocolJson := new(protocol.Json)
-		protocolJson.Init()
-		req_obj, err := protocolJson.GetReqObj(buf)
-		if err != nil {
-			golog.Error("SocketHandle protocolJson.GetReqObj err : " + string(buf) + err.Error())
-			continue
-		}
 		last_sid = req_obj.Header.Sid
-		ret, ret_err := dispatchMsg(req_obj, conn, req_conn)
-
+		ret, ret_err := dispatchMsg( req_obj, conn, req_conn )
 		if ret_err != nil {
 			if ret < 0 {
 				fmt.Println(ret_err.Error())

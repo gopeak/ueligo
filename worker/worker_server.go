@@ -142,8 +142,8 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	if req_obj.Type == "req" && !req_obj.Header.NoResp {
 		protocolJson := new(protocol.Json)
 		protocolJson.Init()
-		protocolJson.WrapRespObj(req_obj, invoker_ret, 200, "")
-		buf, _ := json.Marshal(protocolJson.ProtocolObj.RespObj)
+		protocolJson.WrapRespObj(req_obj, invoker_ret, 200 )
+		buf, _ := json.Marshal( protocolJson.ProtocolObj.RespObj )
 		buf = append(buf, '\n')
 		conn.Write(buf)
 	}

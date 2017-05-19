@@ -49,8 +49,6 @@ type ResponseRoot struct {
 	Type string             `json:"type"`
 	Header  RespHeader     	`json:"header"`
 	Data interface{}      `json:"data"`
-	Status int              `json:"status"`
-	Msg string              `json:"msg"`
 }
 
 type RespHeader struct {
@@ -58,6 +56,7 @@ type RespHeader struct {
 	SeqId  int           `json:"seq_id"`
 	Sid    string        `json:"sid"`
 	Gzip    bool         `json:"gzip"`
+	Status int 		`json:"status"`
 }
 
 type BroatcastRoot struct {

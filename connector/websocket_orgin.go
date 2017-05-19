@@ -26,7 +26,7 @@ func WebsocketConnector(ip string, port int) {
 
 	var addr = flag.String("addr", fmt.Sprintf(":%d", port), "http service address")
 
-	http.Handle("/ws", websocket.Handler(WebsocketHandle))
+	http.Handle("/ws", websocket.Handler(WebsocketHandleClient))
 
 	wd, _ := os.Getwd()
 	http_dir := fmt.Sprintf("%s/web/wwwroot", wd)
@@ -44,7 +44,7 @@ func WebsocketConnector(ip string, port int) {
 /**
  *  处理客户端连接
  */
-func WebsocketHandle(wsconn *websocket.Conn) {
+func WebsocketHandleClient(wsconn *websocket.Conn) {
 
 	var max_conns int32
 	fmt.Println(" websocke client connect:", wsconn.RemoteAddr())
