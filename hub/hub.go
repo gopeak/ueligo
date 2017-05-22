@@ -287,7 +287,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	}
 
 	if cmd == "BroadcastAll" {
-		ret :=api.BroadcastAll(data)
+		ret :=api.BroadcastAll(data_buf)
 		str :="0"
 		if ret{
 			str = "1"
@@ -313,7 +313,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub data_json json err:",err2.Error() )
 			return
 		}
-		ret := api.Broadcast( sid, area_sid ,string(data_buf) )
+		ret := api.Broadcast( sid, area_sid ,data_buf )
 		str := "0"
 		if ret{
 			str = "1"

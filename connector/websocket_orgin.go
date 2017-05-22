@@ -12,6 +12,7 @@ import (
 	"morego/lib/websocket"
 	"morego/protocol"
 	"morego/worker/golang"
+	"morego/worker"
 	"net"
 	"net/http"
 	"os"
@@ -154,22 +155,55 @@ func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte
 	}
 }
 
+func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interface{} {
+
+	task_obj := new(golang.TaskType).WsInit(wsconn, req_obj)
+	invoker_ret := worker.InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
+	//fmt.Println("invoker_ret", invoker_ret)
+	// 判断是否需要响应数据
+	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
+		protocolJson := new(protocol.Json)
+		protocolJson.Init()
+		// @todo 判断invoker_ret类型
+		resp_obj:= protocolJson.WrapRespObj( req_obj ,invoker_ret, 200 )
+		buf,_ := json.Marshal(resp_obj)
+		wsconn.Write( buf )
+
+		if global.IsAuthCmd(req_obj.Header.Cmd) {
+			var return_obj golang.ReturnType
+			return_obj = invoker_ret.(golang.ReturnType)
+			if return_obj.Ret == "ok" {
+				if wsconn != nil {
+					area.WsConnRegister(wsconn, return_obj.Sid)
+				}
+				fmt.Println("wsHandleWorkerResponse AuthCmd sid: ", req_obj.Header.Cmd, return_obj.Sid )
+			}
+		}
+	}
+	return invoker_ret
+}
+
+
 /**
  * 根据消息类型分发处理
  */
 func wsDspatchMsg(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-
-	buf, _ := json.Marshal(req_obj)
-	buf = append(buf, '\n')
-
 	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
 	if !global.IsAuthCmd(req_obj.Header.Cmd) && !area.CheckSid(req_obj.Header.Sid) {
 		area.FreeWsConn(wsconn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
+	if global.SingleMode {
+		wsDirectInvoker( wsconn ,req_obj )
+		return  1, nil
+	}
+	buf, _ := json.Marshal(req_obj)
+	buf = append(buf, '\n')
+
+
 	// 提交给worker  @todo判断单机模式下不需要请求worker
 	if req_conn != nil {
 		go req_conn.Write(buf)

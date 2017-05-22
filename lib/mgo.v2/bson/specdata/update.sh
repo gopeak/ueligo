@@ -6,7 +6,7 @@ if [ ! -d specifications ]; then
 	git clone -b bson git@github.com:jyemin/specifications
 fi
 
-TESTFILE="../specdata_test.go"
+TESTFILE="morego/specdata_test.go"
 
 cat <<END > $TESTFILE
 package bson_test

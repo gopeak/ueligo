@@ -1,12 +1,10 @@
 package protocol
 
+//  websocket 通讯协议
 //  请求数据包 { "header":{ "cmd":"", "seq_id":0,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  , "type":"req", "data":{}  }
-
-// 请求响应数据包  { "header":{ "cmd":"", "seq_id":0,  "sid":"", "gzip":true  }  , "type":"response",  "status":0, "msg":"",  "data":{}  }
-
-// 接收广播数据包 { "header":{ "chanel_id":"", "sid":""   }  , "type":"broatcast",   "data":{}  }
-
-// 接收点对点数据包 { "header":{  "sid":""  }  , "type":"push",   "data":{}  }
+//  请求响应数据包  { "header":{ "cmd":"", "seq_id":0,  "sid":"", "gzip":true  }  , "type":"response",  "status":0, "msg":"",  "data":{}  }
+//  接收广播数据包 { "header":{ "chanel_id":"", "sid":""   }  , "type":"broatcast",   "data":{}  }
+//  接收点对点数据包 { "header":{  "sid":""  }  , "type":"push",   "data":{}  }
 
 const TypeReq  	= "1"
 const TypeResp  	= "2"

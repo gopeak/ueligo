@@ -274,9 +274,9 @@ func UserUnSubscribeChannel(user_sid string) {
 /**
  *  在场景中广播消息
  */
-func Broatcast( sid string,area_id string, msg string ) {
+func Broatcast( sid string,area_id string, msg []byte ) {
 
-	fmt.Println("Broatcast:", sid, area_id, msg )
+	fmt.Println("Broatcast:", sid, area_id, string(msg) )
 	// tcp部分
 	var channel_conns *syncmap.SyncMap
 	_item,ok := global.SyncRpcChannelConns.Get(area_id)
@@ -295,7 +295,7 @@ func Broatcast( sid string,area_id string, msg string ) {
 
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
-		buf,_ := protocolPacket.WrapBroatcastResp( area_id, sid, []byte(msg)  )
+		buf,_ := protocolPacket.WrapBroatcastResp( area_id, sid, msg  )
 		conn.Write( buf )
 	}
 
@@ -325,7 +325,7 @@ func Broatcast( sid string,area_id string, msg string ) {
 /**
  *  在场景中广播消息
  */
-func BroatcastGlobal( sid string, msg interface{}) {
+func BroatcastGlobal( sid string, msg []byte ) {
 
 	var conn *net.TCPConn
 	fmt.Println("广播里有:", global.SyncGlobalChannelConns.Size(),"个连接")
@@ -336,7 +336,7 @@ func BroatcastGlobal( sid string, msg interface{}) {
 		conn = item.Value.(*net.TCPConn)
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
-		buf,_ := protocolPacket.WrapBroatcastResp( "global", sid, []byte(msg)  )
+		buf,_ := protocolPacket.WrapBroatcastResp( "global", sid, msg  )
 		conn.Write( buf )
 	}
 

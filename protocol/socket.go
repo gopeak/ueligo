@@ -10,6 +10,7 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
+	"strconv"
 )
 
 
@@ -24,7 +25,7 @@ type ClientPacket struct {
 }
 
 
-func EncodePacket(  _type int32, header []byte,  payload []byte) ( []byte ,error ){
+func EncodePacket(  _type string, header []byte,  payload []byte) ( []byte ,error ){
 	// len(totaol)+ len(header) + len(Checksum) == 12
 	var pkg *bytes.Buffer = new(bytes.Buffer)
 	totalsize := uint32(len(string(header)) +  len(string(payload)) )
@@ -35,9 +36,9 @@ func EncodePacket(  _type int32, header []byte,  payload []byte) ( []byte ,error
 		return nil, err
 	}
 	fmt.Println( "set totalsize" , totalsize )
-
+	_type_int,err:=strconv.Atoi(_type)
 	// set type
-	err = binary.Write( pkg, binary.LittleEndian, _type)
+	err = binary.Write( pkg, binary.LittleEndian, _type_int )
 	if err != nil {
 		return nil, err
 	}
@@ -107,7 +108,7 @@ type Pack struct {
 	Data        []byte
 }
 
-func (this *Pack) Init() *Json {
+func (this *Pack) Init() *Pack {
 
 	this.ProtocolObj = ProtocolType{}
 	this.ProtocolObj.ReqObj = ReqRoot{}
@@ -135,7 +136,7 @@ func (this *Pack) GetReqHeaderObj(  header []byte) (*ReqHeader, error) {
 	return stb, err
 }
 
-func (this *Pack) GetReqObj( _type int32 ,header []byte, data []byte ) (*ReqRoot, error) {
+func (this *Pack) GetReqObj( _type uint32 ,header []byte, data []byte ) (*ReqRoot, error) {
 
 	stb := &ReqRoot{}
 
@@ -166,7 +167,7 @@ func (this *Pack) GetRespObj(  data []byte) (*ResponseRoot, error) {
 }
 
 
-func (this *Pack) GetBroatcastHeaderObj(  header []byte) (*RespHeader, error) {
+func (this *Pack) GetBroatcastHeaderObj(  header []byte) (*BroatcastHeader, error) {
 
 	stb := &BroatcastHeader{}
 	err := json.Unmarshal( header, stb )
@@ -198,7 +199,7 @@ func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byt
 	req_obj_header.Token = token
 	req_obj_header.SeqId = seq
 	header_buf ,_ := json.Marshal( req_obj_header )
-	return  EncodePacket(  TypeReq,header_buf, data  )
+	return  EncodePacket( TypeReq, header_buf, data  )
 
 
 }
@@ -236,7 +237,7 @@ func (this *Pack) WrapRespErr( err string) ( []byte,error ) {
 }
 
 
-func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status int ) []byte {
+func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status int ) ResponseRoot {
 
 	resp_header_obj := RespHeader{}
 	resp_header_obj.Cmd = req_obj.Header.Cmd
@@ -247,7 +248,6 @@ func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status
 	this.ProtocolObj.RespObj.Header =resp_header_obj
 	this.ProtocolObj.RespObj.Data = invoker_ret
 	this.ProtocolObj.RespObj.Type = "2"
-
 
 	return this.ProtocolObj.RespObj
 }

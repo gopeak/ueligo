@@ -468,20 +468,20 @@ func (this *Sdk) Broatcast(sid string ,area_id string,  data  map[string]interfa
 	json,_:= json.Marshal( data )
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Broadcast( sid,area_id,  string(json)  )
+		return api.Broadcast( sid,area_id, json  )
 	}
 	return this.PushHub( "Broatcast",string(json) )
 
 }
 
 
-func (this *Sdk) BroadcastAll(msg string) bool {
+func (this *Sdk) BroadcastAll( msg []byte ) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.BroadcastAll(   msg  )
+		return api.BroadcastAll( msg )
 	}
-	return this.PushHub( "BroadcastAll",msg)
+	return this.PushHub( "BroadcastAll", string(msg) )
 
 }
 

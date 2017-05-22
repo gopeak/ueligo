@@ -5,15 +5,19 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"../area"
-	"../global"
-	"../golog"
-	"../protocol"
+	"morego/area"
+	"morego/global"
+	"morego/golog"
+	"morego/protocol"
+	"morego/worker"
+	"morego/util"
+	"morego/worker/golang"
 	"net"
 	"os"
 	"strings"
 	"sync/atomic"
 	"time"
+	"strconv"
 )
 
 
@@ -134,16 +138,23 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 	reader := bufio.NewReader(conn)
 	last_sid := ""
 	defer area.FreeConn(conn, last_sid)
+	protocolPacket := new(protocol.Pack)
+	protocolPacket.Init()
 	for {
 		if !global.Config.Enable {
 			area.FreeConn(conn, last_sid)
 			break
 		}
-		protocolPacket := new(protocol.Pack)
-		protocolPacket.Init()
-		req_obj ,err := protocolPacket.GetReqObjByReader( reader )
-		if err != nil {
+
+		_type,header,data,err := protocol.DecodePacket( reader )
+		if err!=nil {
 			golog.Error("SocketHandle protocolPacket.GetReqObjByReader err : "  + err.Error())
+			area.FreeConn(conn, last_sid)
+			break
+		}
+		req_obj ,err := protocolPacket.GetReqObj( _type,header,data )
+		if err != nil {
+			golog.Error("protocolPacket.GetReqObj err : "  + err.Error())
 			area.FreeConn(conn, last_sid)
 			break
 		}
@@ -163,22 +174,71 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 	}
 }
 
+func DirectInvoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
+
+	task_obj := new(golang.TaskType).Init(conn, req_obj)
+	invoker_ret := worker.InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
+	//fmt.Println("invoker_ret", invoker_ret)
+	// 判断是否需要响应数据
+	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		// @todo 判断invoker_ret类型
+		var data_buf []byte
+		switch invoker_ret.(type) {      //多选语句switch
+		case string:
+			data_buf = []byte( invoker_ret.(string) )
+		case int:
+			data_buf = []byte(strconv.Itoa( invoker_ret.(int) ))
+		case int64:
+			data_buf  = util.Int64ToBytes( invoker_ret.(int64) )
+		case float32:
+			data_buf  = util.Float32ToByte( invoker_ret.(float32) )
+		case float64:
+			data_buf  = util.Float64ToByte( invoker_ret.(float64) )
+		case golang.ReturnType:
+			var ret golang.ReturnType
+			data_buf,_  = json.Marshal( ret )
+		}
+
+		buf,_ := protocolPacket.WrapResp( req_obj.Header.Cmd, req_obj.Header.Sid, req_obj.Header.SeqId , 200, data_buf )
+		conn.Write( buf )
+
+		if global.IsAuthCmd(req_obj.Header.Cmd) {
+			var return_obj golang.ReturnType
+			return_obj = invoker_ret.(golang.ReturnType)
+			if return_obj.Ret == "ok" {
+				if conn != nil {
+					area.ConnRegister(conn, return_obj.Sid)
+				}
+				fmt.Println("handleWorkerResponse AuthCmd sid: ", req_obj.Header.Cmd, return_obj.Sid )
+			}
+		}
+	}
+	return invoker_ret
+}
+
+
 /**
  * 根据消息类型分发处理
  */
 func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-
-	buf, _ := json.Marshal(req_obj)
-	buf = append(buf, '\n')
-
 	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
 	if !global.IsAuthCmd(req_obj.Header.Cmd) && !area.CheckSid(req_obj.Header.Sid) {
 		area.FreeConn(conn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
+
+	if global.SingleMode {
+		DirectInvoker( conn ,req_obj )
+ 		return  1, nil
+	}
+	buf, _ := json.Marshal(req_obj)
+	buf = append(buf, '\n')
+
 	// 提交给worker  @todo判断单机模式下不需要请求worker
 	if req_conn != nil {
 		go req_conn.Write(buf)
@@ -187,22 +247,7 @@ func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCP
 	return 1, nil
 }
 
-func reqWorker(buf []byte, req_conn *net.TCPConn) {
 
-	req_conn.Write(buf)
-	return
-	//fmt.Println("worker agent from ", worker_idf, " receive 3:", msg)
-	/*
-	msg := protocol.GetRootAsData(buf, 0)
-	//  do some thing
-	cmd := string(msg.Cmd())
-	data := string(msg.Data())
-	req_sid := string(msg.Sid())
-	req_id := int64(msg.ReqId())
-	golog.Info("HandleConn data:", cmd, data, req_sid, req_id)
-	*/
-
-}
 
 func checkError(err error) {
 	if err != nil {

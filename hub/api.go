@@ -198,7 +198,7 @@ func (api *Api)PushBySids(from_sid string,to_sids []string, msg string) bool {
 
 }
 
-func (this *Api) Broadcast( sid string, area_id string, msg string) bool {
+func (this *Api) Broadcast( sid string, area_id string, msg []byte) bool {
 
 	area.Broatcast( sid, area_id ,msg)
 	return true
@@ -220,15 +220,15 @@ func (this *Api) UpdateSession( sid string, data string ) bool {
 
 
 
-func (api *Api)BroadcastAll(msg string) bool {
-	area.BroatcastGlobal("GM",msg)
+func (api *Api)BroadcastAll( msg []byte ) bool {
+	area.BroatcastGlobal("GM",msg )
 	return true
 
 }
 
 
 
-func (api *Api)GetUserJoinedChannel(sid string) string {
+func (api *Api)GetUserJoinedChannel( sid string ) string {
 
 	buf,err:=json_orgin.Marshal(area.GetSidsByChannel(sid))
 	if( err!=nil ) {

@@ -34,7 +34,7 @@ type WorkerConfigType struct {
 
 
 
-var 	WorkerConfig   WorkerConfigType
+var WorkerConfig   WorkerConfigType
 
 // 初始化worker服务
 func InitWorkerServer() {
@@ -137,7 +137,7 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	invoker_ret := InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
 	//fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
-	if req_obj.Type == "req" && !req_obj.Header.NoResp {
+	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
 		protocolJson := new(protocol.Json)
 		protocolJson.Init()
 		protocolJson.WrapRespObj(req_obj, invoker_ret, 200 )

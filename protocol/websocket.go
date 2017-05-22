@@ -80,7 +80,7 @@ func (this *Json) WrapPushRespObj(to_sid string, from_sid string , data interfac
 }
 
 
-func (this *Json) WrapBroatcastRespObj(channel_id string, from_sid string , data interface{}) BroatcastRoot {
+func (this *Json) WrapBroatcastRespObj(channel_id string, from_sid string , data []byte) BroatcastRoot {
 
 	broatcast_header_obj := BroatcastHeader{}
 	broatcast_header_obj.Sid = from_sid
