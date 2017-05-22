@@ -93,3 +93,24 @@ func (this *Json) WrapBroatcastRespObj(channel_id string, from_sid string , data
 
 	return broatcast_obj
 }
+
+/**
+ * 封包返回客户端错误的消息
+ */
+func (this *Json) WrapRespErr(err string) []byte {
+
+	resp_header_obj := RespHeader{}
+	resp_header_obj.Cmd = "WrapRespErr"
+	resp_header_obj.SeqId = 0
+	resp_header_obj.Sid = ""
+	resp_header_obj.Status = 500
+	this.ProtocolObj.RespObj.Header =resp_header_obj
+	this.ProtocolObj.RespObj.Data = err
+	this.ProtocolObj.RespObj.Type = TypeError
+
+	buf,_ := json.Marshal( this.ProtocolObj.RespObj )
+
+	return buf
+}
+
+

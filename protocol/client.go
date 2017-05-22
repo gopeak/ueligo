@@ -10,7 +10,6 @@ import (
 	"bufio"
 	"bytes"
 	"encoding/json"
-	"./worker"
 )
 
 
@@ -129,6 +128,13 @@ func (this *Pack) GetReqObjByReader( reader *bufio.Reader ) (*ReqRoot, error) {
 
 }
 
+func (this *Pack) GetReqHeaderObj(  header []byte) (*ReqHeader, error) {
+
+	stb := &ReqHeader{}
+	err := json.Unmarshal( header, stb )
+	return stb, err
+}
+
 func (this *Pack) GetReqObj( _type int32 ,header []byte, data []byte ) (*ReqRoot, error) {
 
 	stb := &ReqRoot{}
@@ -159,6 +165,15 @@ func (this *Pack) GetRespObj(  data []byte) (*ResponseRoot, error) {
 	return stb, err
 }
 
+
+func (this *Pack) GetBroatcastHeaderObj(  header []byte) (*RespHeader, error) {
+
+	stb := &BroatcastHeader{}
+	err := json.Unmarshal( header, stb )
+	return stb, err
+}
+
+
 func (this *Pack) GetBroatcastObj(data []byte) (*BroatcastRoot, error) {
 	this.Data = data
 	stb := &BroatcastRoot{}
@@ -173,6 +188,51 @@ func (this *Pack) GetPushObj(data []byte) (*PushRoot, error) {
 	err := json.Unmarshal(data, stb)
 	//this.ProtocolObj.PushObj = stb
 	return stb, err
+}
+
+func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byte, error) {
+
+	req_obj_header := &ReqHeader{}
+	req_obj_header.Cmd = cmd
+	req_obj_header.Sid = sid
+	req_obj_header.Token = token
+	req_obj_header.SeqId = seq
+	header_buf ,_ := json.Marshal( req_obj_header )
+	return  EncodePacket(  TypeReq,header_buf, data  )
+
+
+}
+
+func (this *Pack) WrapResp( cmd, req_sid string, seq int, status int,  data []byte ) ( []byte,error ) {
+
+	resp_header_obj := RespHeader{}
+	resp_header_obj.Cmd = cmd
+	resp_header_obj.Sid = req_sid
+	resp_header_obj.SeqId = seq
+
+	resp_header_obj.Status = status
+	this.ProtocolObj.RespObj.Header =resp_header_obj
+	this.ProtocolObj.RespObj.Data = data
+	this.ProtocolObj.RespObj.Type = TypeResp
+	header_buf ,_ := json.Marshal( resp_header_obj )
+	return  EncodePacket(  TypeReq,header_buf, data  )
+
+}
+
+
+/**
+ * 封包返回客户端错误的消息
+ */
+func (this *Pack) WrapRespErr( err string) ( []byte,error ) {
+
+	resp_header_obj := RespHeader{}
+	resp_header_obj.Cmd = "WrapRespErr"
+	resp_header_obj.Sid = ""
+	resp_header_obj.SeqId = 0
+	resp_header_obj.Status = 500
+
+	header_buf ,_ := json.Marshal( resp_header_obj )
+	return  EncodePacket(  TypeError,header_buf, []byte(err)  )
 }
 
 
@@ -205,8 +265,22 @@ func (this *Pack) WrapPushRespObj(to_sid string, from_sid string , data interfac
 	return push_obj
 }
 
+func (this *Pack) WrapPushResp(to_sid string, from_sid string , data []byte ) ([]byte,error) {
 
-func (this *Pack) WrapBroatcastRespObj(channel_id string, from_sid string , data interface{}) BroatcastRoot {
+	push_header_obj := PushHeader{}
+	push_header_obj.Sid = from_sid
+
+	push_obj := PushRoot{}
+	push_obj.Header =push_header_obj
+	push_obj.Data  = data
+	push_obj.Type  = "push"
+	header_buf,_ := json.Marshal( push_header_obj )
+	return  EncodePacket(  TypePush ,header_buf, data  )
+
+}
+
+
+func (this *Pack) WrapBroatcastRespObj(channel_id , from_sid string , data []byte ) BroatcastRoot {
 
 	broatcast_header_obj := BroatcastHeader{}
 	broatcast_header_obj.Sid = from_sid
@@ -215,15 +289,21 @@ func (this *Pack) WrapBroatcastRespObj(channel_id string, from_sid string , data
 	broatcast_obj := BroatcastRoot{}
 	broatcast_obj.Header =broatcast_header_obj
 	broatcast_obj.Data  = data
-	broatcast_obj.Type  = "broatcast"
+	broatcast_obj.Type  = TypeBroatcast
 
 	return broatcast_obj
 }
 
-func (this *Pack) GetBroatcastHeaderObj(  header []byte) (*RespHeader, error) {
+func (this *Pack) WrapBroatcastResp( channel_id, from_sid string,  data []byte ) ( []byte,error ) {
 
-	stb := &BroatcastHeader{}
-	err := json.Unmarshal( header, stb )
-	return stb, err
+	broatcast_header_obj := BroatcastHeader{}
+	broatcast_header_obj.Sid = from_sid
+	broatcast_header_obj.ChannelId = channel_id
+
+	header_buf ,_ := json.Marshal( broatcast_header_obj )
+	return  EncodePacket(  TypeBroatcast ,header_buf, data  )
+
 }
+
+
 

@@ -5,13 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"morego/area"
-	"morego/global"
-	"morego/golog"
-	"morego/protocol"
+	"../area"
+	"../global"
+	"../golog"
+	"../protocol"
 	"net"
 	"os"
-	"strconv"
 	"strings"
 	"sync/atomic"
 	"time"
@@ -109,10 +108,8 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 			conn.Close()
 			break
 		}
-
-		buf, err := reader.ReadBytes('\n')
+		_,header, data, err := protocol.DecodePacket( reader )
 		if err != nil {
-			//fmt.Println("err ReadString:", err.Error())
 			conn.Close()
 			break
 		}
@@ -121,20 +118,12 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 			fmt.Println("qps: ", qps)
 		}
 		atomic.AddInt64(&global.Qps, 1)
-		str := string(buf)
-		//fmt.Println( "HandleConn str: ",str)
 
-		msg_arr := strings.Split(str, "||")
-		if len(msg_arr) < 5 {
-			conn.Write([]byte(protocol.WrapRespErrStr("request data length error-->" + str)))
-			continue
-		}
-		cmd := "user.getSession" //msg_arr[1];
-		req_sid := msg_arr[2]
-		req_id, _ := strconv.Atoi(msg_arr[3])
-		data := msg_arr[4]
-		resp_str := protocol.WrapRespStr(cmd, req_sid, req_id, data)
-		conn.Write([]byte(resp_str))
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		req_obj,err := protocolPacket.GetReqHeaderObj( header )
+		buf,_ := protocolPacket.WrapResp( "GetUserSession", req_obj.Sid, req_obj.SeqId , 200, data )
+		conn.Write( buf )
 
 	}
 }

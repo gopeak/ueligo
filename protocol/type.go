@@ -8,6 +8,13 @@ package protocol
 
 // 接收点对点数据包 { "header":{  "sid":""  }  , "type":"push",   "data":{}  }
 
+const TypeReq  	= "1"
+const TypeResp  	= "2"
+const TypeBroatcast  = "3"
+const TypePush 	= "4"
+const  TypeError  	= "5"
+const  TypeReply	= "6"
+
 type ProtocolType struct {
 
 	ReqObj ReqRoot

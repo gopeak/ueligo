@@ -107,8 +107,6 @@ func handleWorker(conn *net.TCPConn) {
 			if err.Error() != "EOF" {
 				fmt.Println("HandleWork connection error: ", err.Error())
 			}
-
-			conn.Write([]byte(protocol.WrapRespErrStr(err.Error())))
 			conn.Close()
 			break
 		}

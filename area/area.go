@@ -293,8 +293,9 @@ func Broatcast( sid string,area_id string, msg string ) {
 		conn = item.Value.(*net.TCPConn)
 		//fmt.Println( protocol.WrapBroatcastRespStr(sid,area_id,msg) )
 
-		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( area_id, sid, msg) )
-		buf = append(buf, '\n')
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		buf,_ := protocolPacket.WrapBroatcastResp( area_id, sid, []byte(msg)  )
 		conn.Write( buf )
 	}
 
@@ -333,9 +334,10 @@ func BroatcastGlobal( sid string, msg interface{}) {
 	for item := range global.SyncGlobalChannelConns.IterItems() {
 		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
-		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( "global", sid, msg) )
-		buf = append(buf, '\n')
-		go conn.Write( buf )
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		buf,_ := protocolPacket.WrapBroatcastResp( "global", sid, []byte(msg)  )
+		conn.Write( buf )
 	}
 
 	var wsconn *websocket.Conn
@@ -361,11 +363,15 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
 	if( conn!=nil ) {
-		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
-		buf = append(buf, '\n')
-		_,err:=conn.Write( buf )
+		protocolPacket := new(protocol.Pack)
+		protocolPacket.Init()
+		buf,err := protocolPacket.WrapPushResp(  to_sid, from_sid,[]byte(to_data) )
 		if err!=nil {
-			fmt.Println( "conn.Writeerr:",err.Error() )
+			fmt.Println( "protocolPacket.WrapPushResp:",err.Error() )
+		}
+		_,err =conn.Write( buf )
+		if err!=nil {
+			fmt.Println( "Push conn.Write err:",err.Error() )
 		}
 		return
 	}
@@ -373,7 +379,6 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	fmt.Println( "push, to_sid:", to_sid , to_data)
 	if( wsconn!=nil ) {
 		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
-		buf = append(buf, '\n')
 		_,err:=wsconn.Write( buf )
 		if err!=nil {
 			fmt.Println( "wsconn.Write err:",err.Error() )

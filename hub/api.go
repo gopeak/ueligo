@@ -110,18 +110,23 @@ func (api *Api)GetSession(sid string) string {
 
 func (api *Api)Kick(sid string) bool {
 
+	protocolPacket := new(protocol.Pack)
+	protocolPacket.Init()
+
 	user_conn := area.GetConn(sid)
 	if user_conn != nil {
 		// 通知消息退出
-		user_conn.Write( []byte(protocol.WrapRespErrStr("kicked")))
+		buf,_ := protocolPacket.WrapRespErr( "kicked" )
+		user_conn.Write( buf )
 		area.FreeConn(user_conn,sid )
-
 	}
 
 	user_wsconn := area.GetWsConn(sid)
 	if user_wsconn != nil {
 		// 通知消息退出
-		go user_wsconn.Write( []byte(protocol.WrapRespErrStr("kicked")) )
+		protocolJson:= new(protocol.Json)
+		protocolJson.Init()
+		go user_wsconn.Write( protocolJson.WrapRespErr("kicked") )
 		area.FreeWsConn( user_wsconn,sid)
 	}
 	area.UserUnSubscribeChannel(sid)

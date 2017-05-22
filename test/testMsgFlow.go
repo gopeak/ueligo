@@ -2,7 +2,6 @@ package main
 
 import (
 	"bufio"
-	//"crypto/md5"
 	"fmt"
 	"morego/protocol"
 	"morego/worker/golang"
@@ -11,16 +10,15 @@ import (
 	"runtime"
 	"strconv"
 	"time"
-	"strings"
 	"encoding/json"
 )
 
 var Conns   []*net.TCPConn
 var Sids []string
+var Tokens []string
 
 
 func createReqConns(num int64)  {
-
 
 	Conns = make([]*net.TCPConn, 0)
 	Sids = make([]string, 0)
@@ -36,22 +34,13 @@ func createReqConns(num int64)  {
 		time.Sleep(10 * time.Millisecond)
 		//srcData :=  []byte( strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)  )
 		//str:=md5.Sum([]byte(srcData))
-		//data :=  protocol.WrapReqStr("Auth", strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i) , i, strconv.FormatInt(int64(time.Now().Unix()), 10) ) // fmt.Sprintf("%d||%s||%x||%d||%d\n", protocol.TypeReq, "Auth",  md5.Sum([]byte(srcData)) , i, time.Now().Unix())
 
-		// str:=fmt.Sprintf("%d||%s||%s||%d||%s\n" ,TypeReq, cmd,from_sid ,req_id, data) ;
 		protocolPack:= new(protocol.Pack)
 		protocolPack.Init()
-		req_obj_header := &protocol.ReqHeader{}
-		req_obj_header.Cmd = "Auth"
-		req_obj_header.Sid = strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)
-		req_obj_header.NoResp = false
-		req_obj_header.Token = ""
-		req_obj_header.SeqId = i
-		req_obj_header.Version = "1.0"
-		header_buf ,_ := json.Marshal( req_obj_header )
+		sid := strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)
+		token := ""
 		data :=  strconv.FormatInt(int64(time.Now().Unix()), 10)
-		buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte(data)  )
-
+		buf,_ :=  protocolPack.WrapReq( "Auth", sid, token, i, []byte(data) )
 		conn.Write( buf )
 		r := bufio.NewReader(conn)
 		for {
@@ -65,12 +54,98 @@ func createReqConns(num int64)  {
 				continue
 			}
 			Sids  = append(  Sids, ret_obj.Sid )
+			Tokens =  append(  Tokens, ret_obj.Ret )
 			break
 		}
 	}
 
 
 } //
+
+func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
+
+	//fmt.Println( conn )
+	reader := bufio.NewReader(conn)
+	var success int64
+	success = 0
+	req_sid := Sids[i]
+	token := Tokens[i]
+	//data :=  protocol.WrapReqStr("GetUserSession",req_sid,0,req_sid )
+	protocolPack:= new(protocol.Pack)
+	protocolPack.Init()
+	buf,_ :=  protocolPack.WrapReq( "GetUserSession", req_sid, token, 0, []byte(req_sid) )
+
+	conn.Write([]byte( buf ))
+
+	for {
+
+		ptype, resp_header,resp_data,err :=  protocol.DecodePacket( reader )
+		fmt.Println( "protocol.DecodePacket:",  resp_header, resp_data )
+		if err != nil {
+			fmt.Println("HandleConn connection error: ", err.Error())
+			break
+		}
+		_type := fmt.Sprintf("%d",ptype)
+		success++
+
+		if( _type==protocol.TypeReply ){
+			resp_header_obj,msg_err := protocolPack.GetRespHeaderObj( resp_header )
+			if msg_err != nil {
+				fmt.Println("msg error: ", msg_err.Error() )
+				continue
+			}
+			// 登录认证,然后获取用户信息
+			req_id := resp_header_obj.SeqId
+			// 获取当前信息后 发送点对点信息
+			if resp_header_obj.Cmd=="GetUserSession"  {
+				to_sid_index := i-1
+				if to_sid_index<0 {
+					to_sid_index = 0
+				}
+				to_sid:= Sids[to_sid_index]
+				push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`,to_sid,"md55555555555")
+				buf,_ :=  protocolPack.WrapReq( "Push", req_sid, token, 0, []byte(push_data) )
+				conn.Write([]byte( buf ))
+
+				// 发送点对点发送消息后 加入场景
+				time.Sleep(100 * time.Millisecond)
+				buf,_ =  protocolPack.WrapReq( "JoinChannel", req_sid, token, req_id+1, []byte("area-global") )
+				conn.Write([]byte( buf ))
+				time.Sleep(5 * time.Second)
+
+			}
+
+			if resp_header_obj.Cmd=="JoinChannel"  {
+				push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
+				buf,_ =  protocolPack.WrapReq( "Broadcast", req_sid, token, req_id+1, []byte(push_data) )
+				conn.Write([]byte( buf ))
+			}
+
+			if resp_header_obj.Cmd=="LeaveChannel"  {
+				buf,_ =  protocolPack.WrapReq( "KickSelf", req_sid, token, req_id+1, []byte(req_sid) )
+				conn.Write([]byte( buf ))
+			}
+			if resp_header_obj.Cmd=="KickSelf"  {
+				conn.Close()
+				return
+			}
+		}
+
+		// 发送广播
+		if _type==protocol.TypeBroatcast  {
+			//fmt.Println("Broadcast:",msg_data)
+			resp_broatcast_obj,msg_err  := protocolPack.GetBroatcastHeaderObj( resp_header )
+			if msg_err != nil {
+				fmt.Println("broadcast reply error: ", msg_err.Error(),resp_broatcast_obj)
+				continue
+			}
+			fmt.Println( "broadcast recvice:",resp_broatcast_obj, string(resp_data)  )
+			buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
+			conn.Write([]byte( buf ))
+		}
+	}
+}
+
 
 
 func main() {
@@ -96,128 +171,9 @@ func main() {
 	//ch_success := make(chan int64, 0)
 
 	var i int64
-
 	for i = 0; i < conn_num; i++ {
-
 		conn := Conns[i]
-
-		go func(conn *net.TCPConn ,times int64, conn_num int64 ,i int) {
-			//fmt.Println( conn )
-			reader := bufio.NewReader(conn)
-			var success int64
-			success = 0
-			req_sid := Sids[i]
-			//data :=  protocol.WrapReqStr("GetUserSession",req_sid,0,req_sid )
-			protocolPack:= new(protocol.Pack)
-			protocolPack.Init()
-			req_obj_header := &protocol.ReqHeader{}
-			req_obj_header.Cmd = "GetUserSession"
-			req_obj_header.Sid = req_sid
-			req_obj_header.SeqId = 0
-			header_buf ,_ := json.Marshal( req_obj_header )
-
-			buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte(req_sid)  )
-			conn.Write([]byte( buf ))
-
-			for {
-
-				_type, resp_header,resp_data,err :=  protocol.DecodePacket( reader )
-				fmt.Println( "Auth:",  resp_header, resp_data )
-				if err != nil {
-					fmt.Println("HandleConn connection error: ", err.Error())
-					break
-				}
-				success++
-
-
-				if( _type==protocol.TypeReply ){
-					resp_header_obj,msg_err := protocolPack.GetRespHeaderObj( resp_header )
-					if msg_err != nil {
-						fmt.Println("msg error: ", msg_err.Error() )
-						continue
-					}
-					// 登录认证,然后获取用户信息
-					req_id := resp_header_obj.SeqId
-					// 获取当前信息后 发送点对点信息
-					if resp_header_obj.Cmd=="GetUserSession"  {
-
-						to_sid_index := i-1
-						if to_sid_index<0 {
-							to_sid_index = 0
-						}
-						to_sid:= Sids[to_sid_index]
-						push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`,to_sid,"md55555555555")
-						req_obj_header := &protocol.ReqHeader{}
-						req_obj_header.Cmd = "Push"
-						req_obj_header.Sid = req_sid
-						req_obj_header.SeqId = 0
-						header_buf ,_ := json.Marshal( req_obj_header )
-						buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte(push_data)  )
-						conn.Write([]byte( buf ))
-
-						// 发送点对点发送消息后 加入场景
-						time.Sleep(100 * time.Millisecond)
-						req_obj_header.Cmd = "JoinChannel"
-						req_obj_header.Sid = req_sid
-						req_obj_header.SeqId = req_id+1
-						header_buf ,_ = json.Marshal( req_obj_header )
-						buf,_ = protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte("area-global")  )
-						conn.Write([]byte( buf ))
-
-						time.Sleep(5 * time.Second)
-
-					}
-
-					if resp_header_obj.Cmd=="JoinChannel"  {
-						req_obj_header := &protocol.ReqHeader{}
-						req_obj_header.Cmd = "Broadcast"
-						req_obj_header.Sid = req_sid
-						req_obj_header.SeqId = req_id+1
-						header_buf ,_ := json.Marshal( req_obj_header )
-						push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
-						buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte(push_data)  )
-						conn.Write([]byte( buf ))
-					}
-
-					if resp_header_obj.Cmd=="LeaveChannel"  {
-
-						req_obj_header := &protocol.ReqHeader{}
-						req_obj_header.Cmd = "KickSelf"
-						req_obj_header.Sid = req_sid
-						req_obj_header.SeqId = req_id+1
-						header_buf ,_ := json.Marshal( req_obj_header )
-						buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte(req_sid)  )
-						conn.Write([]byte( buf ))
-					}
-					if resp_header_obj.Cmd=="KickSelf"  {
-
-						conn.Close()
-						return
-					}
-				}
-
-				// 发送广播
-				if _type==protocol.TypeBroadcast  {
-
-					//fmt.Println("Broadcast:",msg_data)
-					resp_broatcast_obj,msg_err  := protocolPack.GetBroatcastHeaderObj( resp_header )
-					if msg_err != nil {
-						fmt.Println("broadcast reply error: ", msg_err.Error(),resp_broatcast_obj)
-						continue
-					}
-					fmt.Println( "broadcast recvice:",resp_broatcast_obj, string(resp_data)  )
-
-					req_obj_header := &protocol.ReqHeader{}
-					req_obj_header.Cmd = "LeaveChannel"
-					req_obj_header.Sid = req_sid
-					req_obj_header.SeqId = 0
-					header_buf ,_ := json.Marshal( req_obj_header )
-					buf,_ := protocol.EncodePacket( protocol.TypeReq,header_buf,[]byte("area-global" )  )
-					conn.Write([]byte( buf ))
-				}
-			}
-			return
-		}( conn,  times, conn_num , int(i))
+		go hanleConnResp(  conn,  times, conn_num , int(i) )
 	}
 	select {
 
@@ -249,3 +205,4 @@ func main() {
 	*/
 
 }
+
