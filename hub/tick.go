@@ -87,9 +87,9 @@ func TickWorkerServer() {
 		//fmt.Println("now", now)
 		ch_success := make(chan string, 0)
 		for _, data := range global.Config.WorkerServer.Servers {
-			go func(data []interface{}) {
-				worker_host, _ := data[0].(string)
-				worker_port_str, _ := data[1].(string)
+			go func(data []string) {
+				worker_host := data[0]
+				worker_port_str := data[1]
 				ip_port := worker_host + ":" + worker_port_str
 
 				//fmt.Println("tcpAddr: ",index," ", ip_port)

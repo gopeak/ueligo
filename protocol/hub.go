@@ -74,7 +74,8 @@ func MakeHubResp(  cmd  ,   req_id   ,err  ,data string) []byte {
 	b.Finish(end_position)
 
 	// return the byte slice containing encoded data:
-	return b.Bytes[b.Head():]
+	data_buf,_ := Packet(b.Bytes[b.Head():])
+	return data_buf
 }
 
 func ReadHubResp(buf []byte) ( cmd  , req_id   ,err string ,  data []byte) {
@@ -86,7 +87,6 @@ func ReadHubResp(buf []byte) ( cmd  , req_id   ,err string ,  data []byte) {
 	err = string(hub_resp.Err())
 	req_id = string(hub_resp.ReqId())
 	data = hub_resp.Data()
-
 
 	return
 }

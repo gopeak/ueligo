@@ -10,6 +10,8 @@ import (
 	"math/big"
 	"math"
 	"encoding/binary"
+	"encoding/json"
+	"fmt"
 )
 
 func saveFile(str string, n int) {
@@ -89,4 +91,40 @@ func Int64ToBytes(i int64) []byte {
 
 func BytesToInt64(buf []byte) int64 {
 	return int64(binary.BigEndian.Uint64(buf))
+}
+
+
+func Convert2Byte( invoker_ret interface{}) []byte{
+
+	var data_buf []byte
+
+	switch invoker_ret.(type) {      //多选语句switch
+	case string:
+		data_buf = []byte( invoker_ret.(string) )
+	case int:
+		data_buf = []byte(strconv.Itoa( invoker_ret.(int) ))
+	case int64:
+		data_buf  = Int64ToBytes( invoker_ret.(int64) )
+	case float32:
+		data_buf  = Float32ToByte( invoker_ret.(float32) )
+	case float64:
+		data_buf  = Float64ToByte( invoker_ret.(float64) )
+	case []string:
+		data_buf,_ = json.Marshal( invoker_ret.([]string) )
+	case map[string]string:
+		tmp,err := json.Marshal( invoker_ret.(map[string]string) )
+		if err!=nil{
+			fmt.Println( "json.Marshal( invoker_ret err :", err.Error())
+			return data_buf
+		}
+		data_buf = tmp
+	case map[string]interface{}:
+		tmp,err := json.Marshal( invoker_ret.(map[string]interface{}) )
+		if err!=nil{
+			fmt.Println( "json.Marshal( invoker_ret err :", err.Error())
+			return data_buf
+		}
+		data_buf = tmp
+	}
+	return data_buf
 }

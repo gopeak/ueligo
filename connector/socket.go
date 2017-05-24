@@ -17,7 +17,6 @@ import (
 	"strings"
 	"sync/atomic"
 	"time"
-	"strconv"
 )
 
 
@@ -94,8 +93,24 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 		if strings.Replace(string(buf), "\n", "", -1) == "" {
 			continue
 		}
-		WorkerResponseProcess(nil, conn, buf)
-		conn.Write(buf)
+		resp_obj,err := WorkerResponseProcess(nil, conn, buf)
+		if err != nil {
+			fmt.Println("WorkerResponseProcess resp_obj err: ", err.Error())
+			continue
+		}
+		fmt.Println("handleWorkerResponse  buf 1:", string(buf) )
+
+		protocolPack := new(protocol.Pack)
+		protocolPack.Init()
+		data_buf := util.Convert2Byte( resp_obj.Data )
+		fmt.Println("handleWorkerResponse  data_buf:", string(data_buf) )
+		resp_buf,err := protocolPack.WrapResp( resp_obj.Header.Cmd,resp_obj.Header.Sid,resp_obj.Header.SeqId,200,data_buf )
+
+		if err != nil {
+			fmt.Println("protocolPack.WrapResp  err: ", err.Error())
+			continue
+		}
+		conn.Write(resp_buf)
 
 	}
 }
@@ -174,6 +189,7 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 	}
 }
 
+
 func DirectInvoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 
 	task_obj := new(golang.TaskType).Init(conn, req_obj)
@@ -184,22 +200,7 @@ func DirectInvoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
 		// @todo 判断invoker_ret类型
-		var data_buf []byte
-		switch invoker_ret.(type) {      //多选语句switch
-		case string:
-			data_buf = []byte( invoker_ret.(string) )
-		case int:
-			data_buf = []byte(strconv.Itoa( invoker_ret.(int) ))
-		case int64:
-			data_buf  = util.Int64ToBytes( invoker_ret.(int64) )
-		case float32:
-			data_buf  = util.Float32ToByte( invoker_ret.(float32) )
-		case float64:
-			data_buf  = util.Float64ToByte( invoker_ret.(float64) )
-		case golang.ReturnType:
-			var ret golang.ReturnType
-			data_buf,_  = json.Marshal( ret )
-		}
+		data_buf := util.Convert2Byte( invoker_ret )
 
 		buf,_ := protocolPacket.WrapResp( req_obj.Header.Cmd, req_obj.Header.Sid, req_obj.Header.SeqId , 200, data_buf )
 		conn.Write( buf )
@@ -225,7 +226,7 @@ func DirectInvoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
+	//  认证检查,
 	if !global.IsAuthCmd(req_obj.Header.Cmd) && !area.CheckSid(req_obj.Header.Sid) {
 		area.FreeConn(conn, req_obj.Header.Sid)
 		err = errors.New("认证失败")

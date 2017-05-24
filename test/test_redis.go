@@ -4,8 +4,7 @@ import (
 	"flag"
 	"fmt"
 	"time"
-
-	"morego/lib/garyburd/redigo/redis"
+	"github.com/garyburd/redigo/redis"
 )
 
 var (

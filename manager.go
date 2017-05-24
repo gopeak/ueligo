@@ -26,28 +26,14 @@ func init_global() {
 	global.Qps = 0
 
 	// 先在global声明,再使用make函数创建一个非nil的map，nil map不能赋值
-	global.Channels = make(map[string]string)
 	global.AuthCmds = make([]string,0)
-
-	// global.RpcChannels  =  make(map[string] *z_type.ChannelRpcType )
-
 	global.SyncUserConns = syncmap.New()
 	global.SyncUserSessions = syncmap.New()
-	global.SyncRpcChannelConns =  syncmap.New()
-	global.SyncRpcChannelWsConns =  syncmap.New()
-
-	global.SyncUserWebsocketConns = syncmap.New()
 	global.SyncUserJoinedChannels = syncmap.New()
-	global.SyncGlobalChannelConns = syncmap.New()
-	global.SyncGlobalChannelWsConns = syncmap.New()
-
-	global.SyncCrons = syncmap.New()
-	global.PackSplitType = global.Config.PackType
 	global.SingleMode = global.Config.SingleMode
 	global.AuthCmds = global.Config.Connector.AuthCcmds
 
 	global.InitWorkerAddr()
-
 }
 
 /**
@@ -69,7 +55,7 @@ func main() {
 	go hub.HubServer()
 
 	// 预创建多个场景
-	go area.InitArea()
+	go area.InitConfigAreas()
 
 	// 启动worker
 	//go start_php_worker()

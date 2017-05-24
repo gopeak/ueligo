@@ -7,6 +7,7 @@ import (
 	"morego/golog"
 	"strings"
 
+	"fmt"
 )
 
 
@@ -36,12 +37,13 @@ func (this TaskType)Auth(  ) ReturnType {
 
 func (this TaskType)Push(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
+	//sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
+	//b ,_ := jason.NewObjectFromBytes( []byte(this.Data.(string)))
 
-	data := this.Data.(map[string]interface{})
-	to_sid := data["sid"].(string)
-
-	sdk.Push(to_sid, this.Sid, data )
+	//data := this.Data.(map[string]interface{})
+	//to_sid,_ := b.GetString("sid")
+	fmt.Println( this.Data.(string) )
+	//sdk.Push(to_sid, this.Sid, nil )
 
 	return "";
 
@@ -72,6 +74,7 @@ func (this TaskType)Broadcast(  ) interface{}{
 func (this TaskType)GetUserSession(   ) interface{} {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+
 	return sdk.GetSession( this.Sid )
 
 }

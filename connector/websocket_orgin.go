@@ -19,6 +19,7 @@ import (
 	"strings"
 	"sync/atomic"
 	"encoding/json"
+	"morego/util"
 )
 
 func WebsocketConnector(ip string, port int) {
@@ -54,7 +55,9 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 
 	max_conns = int32(global.Config.Connector.MaxConections)
 	if max_conns > 0 && global.SumConnections > max_conns {
-		wsconn.Write([]byte(global.ERROR_MAX_CONNECTIONS))
+		protocolJson := new(protocol.Json)
+		protocolJson.Init()
+		protocolJson.WrapRespErr( global.ERROR_MAX_CONNECTIONS )
 		return
 
 	}
@@ -132,12 +135,12 @@ func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 	}
 }
 
-func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte) {
+func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte) (*protocol.ResponseRoot, error) {
 
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
-	resp_obj, _ := protocolJson.GetRespObj(buf)
-	//fmt.Println("handleWorkerResponse resp_obj: ", resp_obj )
+	resp_obj, err := protocolJson.GetRespObj(buf)
+	fmt.Println("handleWorkerResponse resp_obj.Data: ", resp_obj.Data )
 
 	if global.IsAuthCmd(resp_obj.Header.Cmd) {
 		data := resp_obj.Data.(map[string]interface{})
@@ -153,6 +156,9 @@ func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte
 			fmt.Println("handleWorkerResponse AuthCmd sid: ", resp_obj.Header.Cmd, _sid )
 		}
 	}
+
+	return resp_obj, err
+
 }
 
 func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interface{} {
@@ -164,8 +170,8 @@ func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interfa
 	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
 		protocolJson := new(protocol.Json)
 		protocolJson.Init()
-		// @todo 判断invoker_ret类型
-		resp_obj:= protocolJson.WrapRespObj( req_obj ,invoker_ret, 200 )
+		data_buf := util.Convert2Byte( invoker_ret )
+		resp_obj:= protocolJson.WrapRespObj( req_obj ,data_buf, 200 )
 		buf,_ := json.Marshal(resp_obj)
 		wsconn.Write( buf )
 

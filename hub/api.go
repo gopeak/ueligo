@@ -149,9 +149,9 @@ func (api *Api)RemoveChannel(id string) bool {
 
 func (api *Api)GetChannels() string {
 
-	buf, err := json_orgin.Marshal(global.Channels)
+	buf, err := json_orgin.Marshal(area.Areas)
 	if( err!=nil ){
-		return "{}"
+		return "[]"
 	}
 	return string(buf)
 

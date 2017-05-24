@@ -5,7 +5,7 @@
 # configuring many of the aspects of Zeromore behavior.
 
 	 
-    name 		=	"zeromore server" 
+    name 		=	"ueli server"
     enable 		= 	true 
     status 		= 	"dev"
     version		=	"1.0"
@@ -43,10 +43,14 @@
 		mysql_port 	= 3306
 		mysql_password = ""
 
+	[worker]
+        servers = [
+                ["127.0.0.1","8001" ,"go"],
+                ["127.0.0.1","8002" ,"go"] ,
+                ["127.0.0.1","8003" ,"go"] ]
+                #["192.168.3.254", "8002","php"]
+        to_hub = ["127.0.0.1" ,"7302"]
 
-	[worker_server]
-	    servers = [ ["127.0.0.1","8001" ,"go"],  ["127.0.0.1","8002" ,"go"] , ["127.0.0.1","8003" ,"go"] ]  #["192.168.3.254", "8002","php"]
-	    to_hub = ["127.0.0.1" ,"7302"]
 	[hub] 
     	hub_host = "127.0.0.1" 
     	hub_port = "7302" 

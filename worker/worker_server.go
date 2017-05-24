@@ -26,12 +26,10 @@ type WorkerConfigType struct {
 	RpcType      string		`toml:"rpc_type"`
 	SingleMode   bool	  	`toml:"single_mode"`
 	Servers [][]string       	`toml:"servers"`
-	ToHub []string  		`toml:"to_hub"`
+	ToHub []string  		`toml:"connect_to_hub"`
 	//Mysql MysqlConfigType 		`toml:"mysql"`
 
 }
-
-
 
 
 var WorkerConfig   WorkerConfigType
@@ -40,7 +38,7 @@ var WorkerConfig   WorkerConfigType
 func InitWorkerServer() {
 
 	var err error
-	_, err = toml.DecodeFile("worker/worker.toml", &WorkerConfig )
+	_, err = toml.DecodeFile("worker.toml", &WorkerConfig )
 	if  err != nil {
 		fmt.Println("toml.DecodeFile error:", err.Error())
 		return
@@ -62,7 +60,6 @@ func InitWorkerServer() {
 	time.Sleep( 1*time.Second)
 	golang.InitReqHubPool()
 }
-
 
 
 /**
@@ -118,7 +115,7 @@ func handleWorker(conn *net.TCPConn) {
 			conn.Close()
 			break
 		}
-		//fmt.Println( "HandleWorkerStr str: ",str)
+		fmt.Println( "HandleWorkerStr str: ",string(buf))
 		go func(buf []byte, conn *net.TCPConn) {
 
 			protocolJson := new(protocol.Json)

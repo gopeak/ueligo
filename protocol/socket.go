@@ -35,10 +35,10 @@ func EncodePacket(  _type string, header []byte,  payload []byte) ( []byte ,erro
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println( "set totalsize" , totalsize )
+	//fmt.Println( "set totalsize" , totalsize )
 	_type_int,err:=strconv.Atoi(_type)
 	// set type
-	err = binary.Write( pkg, binary.LittleEndian, _type_int )
+	err = binary.Write( pkg, binary.LittleEndian, uint32(_type_int) )
 	if err != nil {
 		return nil, err
 	}
@@ -48,7 +48,7 @@ func EncodePacket(  _type string, header []byte,  payload []byte) ( []byte ,erro
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println( "set theadersize" , headersize )
+	//fmt.Println( "set headersize" , headersize )
 
 	// set header
 	err = binary.Write( pkg, binary.LittleEndian, header)
@@ -75,7 +75,7 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, error) {
 	if err != nil {
 		return 0,nil,nil,errors.New("read total size error") // errors.Annotate(err, "read total size")
 	}
-	fmt.Println( "totalsize" , totalsize)
+	//fmt.Println( "totalsize" , totalsize)
 	if totalsize < 12 {
 		return 0,nil, nil,errors.New( fmt.Sprintf("bad packet. totalsize:%d", totalsize))
 	}
@@ -90,15 +90,15 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, error) {
 	}
 
 	_type :=   uint32(pack[4] )
-	fmt.Println( "type:" ,_type )
+	//fmt.Println( "type:" ,_type )
 
 	headersize =   uint32(pack[8] )
-	fmt.Println( "headersize"  ,headersize )
+	//fmt.Println( "headersize"  ,headersize )
 	header :=  pack[12:headersize+12]
 
 	payload := pack[(12+headersize):(totalsize+16)]
-	fmt.Println( "header:" , string(header))
-	fmt.Println( "payload:" ,  string(payload) )
+	//fmt.Println( "header:" , string(header))
+	//fmt.Println( "payload:" ,  string(payload) )
 	return _type,header,payload, nil
 }
 
@@ -138,14 +138,16 @@ func (this *Pack) GetReqHeaderObj(  header []byte) (*ReqHeader, error) {
 
 func (this *Pack) GetReqObj( _type uint32 ,header []byte, data []byte ) (*ReqRoot, error) {
 
+	var req_header ReqHeader
 	stb := &ReqRoot{}
 
 	stb.Type = fmt.Sprintf( "%d", _type )
-	err :=json.Unmarshal(header, stb.Header)
+	err :=json.Unmarshal(header, &req_header)
 	if err!=nil {
 		return stb, err
 	}
-	err = json.Unmarshal(data, stb.Data)
+	stb.Header = req_header
+	stb.Data = data
 	//this.ProtocolObj.ReqObj = stb
 	return stb, err
 }
@@ -199,6 +201,7 @@ func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byt
 	req_obj_header.Token = token
 	req_obj_header.SeqId = seq
 	header_buf ,_ := json.Marshal( req_obj_header )
+	fmt.Println( "header_buf:", string(header_buf) )
 	return  EncodePacket( TypeReq, header_buf, data  )
 
 
@@ -210,13 +213,9 @@ func (this *Pack) WrapResp( cmd, req_sid string, seq int, status int,  data []by
 	resp_header_obj.Cmd = cmd
 	resp_header_obj.Sid = req_sid
 	resp_header_obj.SeqId = seq
-
 	resp_header_obj.Status = status
-	this.ProtocolObj.RespObj.Header =resp_header_obj
-	this.ProtocolObj.RespObj.Data = data
-	this.ProtocolObj.RespObj.Type = TypeResp
 	header_buf ,_ := json.Marshal( resp_header_obj )
-	return  EncodePacket(  TypeReq,header_buf, data  )
+	return  EncodePacket( TypeResp, header_buf, data  )
 
 }
 

@@ -30,7 +30,8 @@ func (this *Json) GetReqObj(data []byte) (*ReqRoot, error) {
 func (this *Json) GetRespObj(data []byte) (*ResponseRoot, error) {
 	this.Data = data
 	stb := &ResponseRoot{}
-	err := json.Unmarshal(data, stb)
+	err := json.Unmarshal(data,  stb)
+
 	//this.ProtocolObj.RespObj = stb
 	return stb, err
 }

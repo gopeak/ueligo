@@ -19,7 +19,7 @@ type configType struct {
 	Admin        admin        `toml:"admin"`
 	Connector    connector    `toml:"connector"`
 	Object       object       `toml:"object"`
-	WorkerServer workerServer `toml:"worker_server"`
+	WorkerServer workerServer `toml:"worker"`
 	Hub          hub          `toml:"hub"`
 	Area         area         `toml:"area"`
 }
@@ -54,8 +54,8 @@ type object struct {
 }
 
 type workerServer struct {
-	Servers [][]interface{} `toml:"servers"`
-	ToHub []string  `toml:"to_hub"`
+	Servers [][]string `toml:"servers"`
+	ToHub []string 		 `toml:"to_hub"`
 }
 
 type hub struct {
@@ -69,12 +69,22 @@ type area struct {
 
 var Config configType
 
+var WorkerConfig     WorkerConfigType
+
 func InitConfig() {
 
 	if _, err := toml.DecodeFile("config.toml", &Config); err != nil {
 		fmt.Println("toml.DecodeFile error:", err)
 		return
 	}
+	_, err := toml.DecodeFile("worker.toml", &WorkerConfig )
+	if  err != nil {
+		fmt.Println("toml.DecodeFile error:", err.Error())
+		return
+	}
+	Config.WorkerServer.Servers = WorkerConfig.Servers
+	Config.WorkerServer.ToHub = WorkerConfig.ToHub
+
 
 }
 
@@ -83,11 +93,18 @@ func GetRandWorkerAddr() string  {
 	return  WorkerServers[rand_index]
 }
 
+type WorkerConfigType struct {
+
+	Servers [][]string       	`toml:"servers"`
+	ToHub []string  		`toml:"connect_to_hub"`
+
+}
+
 func InitWorkerAddr()   {
 
-	for _,data := range Config.WorkerServer.Servers{
-		worker_host, _ := data[0].(string)
-		worker_port_str, _ := data[1].(string)
+	for _,data := range WorkerConfig.Servers {
+		worker_host  := data[0]
+		worker_port_str  := data[1]
 		WorkerServers = append( WorkerServers ,worker_host + ":" + worker_port_str )
 	}
 }

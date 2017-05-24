@@ -99,7 +99,6 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
-
 		flatbuf := protocol.MakeHubResp(cmd,reqid,"",api.GetBase())
 		wrote_buf,_:=protocol.Packet( flatbuf )
 		n,errw := conn.Write( wrote_buf )

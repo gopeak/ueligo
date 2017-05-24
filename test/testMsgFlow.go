@@ -4,13 +4,13 @@ import (
 	"bufio"
 	"fmt"
 	"morego/protocol"
-	"morego/worker/golang"
+	//"morego/worker/golang"
 	"net"
 	"os"
 	"runtime"
 	"strconv"
 	"time"
-	"encoding/json"
+	"github.com/antonholmquist/jason"
 )
 
 var Conns   []*net.TCPConn
@@ -40,21 +40,32 @@ func createReqConns(num int64)  {
 		sid := strconv.FormatInt(time.Now().Unix(), 10)+strconv.Itoa(i)
 		token := ""
 		data :=  strconv.FormatInt(int64(time.Now().Unix()), 10)
-		buf,_ :=  protocolPack.WrapReq( "Auth", sid, token, i, []byte(data) )
+		buf,err :=  protocolPack.WrapReq( "Auth", sid, token, i, []byte(data) )
+		if err != nil {
+			fmt.Println(" protocolPack.WrapReq err: ", err.Error() )
+			continue
+		}
 		conn.Write( buf )
 		r := bufio.NewReader(conn)
 		for {
-			_, resp_header,resp_data,err :=  protocol.DecodePacket( r )
-			fmt.Println( "Auth:",  resp_header, resp_data )
+			_, _,resp_data,err :=  protocol.DecodePacket( r )
+			fmt.Println( "Auth:",   string(resp_data) )
+			json,_ := jason.NewObjectFromBytes( resp_data )
 
-			ret_obj := new(golang.ReturnType)
-			 json.Unmarshal( resp_data, ret_obj )
+			sid ,err:= json.GetString("sid")
 			if err != nil {
-				fmt.Println(" protocol.DecodePacket err: ", err.Error() )
+				fmt.Println("json.GetString(`sid`) err: ", err.Error() )
 				continue
 			}
-			Sids  = append(  Sids, ret_obj.Sid )
-			Tokens =  append(  Tokens, ret_obj.Ret )
+			token ,err:= json.GetString("msg")
+			if err != nil {
+				fmt.Println("json.GetString(`token`) err: ", err.Error() )
+				continue
+			}
+
+			fmt.Println( "Auth ret_obj sid:", sid  )
+			Sids  = append(  Sids, sid )
+			Tokens =  append(  Tokens,token )
 			break
 		}
 	}
@@ -80,15 +91,16 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 	for {
 
 		ptype, resp_header,resp_data,err :=  protocol.DecodePacket( reader )
-		fmt.Println( "protocol.DecodePacket:",  resp_header, resp_data )
+		//fmt.Println( "protocol.DecodePacket:",  string(resp_header), string(resp_data) )
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())
 			break
 		}
 		_type := fmt.Sprintf("%d",ptype)
+		fmt.Println( "_type:",_type )
 		success++
 
-		if( _type==protocol.TypeReply ){
+		if( _type==protocol.TypeResp ){
 			resp_header_obj,msg_err := protocolPack.GetRespHeaderObj( resp_header )
 			if msg_err != nil {
 				fmt.Println("msg error: ", msg_err.Error() )

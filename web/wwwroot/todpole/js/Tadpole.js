@@ -68,7 +68,6 @@ var Tadpole = function() {
 			}
 		}
 		else if(e.which == 2) {
-			//todo:open menu
 			e.preventDefault();
             return true;
 		}

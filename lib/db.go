@@ -36,12 +36,13 @@ func (this *Mysql) Connect() (bool,error){
 	var err error
 	var config   MysqlConfigType
 	if( !this.Connected ){
-		_, err = toml.DecodeFile("worker/worker.toml", &config )
+		_, err = toml.DecodeFile("worker.toml", &config )
 		if  err != nil {
 			fmt.Println("toml.DecodeFile error:", err.Error())
 			this.Connected = false
 			return false, err
 		}
+		fmt.Println( "config:",config )
 		connect_str := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?timeout=%ss&collation=%s",config.User,
 			config .Password,config .Host,config .Port,config.Database,config.Timeout,config.Charset)
 		fmt.Println( "connect_str:",connect_str )
