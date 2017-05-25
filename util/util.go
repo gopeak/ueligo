@@ -46,6 +46,18 @@ func DecodeJsonStr(str string) string {
 	return str
 }
 
+
+func Int2String( from int ) string{
+	str := strconv.Itoa(from)
+	return str
+}
+
+func IntFormat2String( from int ) string{
+	str := fmt.Sprintf("%d",from)
+	return str
+}
+
+
 func RandInt64(min,max int64) int64{
 	maxBigInt:=big.NewInt(max)
 	i,_:=rand.Int(rand.Reader,maxBigInt)

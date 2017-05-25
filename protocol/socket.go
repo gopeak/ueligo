@@ -66,27 +66,27 @@ func EncodePacket(  _type string, header []byte,  payload []byte) ( []byte ,erro
 }
 
 
-func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, error) {
+func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, []byte, error) {
 	var totalsize , headersize uint32
 
 	lengthByte, _ := r.Peek(4)
 	lengthBuff := bytes.NewBuffer(lengthByte)
 	err := binary.Read(lengthBuff, binary.LittleEndian, &totalsize)
 	if err != nil {
-		return 0,nil,nil,errors.New("read total size error") // errors.Annotate(err, "read total size")
+		return 0,nil,nil,nil,errors.New("read total size error") // errors.Annotate(err, "read total size")
 	}
 	//fmt.Println( "totalsize" , totalsize)
 	if totalsize < 12 {
-		return 0,nil, nil,errors.New( fmt.Sprintf("bad packet. totalsize:%d", totalsize))
+		return 0,nil, nil,nil,errors.New( fmt.Sprintf("bad packet. totalsize:%d", totalsize))
 	}
 
 	pack := make([]byte, 16+int(totalsize))
 	_, err = r.Read(pack)
 	if err != nil {
-		return 0,nil,nil, err
+		return 0,nil,nil,nil, err
 	}
 	if len(pack)<4 {
-		return 0,nil,nil, errors.New("read headersize error")
+		return 0,nil,nil,nil, errors.New("read headersize error")
 	}
 
 	_type :=   uint32(pack[4] )
@@ -99,7 +99,7 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, error) {
 	payload := pack[(12+headersize):(totalsize+16)]
 	//fmt.Println( "header:" , string(header))
 	//fmt.Println( "payload:" ,  string(payload) )
-	return _type,header,payload, nil
+	return _type,header,payload,pack, nil
 }
 
 
@@ -121,7 +121,7 @@ func (this *Pack) Init() *Pack {
 func (this *Pack) GetReqObjByReader( reader *bufio.Reader ) (*ReqRoot, error) {
 
 	stb := &ReqRoot{}
-	_type,header,data,err := DecodePacket( reader )
+	_type,header,data,_,err := DecodePacket( reader )
 	if err!=nil {
 		return stb, err
 	}

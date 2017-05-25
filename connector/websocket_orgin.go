@@ -196,21 +196,27 @@ func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interfa
 func wsDspatchMsg(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn) (int, error) {
 
 	var err error
-	//  认证检查, @todo 通过sid和worker判断非认证接口不能提交到worker中
+	// 认证检查,
 	if !global.IsAuthCmd(req_obj.Header.Cmd) && !area.CheckSid(req_obj.Header.Sid) {
 		area.FreeWsConn(wsconn, req_obj.Header.Sid)
 		err = errors.New("认证失败")
 		return 0, err
 	}
+	// 判断单机模式下不需要请求worker
 	if global.SingleMode {
 		wsDirectInvoker( wsconn ,req_obj )
 		return  1, nil
 	}
-	buf, _ := json.Marshal(req_obj)
-	buf = append(buf, '\n')
-
-
-	// 提交给worker  @todo判断单机模式下不需要请求worker
+	data_buf, _ := json.Marshal(req_obj.Data)
+	protocolPack := new(protocol.Pack)
+	protocolPack.Init()
+	buf,_ := protocolPack.WrapReq(
+		req_obj.Header.Cmd,
+		req_obj.Header.Sid,
+		req_obj.Header.Token,
+		req_obj.Header.SeqId,
+		data_buf)
+	// 提交给worker
 	if req_conn != nil {
 		go req_conn.Write(buf)
 	}

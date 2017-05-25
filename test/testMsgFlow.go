@@ -48,7 +48,7 @@ func createReqConns(num int64)  {
 		conn.Write( buf )
 		r := bufio.NewReader(conn)
 		for {
-			_, _,resp_data,err :=  protocol.DecodePacket( r )
+			_, _,resp_data,_,err :=  protocol.DecodePacket( r )
 			fmt.Println( "Auth:",   string(resp_data) )
 			json,_ := jason.NewObjectFromBytes( resp_data )
 
@@ -90,7 +90,7 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 
 	for {
 
-		ptype, resp_header,resp_data,err :=  protocol.DecodePacket( reader )
+		ptype, resp_header,resp_data,_,err :=  protocol.DecodePacket( reader )
 		//fmt.Println( "protocol.DecodePacket:",  string(resp_header), string(resp_data) )
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())

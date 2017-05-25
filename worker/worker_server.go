@@ -2,13 +2,12 @@ package worker
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"net"
 	"reflect"
 	"strconv"
-	"strings"
 	"time"
+	"morego/util"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
@@ -99,7 +98,7 @@ func handleWorker(conn *net.TCPConn) {
 	reader := bufio.NewReader(conn)
 
 	for {
-		buf, err := reader.ReadBytes('\n')
+		_type,header_buf,data_buf,_, err :=protocol.DecodePacket( reader )
 		if err != nil {
 			if err.Error() != "EOF" {
 				fmt.Println("HandleWork connection error: ", err.Error())
@@ -107,23 +106,23 @@ func handleWorker(conn *net.TCPConn) {
 			conn.Close()
 			break
 		}
-		if strings.Replace(string(buf), "\n", "", -1) == "" {
-			continue
-		}
-		if string(buf) == "ping" {
-			conn.Write([]byte("pong\n"))
+
+		if util.Int2String(int(_type)) == protocol.TypePing{
+			protocolPack := new(protocol.Pack)
+			protocolPack.Init()
+			protocolPack.WrapResp( protocol.TypePing,"",0,0,[]byte("pong") )
 			conn.Close()
 			break
 		}
-		fmt.Println( "HandleWorkerStr str: ",string(buf))
-		go func(buf []byte, conn *net.TCPConn) {
+		fmt.Println( "HandleWorkerStr str: ",string(header_buf), string(data_buf) )
+		go func(header_buf []byte, data_buf []byte,conn *net.TCPConn) {
 
-			protocolJson := new(protocol.Json)
-			protocolJson.Init()
-			req_obj, _ := protocolJson.GetReqObj(buf)
+			protocolPack := new(protocol.Pack)
+			protocolPack.Init()
+			req_obj, _ := protocolPack.GetReqObj( _type,header_buf, data_buf)
 			Invoker(conn, req_obj)
 
-		}(buf, conn)
+		}( header_buf, data_buf, conn)
 	}
 }
 
@@ -135,11 +134,10 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	//fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
 	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
-		protocolJson := new(protocol.Json)
-		protocolJson.Init()
-		protocolJson.WrapRespObj(req_obj, invoker_ret, 200 )
-		buf, _ := json.Marshal( protocolJson.ProtocolObj.RespObj )
-		buf = append(buf, '\n')
+		protocolPack := new(protocol.Pack)
+		protocolPack.Init()
+		invoker_ret_buf := util.Convert2Byte( invoker_ret )
+		buf, _ := protocolPack.WrapResp(req_obj.Header.Cmd,req_obj.Header.Sid ,req_obj.Header.SeqId,200, invoker_ret_buf )
 		conn.Write(buf)
 	}
 	if global.SingleMode {
@@ -156,7 +154,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	//fmt.Println("methodName:", methodName)
+	fmt.Println("methodName:", methodName)
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 
 	switch vtype := ret.Interface().(type) {

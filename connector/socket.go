@@ -2,9 +2,13 @@ package connector
 
 import (
 	"bufio"
-	"encoding/json"
 	"errors"
 	"fmt"
+	"net"
+	"os"
+	"strings"
+	"sync/atomic"
+	"time"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
@@ -12,11 +16,6 @@ import (
 	"morego/worker"
 	"morego/util"
 	"morego/worker/golang"
-	"net"
-	"os"
-	"strings"
-	"sync/atomic"
-	"time"
 )
 
 
@@ -127,7 +126,7 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 			conn.Close()
 			break
 		}
-		_,header, data, err := protocol.DecodePacket( reader )
+		_,header, data, _,err := protocol.DecodePacket( reader )
 		if err != nil {
 			conn.Close()
 			break
@@ -161,7 +160,7 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 			break
 		}
 
-		_type,header,data,err := protocol.DecodePacket( reader )
+		_type,header,data,all_buf,err := protocol.DecodePacket( reader )
 		if err!=nil {
 			golog.Error("SocketHandle protocolPacket.GetReqObjByReader err : "  + err.Error())
 			area.FreeConn(conn, last_sid)
@@ -174,7 +173,7 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 			break
 		}
 		last_sid = req_obj.Header.Sid
-		ret, ret_err := dispatchMsg( req_obj, conn, req_conn )
+		ret, ret_err := dispatchMsg( req_obj, conn, req_conn ,all_buf)
 		if ret_err != nil {
 			if ret < 0 {
 				fmt.Println(ret_err.Error())
@@ -223,7 +222,7 @@ func DirectInvoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 /**
  * 根据消息类型分发处理
  */
-func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn) (int, error) {
+func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCPConn, all_buf []byte) (int, error) {
 
 	var err error
 	//  认证检查,
@@ -237,12 +236,10 @@ func dispatchMsg(req_obj *protocol.ReqRoot, conn *net.TCPConn, req_conn *net.TCP
 		DirectInvoker( conn ,req_obj )
  		return  1, nil
 	}
-	buf, _ := json.Marshal(req_obj)
-	buf = append(buf, '\n')
 
 	// 提交给worker  @todo判断单机模式下不需要请求worker
 	if req_conn != nil {
-		go req_conn.Write(buf)
+		go req_conn.Write( all_buf )
 	}
 
 	return 1, nil

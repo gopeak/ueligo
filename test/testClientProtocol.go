@@ -52,7 +52,7 @@ func handleClientMsg(conn *net.TCPConn) {
 	fmt.Println("HandleConn client: ", conn.RemoteAddr() )
 	for {
 
-		_,header, data, err := protocol.DecodePacket( reader )
+		_,header, data,_, err := protocol.DecodePacket( reader )
 		fmt.Println("server recvice header: ", string(header), " data:", string(data))
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())
@@ -98,7 +98,7 @@ func client_side() {
 	fmt.Println("conn.Write:", string(buf) )
 	conn.Write( buf )
 	for {
-		_type,resp_header, resp_data, err := protocol.DecodePacket(reader)
+		_type,resp_header, resp_data,_, err := protocol.DecodePacket(reader)
 		if err != nil {
 			fmt.Println(" connection error: ", err.Error())
 			break

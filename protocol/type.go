@@ -12,17 +12,14 @@ const TypeBroatcast  = "3"
 const TypePush 	= "4"
 const  TypeError  	= "5"
 const  TypeReply	= "6"
+const  TypePing	= "7"
 
 type ProtocolType struct {
 
 	ReqObj ReqRoot
-
 	RespObj ResponseRoot
-
 	BroatcastObj BroatcastRoot
-
 	PushObj  PushRoot
-
 	Init func()
 
 }
