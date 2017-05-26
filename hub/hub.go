@@ -15,6 +15,8 @@ import (
 	"morego/protocol"
 	"strconv"
 	"time"
+	"encoding/json"
+	"morego/util"
 )
 
 /**
@@ -92,7 +94,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	//  Process messages as they arrive
 
-	cmd,_,reqid,data_buf :=protocol.ReadHubReq( msg )
+	cmd,from_sid,reqid,data_buf :=protocol.ReadHubReq( msg )
 	data := string( data_buf )
 
 	api := new(Api)
@@ -217,15 +219,22 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	if cmd == "ChannelAddSid" {
 		fmt.Println("ChannelKickSid", data )
-		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
+		data_buf = util.TrimX001( data_buf )
+		var map_data map[string]string
+		err_json := json.Unmarshal( data_buf ,&map_data )
+		//data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
-			golog.Error("Hub ChannelAddSid json err:",err_json.Error())
+			golog.Error("Hub ChannelAddSid json Unmarshal err:",err_json.Error())
 			return
 		}
-		sid,err1 := data_json.GetString("sid")
-		area_id,err2 := data_json.GetString("area_id")
-		if( err1!=nil || err2!=nil )  {
-			golog.Error("Hub ChannelAddSid json err:",err1.Error()+err2.Error() )
+		sid ,_ok1:= map_data["sid"]
+		area_id ,_ok2:= map_data["area_id"]
+		if( !_ok1 )  {
+			golog.Error("Hub ChannelAddSid json sid no found" )
+			return
+		}
+		if( !_ok2 )  {
+			golog.Error("Hub ChannelAddSid json area_id no found"  )
 			return
 		}
 		ret :=api.ChannelAddSid(sid, area_id )
@@ -238,6 +247,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	}
 	if cmd == "ChannelKickSid" {
 
+		data_buf = util.TrimX001( data_buf )
 		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub ChannelKickSid json err:",err_json.Error())
@@ -264,12 +274,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Push json err:",err_json.Error())
 			return
 		}
-		from_sid,err1 := data_json.GetString("from_sid")
-		to_sid,err2 := data_json.GetString("to_sid")
-		if err1!=nil    {
-			golog.Error("Hub Push json err:",err1.Error())
-			return
-		}
+		to_sid,err2 := data_json.GetString("sid")
 		if err2!=nil    {
 			golog.Error("Hub Push json err:",err2.Error())
 			return
@@ -302,17 +307,12 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Broatcast json err:",err_json.Error())
 			return
 		}
-		sid,err1 := data_json.GetString("sid")
-		area_sid,err2 := data_json.GetString("area_id")
-		if( err1!=nil )  {
-			golog.Error("Hub data_json json err:",err1.Error())
-			return
-		}
+		area_id,err2 := data_json.GetString("area_id")
 		if(  err2!=nil )  {
 			golog.Error("Hub data_json json err:",err2.Error() )
 			return
 		}
-		ret := api.Broadcast( sid, area_sid ,data_buf )
+		ret := api.Broadcast( from_sid, area_id ,data_buf )
 		str := "0"
 		if ret{
 			str = "1"

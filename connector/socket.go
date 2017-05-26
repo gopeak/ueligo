@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net"
 	"os"
-	"strings"
 	"sync/atomic"
 	"time"
 	"morego/area"
@@ -16,6 +15,7 @@ import (
 	"morego/worker"
 	"morego/util"
 	"morego/worker/golang"
+	"encoding/json"
 )
 
 
@@ -54,7 +54,6 @@ func listenAcceptTCP(listen *net.TCPListener) {
 		conn.SetKeepAlive(true)
 
 		// 获取随机worker服务地址
-
 		configAddr := global.GetRandWorkerAddr()
 		tcpAddr, err := net.ResolveTCPAddr("tcp4", configAddr)
 		if err != nil {
@@ -82,35 +81,43 @@ func handleWorkerResponse(conn *net.TCPConn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
 	for {
-		buf, err := reader.ReadBytes('\n')
-		//fmt.Println("worker_task response:", msg)
+		_type,header_buf,data_buf,all_buf, err := protocol.DecodePacket( reader )
 		if err != nil {
-			fmt.Println("handleWorkerResponse ", "error: ", err.Error())
+			fmt.Println("handleWorkerResponse protocol.DecodePacket err: ", err.Error())
 			req_conn.Close()
 			break
 		}
-		if strings.Replace(string(buf), "\n", "", -1) == "" {
-			continue
-		}
-		resp_obj,err := WorkerResponseProcess(nil, conn, buf)
-		if err != nil {
-			fmt.Println("WorkerResponseProcess resp_obj err: ", err.Error())
-			continue
-		}
-		fmt.Println("handleWorkerResponse  buf 1:", string(buf) )
+		responseProcess( conn, header_buf, data_buf )
+		fmt.Println("handleWorkerResponse  data :", _type, string(header_buf), string(data_buf) )
+		conn.Write( all_buf )
+	}
+}
 
-		protocolPack := new(protocol.Pack)
-		protocolPack.Init()
-		data_buf := util.Convert2Byte( resp_obj.Data )
-		fmt.Println("handleWorkerResponse  data_buf:", string(data_buf) )
-		resp_buf,err := protocolPack.WrapResp( resp_obj.Header.Cmd,resp_obj.Header.Sid,resp_obj.Header.SeqId,200,data_buf )
+func responseProcess( conn *net.TCPConn,  headerr_buf, data_buf []byte)  {
 
-		if err != nil {
-			fmt.Println("protocolPack.WrapResp  err: ", err.Error())
-			continue
+	protocolPack := new(protocol.Pack)
+	protocolPack.Init()
+	resp_header, err := protocolPack.GetRespHeaderObj(  headerr_buf )
+	if err!=nil{
+		fmt.Println("responseProcess protocolPack.GetRespHeaderObj err: ", err.Error(),string(data_buf)  )
+	}
+	//fmt.Println("responseProcess resp_obj.Data: ", string(data_buf) )
+
+	if global.IsAuthCmd(resp_header.Cmd) {
+
+		var ret golang.ReturnType
+		data_buf = util.TrimX001( data_buf )
+		err := json.Unmarshal( data_buf ,&ret)
+		if err!=nil{
+			fmt.Println("AuthCmd return json err: ", err.Error(),string(data_buf)  )
 		}
-		conn.Write(resp_buf)
-
+		fmt.Println("AuthCmd: ", ret.Ret,string(data_buf) )
+		if ret.Ret == "ok" {
+			if conn != nil {
+				area.ConnRegister( conn, ret.Sid )
+			}
+			fmt.Println("responseProcess AuthCmd sid: ", resp_header.Cmd, ret.Sid )
+		}
 	}
 }
 
@@ -119,10 +126,12 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 	//声明一个管道用于接收解包的数据
 	qps := 0 // make(chan int64, 0)
 	reader := bufio.NewReader(conn)
-
+	protocolPacket := new(protocol.Pack)
+	protocolPacket.Init()
 	for {
 		if !global.Config.Enable {
-			//conn.Write([]byte(fmt.Sprintf("%s\r\n", global.DISBALE_RESPONSE)))
+			buf,_ := protocolPacket.WrapResp( "Info", "", 0 , 200, []byte(global.DISBALE_RESPONSE) )
+			conn.Write( buf )
 			conn.Close()
 			break
 		}
@@ -137,8 +146,7 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 		}
 		atomic.AddInt64(&global.Qps, 1)
 
-		protocolPacket := new(protocol.Pack)
-		protocolPacket.Init()
+
 		req_obj,err := protocolPacket.GetReqHeaderObj( header )
 		buf,_ := protocolPacket.WrapResp( "GetUserSession", req_obj.Sid, req_obj.SeqId , 200, data )
 		conn.Write( buf )
@@ -156,13 +164,14 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 	protocolPacket.Init()
 	for {
 		if !global.Config.Enable {
+			buf,_ := protocolPacket.WrapResp( "Info", last_sid, 0 , 200, []byte(global.DISBALE_RESPONSE) )
+			conn.Write( buf )
 			area.FreeConn(conn, last_sid)
 			break
 		}
-
 		_type,header,data,all_buf,err := protocol.DecodePacket( reader )
 		if err!=nil {
-			golog.Error("SocketHandle protocolPacket.GetReqObjByReader err : "  + err.Error())
+			golog.Error("SocketHandle protocol.DecodePacket err : "  + err.Error())
 			area.FreeConn(conn, last_sid)
 			break
 		}

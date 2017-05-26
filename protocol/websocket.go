@@ -2,6 +2,7 @@ package protocol
 
 import (
 	"encoding/json"
+	"fmt"
 )
 
 type Json struct {
@@ -19,9 +20,12 @@ func (this *Json) Init() *Json {
 	return this
 }
 
+
+
 func (this *Json) GetReqObj(data []byte) (*ReqRoot, error) {
 	this.Data = data
 	stb := &ReqRoot{}
+	fmt.Println( string(data) )
 	err := json.Unmarshal(data, stb)
 	//this.ProtocolObj.ReqObj = stb
 	return stb, err
@@ -52,7 +56,7 @@ func (this *Json) GetPushObj(data []byte) (*PushRoot, error) {
 	return stb, err
 }
 
-func (this *Json) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status int ) ResponseRoot {
+func (this *Json) WrapRespObj( req_obj *ReqRoot, invoker_ret []byte, status int ) ResponseRoot {
 
 	resp_header_obj := RespHeader{}
 	resp_header_obj.Cmd = req_obj.Header.Cmd
@@ -67,7 +71,7 @@ func (this *Json) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status
 	return this.ProtocolObj.RespObj
 }
 
-func (this *Json) WrapPushRespObj(to_sid string, from_sid string , data interface{}) PushRoot {
+func (this *Json) WrapPushRespObj(to_sid string, from_sid string , data []byte ) PushRoot {
 
 	push_header_obj := PushHeader{}
 	push_header_obj.Sid = from_sid
@@ -106,7 +110,7 @@ func (this *Json) WrapRespErr(err string) []byte {
 	resp_header_obj.Sid = ""
 	resp_header_obj.Status = 500
 	this.ProtocolObj.RespObj.Header =resp_header_obj
-	this.ProtocolObj.RespObj.Data = err
+	this.ProtocolObj.RespObj.Data = []byte(err)
 	this.ProtocolObj.RespObj.Type = TypeError
 
 	buf,_ := json.Marshal( this.ProtocolObj.RespObj )

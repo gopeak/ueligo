@@ -85,19 +85,23 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 	protocolPack:= new(protocol.Pack)
 	protocolPack.Init()
 	buf,_ :=  protocolPack.WrapReq( "GetUserSession", req_sid, token, 0, []byte(req_sid) )
-
-	conn.Write([]byte( buf ))
+	n,err := conn.Write([]byte( buf ))
+	if( n<=0 ) {
+		fmt.Println( " GetUserSession write size err:",n )
+	}
+	if( err!=nil ) {
+		fmt.Println( " GetUserSession write err:",err.Error() )
+	}
 
 	for {
 
 		ptype, resp_header,resp_data,_,err :=  protocol.DecodePacket( reader )
-		//fmt.Println( "protocol.DecodePacket:",  string(resp_header), string(resp_data) )
+		//fmt.Println( "protocol.DecodePacket:",ptype,  string(resp_header), string(resp_data) )
 		if err != nil {
 			fmt.Println("HandleConn connection error: ", err.Error())
 			break
 		}
 		_type := fmt.Sprintf("%d",ptype)
-		fmt.Println( "_type:",_type )
 		success++
 
 		if( _type==protocol.TypeResp ){
@@ -145,13 +149,13 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 
 		// 发送广播
 		if _type==protocol.TypeBroatcast  {
-			//fmt.Println("Broadcast:",msg_data)
+			fmt.Println("Broadcast:",string(resp_data))
 			resp_broatcast_obj,msg_err  := protocolPack.GetBroatcastHeaderObj( resp_header )
 			if msg_err != nil {
 				fmt.Println("broadcast reply error: ", msg_err.Error(),resp_broatcast_obj)
 				continue
 			}
-			fmt.Println( "broadcast recvice:",resp_broatcast_obj, string(resp_data)  )
+			 //fmt.Println( "broadcast recvice:",resp_broatcast_obj, string(resp_data)  )
 			buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
 			conn.Write([]byte( buf ))
 		}

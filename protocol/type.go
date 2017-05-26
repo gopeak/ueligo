@@ -27,13 +27,15 @@ type ProtocolType struct {
 type BaseRoot struct {
 	Type string             `json:"type"`
 	Header  interface{}    `json:"header"`
-	Data interface{}       `json:"data"`
+	Data []byte         	 `json:"data"`
 }
 
 type ReqRoot struct {
 	Type string            	 `json:"type"`
 	Header  ReqHeader        `json:"header"`
-	Data interface{}     	 `json:"data"`
+	_Data interface{}     	 `json:"data"`
+	Data []byte		 `json:"data"`
+
 }
 
 type ReqHeader struct {
@@ -50,7 +52,7 @@ type ReqHeader struct {
 type ResponseRoot struct {
 	Type string             `json:"type"`
 	Header  RespHeader     	`json:"header"`
-	Data interface{}      `json:"data"`
+	Data []byte             `json:"data"`
 }
 
 type RespHeader struct {
@@ -58,13 +60,13 @@ type RespHeader struct {
 	SeqId  int           `json:"seq_id"`
 	Sid    string        `json:"sid"`
 	Gzip    bool         `json:"gzip"`
-	Status int 		`json:"status"`
+	Status int 	     `json:"status"`
 }
 
 type BroatcastRoot struct {
 	Type string             	`json:"type"`
 	Header  BroatcastHeader          `json:"header"`
-	Data interface{}     		`json:"data"`
+	Data    []byte   		`json:"data"`
 }
 
 type BroatcastHeader struct {
@@ -74,8 +76,8 @@ type BroatcastHeader struct {
 
 type PushRoot struct {
 	Type string             `json:"type"`
-	Header  PushHeader           `json:"header"`
-	Data interface{}     `json:"data"`
+	Header  PushHeader      `json:"header"`
+	Data []byte      `json:"data"`
 }
 
 type PushHeader struct {

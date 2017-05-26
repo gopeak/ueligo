@@ -11,7 +11,6 @@ import (
 	"morego/protocol"
 	"morego/hub"
 	"bufio"
-	"encoding/json"
 	"morego/lib/syncmap"
 	"morego/util"
 	"strconv"
@@ -30,7 +29,7 @@ type Sdk struct {
 
 	Reqid int
 
-	Data interface{}
+	Data []byte
 
 }
 
@@ -51,7 +50,7 @@ var ReqSeqCallbacks *syncmap.SyncMap
 var ReqHubConns  =  make( []*net.TCPConn, 0 )
 var InitialCap  int
 
-func (sdk *Sdk) Init(cmd string,sid string,reqid int,data interface{}) *Sdk{
+func (sdk *Sdk) Init(cmd string,sid string,reqid int,data []byte) *Sdk{
 
 	sdk.Cmd = cmd
 	sdk.Sid = sid
@@ -174,14 +173,14 @@ func (sdk *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCall
 	req_hub_conn  := ReqHubConns[index]
 
 	//req_hub_conn,err := HubConnsPool.Get()
-	fmt.Println( "ReqHubConns:", ReqHubConns )
+	//fmt.Println( "ReqHubConns:", ReqHubConns )
 	if( req_hub_conn==nil  ){
 		golog.Error( "req_hub_conn is nil "  )
 		return "", false
 	}
 	callback_key:=req_cmd+ req_id
 	ReqSeqCallbacks.Set( callback_key, handler )
-	fmt.Println( "ReqHubAsync:", callback_key )
+	//fmt.Println( "ReqHubAsync:", callback_key )
 	_,err := req_hub_conn.Write( req_buf )
 	if err!=nil {
 		golog.Error( "req_hub_conn.Write err:" , err.Error() )
@@ -196,7 +195,7 @@ func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
 	req_buf := protocol.MakeHubReq( req_cmd, sdk.Sid, req_id, data )
 	req_buf,_ = protocol.Packet( req_buf )
-	fmt.Println( "req_str:", string(req_buf) )
+	//fmt.Println( "req_str:", string(req_buf) )
 
 	sdk.connect()
 	_,err:=sdk.HubConn.Write( req_buf )
@@ -204,7 +203,13 @@ func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 		return "sdk.HubConn.Write err",false
 	}
 	reader := bufio.NewReader(sdk.HubConn)
-
+	defer func() {
+		err := recover()
+		if err != nil {
+			sdk.HubConn.Close()
+			fmt.Println( "ReqHub err :", err)
+		}
+	}()
 	for {
 		buf ,err := protocol.Unpack( reader)
 		select {
@@ -473,21 +478,18 @@ func (sdk *Sdk) ChannelKickSid( sid string, area_id string) bool {
 
 }
 
-func (sdk *Sdk) Push( from_sid string ,to_sid string , data  map[string]interface{} ) bool {
+func (sdk *Sdk) Push( from_sid string ,to_sid string , data  []byte ) bool {
 
-	data["from_sid"] = from_sid
-	data["to_sid"] = to_sid
-	json,_:= json.Marshal( data )
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Push ( from_sid,to_sid, string(json)  )
+		return api.Push ( from_sid,to_sid, string(data)  )
 	}
 
-	return sdk.PushHub( "Push",string(json) )
+	return sdk.PushHub( "Push",string(data) )
 
 }
 
-func (sdk *Sdk) PushBySids(from_sid string,to_sids []string, data  map[string]interface{}) bool {
+func (sdk *Sdk) PushBySids(from_sid string,to_sids []string, data []byte) bool {
 
 	for _,to_sid:=   range to_sids {
 		sdk.Push(from_sid, to_sid, data )
@@ -496,16 +498,13 @@ func (sdk *Sdk) PushBySids(from_sid string,to_sids []string, data  map[string]in
 
 }
 
-func (sdk *Sdk) Broatcast(sid string ,area_id string,  data  map[string]interface{} ) bool {
+func (sdk *Sdk) Broatcast(sid string ,area_id string,  data []byte ) bool {
 
-	data["sid"] = sid
-	data["area_id"] = area_id
-	json,_:= json.Marshal( data )
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Broadcast( sid,area_id, json  )
+		return api.Broadcast( sid,area_id, data  )
 	}
-	return sdk.PushHub( "Broatcast",string(json) )
+	return sdk.PushHub( "Broatcast",string(data) )
 
 }
 

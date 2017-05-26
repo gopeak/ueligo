@@ -5,9 +5,7 @@ import (
 	_"fmt"
 	"morego/area"
 	"morego/golog"
-	"strings"
-
-	"fmt"
+	"github.com/antonholmquist/jason"
 )
 
 
@@ -19,34 +17,28 @@ func (this TaskType)Auth(  ) ReturnType {
 
 	sid:=area.CreateSid()
 	if(   sid!=""  ){
-		//json_ret := fmt.Sprintf(`{"ret":"ok","type":"%s","id":"%s"  }`,"welcome",sid)
 		ret := ReturnType{ "ok","welcome" ,sid,"" }
 		return ret
 	}else{
-		//json_ret := fmt.Sprintf(`{"ret":"failed","type":"%s","id":"%s" }`,"failed",sid)
-
 		ret := ReturnType{ "failed","failed" ,sid,"" }
 		return ret
 	}
-
-
-
 }
-
 
 
 func (this TaskType)Push(   ) interface{} {
 
-	//sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
-	//b ,_ := jason.NewObjectFromBytes( []byte(this.Data.(string)))
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
-	//data := this.Data.(map[string]interface{})
-	//to_sid,_ := b.GetString("sid")
-	fmt.Println( this.Data.(string) )
-	//sdk.Push(to_sid, this.Sid, nil )
+	from_sid := this.Sid
+	json_obj ,err:= jason.NewObjectFromBytes( this.Data )
+	if err!=nil{
+		return ""
+	}
+	to_sid ,_:= json_obj.GetString("sid")
+	sdk.Push( from_sid, to_sid, this.Data  )
 
-	return "";
-
+	return ""
 }
 
 
@@ -55,16 +47,17 @@ func (this TaskType)Broadcast(  ) interface{}{
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
 	from_sid := this.Sid
-	data := this.Data.(map[string]interface{})
-	area_id := data["area_id"].(string)
-	to_data := data["data"].(string)
+	json_obj ,err:= jason.NewObjectFromBytes( this.Data )
+	if err!=nil{
+		return ""
+	}
+	area_id ,_:= json_obj.GetString("area_id")
 
-	to_data = strings.Replace(to_data, "\n", "", -1)
 	if( area_id=="global" ) {
 		golog.Error("broatcast global failed")
 		return ""
 	}else{
-		sdk.Broatcast( from_sid, area_id, data )
+		sdk.Broatcast( from_sid, area_id, this.Data )
 	}
 	return ""
 }
@@ -73,7 +66,7 @@ func (this TaskType)Broadcast(  ) interface{}{
 
 func (this TaskType)GetUserSession(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
 
 	return sdk.GetSession( this.Sid )
 
@@ -81,9 +74,9 @@ func (this TaskType)GetUserSession(   ) interface{} {
 
 func (this TaskType)JoinChannel(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 	//fmt.Println( "JoinChannel",this.Data  )
-	if(   sdk.ChannelAddSid( this.Sid ,this.Data.(string) ) ){
+	if(   sdk.ChannelAddSid( this.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -94,9 +87,9 @@ func (this TaskType)JoinChannel(   ) interface{} {
 
 func (this TaskType)LeaveChannel(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
-	if(   sdk.ChannelKickSid( this.Sid ,this.Data.(string) ) ){
+	if(   sdk.ChannelKickSid( this.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -107,7 +100,7 @@ func (this TaskType)LeaveChannel(   ) interface{} {
 
 func (this TaskType)KickSelf(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 
 	if(   sdk.Kick( this.Sid ) ){
 		return "ok"
@@ -121,7 +114,7 @@ func (this TaskType)KickSelf(   ) interface{} {
 
 func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
 	return sdk.GetBase()
 
 }

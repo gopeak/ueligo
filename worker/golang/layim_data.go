@@ -364,7 +364,7 @@ func  JoinChannel(db *sql.DB, uid int, sid string ) {
 			fmt.Println(505, "服务器错误@" + err.Error())
 			return
 		}
-		sdk:=new(Sdk).Init("JoinChannel",sid,0,"" )
+		sdk:=new(Sdk).Init("JoinChannel",sid,0,[]byte("") )
 		sdk.ChannelAddSid( sid ,channel_id )
 		//fmt.Println( "JoinChannel...",  sid ,channel_id )
 	}

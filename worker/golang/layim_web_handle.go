@@ -520,7 +520,7 @@ func ReqAddGroupHandler(w http.ResponseWriter, r *http.Request) {
 	record["remark"] = remark
 
 	// 订阅群组消息
-	sdk:=new(Sdk).Init("JoinChannel",sid,0,"" )
+	sdk:=new(Sdk).Init("JoinChannel",sid,0,[]byte("") )
 	sdk.ChannelAddSid( sid ,channel_id )
 
 	root.Code = 0

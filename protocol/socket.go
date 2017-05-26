@@ -160,11 +160,17 @@ func (this *Pack) GetRespHeaderObj(  header []byte) (*RespHeader, error) {
 	return stb, err
 }
 
-func (this *Pack) GetRespObj(  data []byte) (*ResponseRoot, error) {
-	this.Data = data
+func (this *Pack) GetRespObj( _type uint32,  header []byte,  data []byte) (*ResponseRoot, error) {
+
+	var resp_header RespHeader
 	stb := &ResponseRoot{}
-	err := json.Unmarshal(data, stb)
-	//this.ProtocolObj.RespObj = stb
+	err :=json.Unmarshal(header, &resp_header)
+	if err!=nil {
+		return stb, err
+	}
+	stb.Type = fmt.Sprintf( "%d",_type )
+	stb.Header = resp_header
+	stb.Data = data
 	return stb, err
 }
 
@@ -201,7 +207,7 @@ func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byt
 	req_obj_header.Token = token
 	req_obj_header.SeqId = seq
 	header_buf ,_ := json.Marshal( req_obj_header )
-	fmt.Println( "header_buf:", string(header_buf) )
+	//fmt.Println( "header_buf:", string(header_buf) )
 	return  EncodePacket( TypeReq, header_buf, data  )
 
 
@@ -236,7 +242,7 @@ func (this *Pack) WrapRespErr( err string) ( []byte,error ) {
 }
 
 
-func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status int ) ResponseRoot {
+func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret []byte, status int ) ResponseRoot {
 
 	resp_header_obj := RespHeader{}
 	resp_header_obj.Cmd = req_obj.Header.Cmd
@@ -251,7 +257,7 @@ func (this *Pack) WrapRespObj( req_obj *ReqRoot, invoker_ret interface{}, status
 	return this.ProtocolObj.RespObj
 }
 
-func (this *Pack) WrapPushRespObj(to_sid string, from_sid string , data interface{}) PushRoot {
+func (this *Pack) WrapPushRespObj(to_sid string, from_sid string , data[]byte ) PushRoot {
 
 	push_header_obj := PushHeader{}
 	push_header_obj.Sid = from_sid

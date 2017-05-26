@@ -46,6 +46,26 @@ func DecodeJsonStr(str string) string {
 	return str
 }
 
+func TrimStr(str string) string {
+	str = strings.Replace(str, " ", "",  -1)
+	str = strings.Replace(str, "\n", "",  -1)
+	return str
+}
+
+
+func TrimX001(data_buf []byte) []byte {
+	for i, ch := range data_buf {
+
+		switch {
+		case ch > '~':   data_buf[i] = ' '
+		case ch == '\r':
+		case ch == '\n':
+		case ch == '\t':
+		case ch < ' ':   data_buf[i] = ' '
+		}
+	}
+	return data_buf
+}
 
 func Int2String( from int ) string{
 	str := strconv.Itoa(from)

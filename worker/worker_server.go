@@ -7,6 +7,7 @@ import (
 	"reflect"
 	"strconv"
 	"time"
+	"encoding/json"
 	"morego/util"
 	"morego/area"
 	"morego/global"
@@ -14,7 +15,6 @@ import (
 	"morego/protocol"
 	"morego/worker/golang"
 	"github.com/BurntSushi/toml"
-
 )
 
 
@@ -26,7 +26,6 @@ type WorkerConfigType struct {
 	SingleMode   bool	  	`toml:"single_mode"`
 	Servers [][]string       	`toml:"servers"`
 	ToHub []string  		`toml:"connect_to_hub"`
-	//Mysql MysqlConfigType 		`toml:"mysql"`
 
 }
 
@@ -131,13 +130,18 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	task_obj := new(golang.TaskType).Init(conn, req_obj)
 
 	invoker_ret := InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
-	//fmt.Println("invoker_ret", invoker_ret)
+	fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
 	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
 		protocolPack := new(protocol.Pack)
 		protocolPack.Init()
 		invoker_ret_buf := util.Convert2Byte( invoker_ret )
-		buf, _ := protocolPack.WrapResp(req_obj.Header.Cmd,req_obj.Header.Sid ,req_obj.Header.SeqId,200, invoker_ret_buf )
+		switch invoker_ret.(type) {
+		case golang.ReturnType:
+			tmp :=  invoker_ret.(golang.ReturnType)
+			invoker_ret_buf,_ = json.Marshal( tmp )
+		}
+		buf, _ := protocolPack.WrapResp( req_obj.Header.Cmd, req_obj.Header.Sid ,req_obj.Header.SeqId, 200, invoker_ret_buf )
 		conn.Write(buf)
 	}
 	if global.SingleMode {

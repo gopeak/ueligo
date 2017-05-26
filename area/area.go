@@ -20,6 +20,7 @@ import (
 	"morego/protocol"
 	z_type "morego/type"
 	"encoding/json"
+	"morego/util"
 )
 
 
@@ -77,6 +78,7 @@ func CreateChannel(area_id string, name string) {
 	area.Name = name
 	area.WsConns = syncmap.New()
 	area.Conns = syncmap.New()
+	AreasMap.Set( area_id,area)
 }
 
 // 删除一个场景
@@ -96,24 +98,23 @@ func RemovChannel(id string) {
 // 检查是否已经创建了场景
 func CheckChannelExist(area_id string) bool {
 
-	if ( AreasMap.Has(area_id) ) {
-		return true
-	}
-	return false
+	return AreasMap.Has(area_id)
 
 }
 
 func  ChannelAddSid(sid string, area_id string) bool {
 
+	area_id = util.TrimStr( area_id )
+	sid = util.TrimStr( sid )
 	exist := CheckChannelExist(area_id)
-	//fmt.Println( area_id," CheckChannelExist:", exist )
+	fmt.Println( area_id," CheckChannelExist:", exist )
 	if !exist {
 		return false
 	}
 
-	user_conn := GetConn(sid)
-	user_wsconn :=  GetWsConn(sid)
-	//fmt.Println( "ChannelAddSid user_wsconn:",user_wsconn )
+	user_conn := GetConn( sid )
+	user_wsconn :=  GetWsConn( sid )
+	fmt.Println( "ChannelAddSid user_conn:",sid, user_conn )
 	// 会话如果属于socket
 	if user_conn != nil {
 		 SubscribeChannel(area_id, user_conn, sid)
@@ -141,13 +142,13 @@ func  ChannelAddSid(sid string, area_id string) bool {
 func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
 
 	// tcp部分
-	var area  AreaType
+	var area  *AreaType
 	_item,ok := AreasMap.Get(area_id)
 	if( !ok ) {
 		golog.Error( "Channel  ",area_id," no exist! "  )
 		return
 	}else{
-		area = _item.(AreaType)
+		area = _item.(*AreaType)
 		if( area.Conns.Size()<=0 ){
 			area.Conns = syncmap.New()
 		}
@@ -163,13 +164,13 @@ func SubscribeChannel(area_id string, conn *net.TCPConn, sid string) {
  */
 func SubscribeWsChannel(area_id string, ws *websocket.Conn, sid string) {
 
-	var area  AreaType
+	var area  *AreaType
 	_item,ok := AreasMap.Get(area_id)
 	if( !ok ) {
 		golog.Error( "Channel  ",area_id," no exist! "  )
 		return
 	}else{
-		area = _item.(AreaType)
+		area = _item.(*AreaType)
 		if( area.WsConns.Size()<=0 ){
 			area.WsConns = syncmap.New()
 		}
@@ -206,10 +207,10 @@ func GetSidsByChannel(id string) []string {
  */
 func CheckUserJoinChannel(area_id string, sid string) bool {
 
-	var area  AreaType
+	var area  *AreaType
 	_item,ok:= AreasMap.Get(area_id)
 	if( ok ) {
-		area = _item.(AreaType)
+		area = _item.(*AreaType)
 		if  area.Conns.Has(sid) {
 			return true
 		}
@@ -227,10 +228,10 @@ func CheckUserJoinChannel(area_id string, sid string) bool {
  */
 func UnSubscribeChannel(area_id string, sid string) {
 
-	var area  AreaType
+	var area  *AreaType
 	_item,ok:= AreasMap.Get(area_id)
 	if( ok ) {
-		area = _item.(AreaType)
+		area = _item.(*AreaType)
 		area.Conns.Delete( sid )
 		area.WsConns.Delete( sid )
 		AreasMap.Set( area_id, area )
@@ -254,12 +255,13 @@ func Broatcast( sid string,area_id string, msg []byte ) {
 
 	fmt.Println("Broatcast:", sid, area_id, string(msg) )
 
-	var area AreaType
+	var area *AreaType
 	_item,ok := AreasMap.Get(area_id)
 	if( !ok ) {
+		golog.Error("AreasMap no found :",area_id)
 		return
 	}
-	area = _item.( AreaType )
+	area = _item.( *AreaType )
 	var conn *net.TCPConn
 	fmt.Println("广播里有:", area.Conns.Size(),"个连接")
 	protocolJson := new(protocol.Json)
@@ -350,7 +352,7 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	ws:=GetWsConn(to_sid)
 	fmt.Println( "push, to_sid:", to_sid , to_data)
 	if( ws!=nil ) {
-		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,to_data) )
+		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,[]byte(to_data)) )
 		_,err:=ws.Write( buf )
 		if err!=nil {
 			fmt.Println( "wsconn.Write err:",err.Error() )
@@ -399,24 +401,24 @@ func DeleteUserssion(sid string) {
 
 }
 
-func ConnRegister(conn *net.TCPConn, user_sid string) {
+func ConnRegister(conn *net.TCPConn, sid string) {
 
 	//SubscribeChannel("area-global", conn, user_sid)
 
-	AllConns.Set( user_sid, conn )
+	AllConns.Set( sid, conn )
 
-	_, ok := global.SyncUserSessions.Get(user_sid)
+	_, ok := global.SyncUserSessions.Get(sid)
 	if !ok {
 		data := &z_type.Session{
 			conn.RemoteAddr().String(),
 			"{}",
 			true,  // 登录成功
 			false, // 是否被踢出
-			user_sid,
+			sid,
 			time.Now().Unix(), //加入时间
 			time.Now().Unix(),
 		}
-		global.SyncUserSessions.Set(user_sid, data)
+		global.SyncUserSessions.Set(sid, data)
 	}
 
 }

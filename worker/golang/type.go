@@ -17,7 +17,7 @@ type TaskType struct {
 
 	Reqid int
 
-	Data interface{}
+	Data []byte
 
 	ReqObj *protocol.ReqRoot
 }

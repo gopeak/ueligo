@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"morego/lib"
 
+	"github.com/antonholmquist/jason"
 )
 
 
@@ -22,9 +23,22 @@ func (this TaskType)Authorize(  ) ReturnType {
 	}
 
 	// 获取当前用户信息
-	data := this.Data.(map[string]interface{})
-	_token := data["token"].(string)
-	_sid := data["sid"].(string)
+	fmt.Println( "Authorize this.Data:",string(this.Data) )
+	json_obj,err := jason.NewObjectFromBytes( this.Data )
+	if err != nil {
+		ret := ReturnType{ "failed","failed" ,this.Sid, "json err:" + err.Error() }
+		return ret
+	}
+	_token ,err:= json_obj.GetString("token")
+	if err != nil {
+		ret := ReturnType{ "failed","failed" ,this.Sid, "json err:" + err.Error() }
+		return ret
+	}
+	_sid ,err:= json_obj.GetString("sid")
+	if err != nil {
+		ret := ReturnType{ "failed","failed" ,this.Sid, "json err:" + err.Error() }
+		return ret
+	}
 	my_record := GetUserRow(db.Db, _sid )
 	if( my_record["token"]==_token ){
 		ret := ReturnType{ "ok","welcome" ,this.Sid,"认证成功"}
@@ -47,9 +61,9 @@ func (this TaskType)SubscripeGroup(  ) ReturnType {
 	}
 
 	// 获取当前用户信息
-	data := this.Data.(map[string]interface{})
-	_token := data["token"].(string)
-	_sid := data["sid"].(string)
+	json_obj,_ := jason.NewObjectFromBytes( this.Data )
+	_token ,_:= json_obj.GetString("token")
+	_sid,_ := json_obj.GetString("sid")
 	my_record := GetUserRow(db.Db, _sid )
 
 	if( my_record["token"]!=_token ){
@@ -70,8 +84,8 @@ func (this TaskType)PushMessage(   ) string {
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
 	fmt.Println( "PushMessage:", this.Sid, this.Data )
 
-	data := this.Data.(map[string]interface{})
-	to_sid := data["sid"].(string)
+	json_obj,_ := jason.NewObjectFromBytes( this.Data )
+	to_sid ,_:= json_obj.GetString("sid")
 
 	GetBaseCallback := func( resp string ) string {
 
@@ -80,7 +94,7 @@ func (this TaskType)PushMessage(   ) string {
 	}
 	sdk.ReqHubAsync( "GetBase", "", GetBaseCallback )
 
-	sdk.Push(  this.Sid, to_sid,  data )
+	sdk.Push(  this.Sid, to_sid,  this.Data )
 	return "";
 }
 
@@ -88,11 +102,10 @@ func (this TaskType)PushGroupMessage(   ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data  )
 	//fmt.Println( "PushGroupMessage:",this.Sid, this.Data )
+	json_obj,_ := jason.NewObjectFromBytes( this.Data )
+	area_id ,_:= json_obj.GetString("area_id")
 
-	data := this.Data.(map[string]interface{})
-	area_id := data["area_id"].(string)
-
-	sdk.Broatcast( this.Sid,area_id, data )
+	sdk.Broatcast( this.Sid,area_id, this.Data )
 	return "";
 }
 

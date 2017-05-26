@@ -6,6 +6,11 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"net"
+	"net/http"
+	"os"
+	"sync/atomic"
+	"encoding/json"
 	"morego/area"
 	"morego/global"
 	"morego/golog"
@@ -13,12 +18,6 @@ import (
 	"morego/protocol"
 	"morego/worker/golang"
 	"morego/worker"
-	"net"
-	"net/http"
-	"os"
-	"strings"
-	"sync/atomic"
-	"encoding/json"
 	"morego/util"
 )
 
@@ -83,7 +82,8 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 		protocolJson.Init()
 		req_obj, err := protocolJson.GetReqObj(buf)
 		if err != nil {
-			golog.Error("1.WebsocketHandle protocolJson.GetReqObj err : " + string(buf) + err.Error())
+			golog.Error("1.WebsocketHandle protocolJson.GetReqObj err : " + err.Error())
+			fmt.Println(  string(buf)  )
 			continue
 		}
 		last_sid = req_obj.Header.Sid
@@ -113,29 +113,21 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
-
 	for {
-		str, err := reader.ReadString('\n')
-		fmt.Println("worker_task response:", str )
+		_type,headerr_buf,data_buf,all_buf, err := protocol.DecodePacket( reader )
 		if err != nil {
-			fmt.Println("handleWorkerResponse ", "error: ", err.Error())
+			fmt.Println("wsHandleWorkerResponse protocol.DecodePacket err: ", err.Error())
 			req_conn.Close()
 			break
 		}
-		str = strings.Replace( str, "\n", "", -1)
-		if str== "" {
-			continue
-		}
-		WorkerResponseProcess(wsconn, nil, []byte(str) )
-		//var l *sync.RWMutex
-		//l = new(sync.RWMutex)
-		//l.Lock()
-		go wsconn.Write([]byte(str))
-		//l.Unlock()
+		fmt.Println("wsHandleWorkerResponse  data :", _type, string(headerr_buf), string(data_buf) )
+
+		wsResponseProcess( wsconn, all_buf  )
+		go wsconn.Write( all_buf )
 	}
 }
 
-func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte) (*protocol.ResponseRoot, error) {
+func wsResponseProcess(wsconn *websocket.Conn,  buf []byte) (*protocol.ResponseRoot, error) {
 
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
@@ -143,22 +135,19 @@ func WorkerResponseProcess(wsconn *websocket.Conn, conn *net.TCPConn, buf []byte
 	fmt.Println("handleWorkerResponse resp_obj.Data: ", resp_obj.Data )
 
 	if global.IsAuthCmd(resp_obj.Header.Cmd) {
-		data := resp_obj.Data.(map[string]interface{})
-		auth_ret := data["ret"].(string)
-		_sid := data["sid"].(string)
-		if auth_ret == "ok" {
-			if conn != nil {
-				area.ConnRegister(conn, _sid)
-			}
+		var ret_obj  golang.ReturnType
+		err  = json.Unmarshal( resp_obj.Data, resp_obj )
+		if err!=nil {
+			return resp_obj,err
+		}
+		if ret_obj.Ret == "ok" {
 			if wsconn != nil {
-				area.WsConnRegister(wsconn, _sid)
+				area.WsConnRegister( wsconn, ret_obj.Sid )
 			}
-			fmt.Println("handleWorkerResponse AuthCmd sid: ", resp_obj.Header.Cmd, _sid )
+			fmt.Println("wsResponseProcess AuthCmd sid: ", resp_obj.Header.Cmd, ret_obj.Sid )
 		}
 	}
-
 	return resp_obj, err
-
 }
 
 func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interface{} {
