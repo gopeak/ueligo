@@ -339,7 +339,7 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	if( conn!=nil ) {
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
-		buf,err := protocolPacket.WrapPushResp(  to_sid, from_sid,[]byte(to_data) )
+		buf,err := protocolPacket.WrapPushResp(  to_sid, from_sid,to_data )
 		if err!=nil {
 			fmt.Println( "protocolPacket.WrapPushResp:",err.Error() )
 		}
@@ -350,9 +350,10 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 		return
 	}
 	ws:=GetWsConn(to_sid)
-	fmt.Println( "push, to_sid:", to_sid , to_data)
+
 	if( ws!=nil ) {
-		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid,[]byte(to_data)) )
+		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid, to_data ) )
+		fmt.Println( "push, to_sid:", to_sid , string(buf))
 		_,err:=ws.Write( buf )
 		if err!=nil {
 			fmt.Println( "wsconn.Write err:",err.Error() )

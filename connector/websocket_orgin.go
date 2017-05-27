@@ -113,41 +113,49 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 func wsHandleWorkerResponse(wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 	reader := bufio.NewReader(req_conn)
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	for {
-		_type,headerr_buf,data_buf,all_buf, err := protocol.DecodePacket( reader )
+		_type,header_buf,data_buf,_, err := protocol.DecodePacket( reader )
 		if err != nil {
-			fmt.Println("wsHandleWorkerResponse protocol.DecodePacket err: ", err.Error())
+			golog.Error( "wsHandleWorkerResponse protocol.DecodePacket err: ", err.Error() )
 			req_conn.Close()
 			break
 		}
-		fmt.Println("wsHandleWorkerResponse  data :", _type, string(headerr_buf), string(data_buf) )
-
-		wsResponseProcess( wsconn, all_buf  )
-		go wsconn.Write( all_buf )
+		fmt.Println("wsHandleWorkerResponse  data :", _type, string(header_buf), string(data_buf) )
+		wsResponseProcess( wsconn,header_buf, data_buf  )
+		buf :=protocolJson.WrapResp( header_buf,data_buf,200,"" )
+		fmt.Println( "protocolJson.WrapResp:",string(buf) )
+		go wsconn.Write( buf )
 	}
 }
 
-func wsResponseProcess(wsconn *websocket.Conn,  buf []byte) (*protocol.ResponseRoot, error) {
+func wsResponseProcess(wsconn *websocket.Conn, header_buf []byte, data_buf []byte) {
 
-	protocolJson := new(protocol.Json)
-	protocolJson.Init()
-	resp_obj, err := protocolJson.GetRespObj(buf)
-	fmt.Println("handleWorkerResponse resp_obj.Data: ", resp_obj.Data )
+	protocolPack := new(protocol.Pack)
+	protocolPack.Init()
+	resp_header, err := protocolPack.GetRespHeaderObj(  header_buf )
+	if err!=nil{
+		golog.Error( "wsResponseProcess protocolPack.GetRespHeaderObj err: ", err.Error() )
+		return
+	}
+	fmt.Println("handleWorkerResponse resp_obj.Data: ", resp_header.Cmd )
 
-	if global.IsAuthCmd(resp_obj.Header.Cmd) {
-		var ret_obj  golang.ReturnType
-		err  = json.Unmarshal( resp_obj.Data, resp_obj )
-		if err!=nil {
-			return resp_obj,err
+	if global.IsAuthCmd(resp_header.Cmd) {
+		var ret golang.ReturnType
+		data_buf = util.TrimX001( data_buf )
+		err := json.Unmarshal( data_buf ,&ret)
+		if err!=nil{
+			fmt.Println("AuthCmd return json err: ", err.Error(), string(data_buf)  )
 		}
-		if ret_obj.Ret == "ok" {
+		fmt.Println("AuthCmd: ", ret.Ret, string(data_buf) )
+		if ret.Ret == "ok" {
 			if wsconn != nil {
-				area.WsConnRegister( wsconn, ret_obj.Sid )
+				area.WsConnRegister( wsconn, resp_header.Sid )
 			}
-			fmt.Println("wsResponseProcess AuthCmd sid: ", resp_obj.Header.Cmd, ret_obj.Sid )
+			fmt.Println("wsResponseProcess AuthCmd sid: ", resp_header.Cmd, ret.Sid )
 		}
 	}
-	return resp_obj, err
 }
 
 func wsDirectInvoker( wsconn *websocket.Conn, req_obj *protocol.ReqRoot) interface{} {
@@ -196,7 +204,7 @@ func wsDspatchMsg(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *n
 		wsDirectInvoker( wsconn ,req_obj )
 		return  1, nil
 	}
-	data_buf, _ := json.Marshal(req_obj.Data)
+
 	protocolPack := new(protocol.Pack)
 	protocolPack.Init()
 	buf,_ := protocolPack.WrapReq(
@@ -204,7 +212,7 @@ func wsDspatchMsg(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *n
 		req_obj.Header.Sid,
 		req_obj.Header.Token,
 		req_obj.Header.SeqId,
-		data_buf)
+		req_obj.Data)
 	// 提交给worker
 	if req_conn != nil {
 		go req_conn.Write(buf)

@@ -82,7 +82,7 @@ func (this TaskType)SubscripeGroup(  ) ReturnType {
 func (this TaskType)PushMessage(   ) string {
 
 	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid, this.Data )
-	fmt.Println( "PushMessage:", this.Sid, this.Data )
+	fmt.Println( "PushMessage:", this.Sid, string(this.Data) )
 
 	json_obj,_ := jason.NewObjectFromBytes( this.Data )
 	to_sid ,_:= json_obj.GetString("sid")

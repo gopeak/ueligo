@@ -270,17 +270,12 @@ func (this *Pack) WrapPushRespObj(to_sid string, from_sid string , data[]byte ) 
 	return push_obj
 }
 
-func (this *Pack) WrapPushResp(to_sid string, from_sid string , data []byte ) ([]byte,error) {
+func (this *Pack) WrapPushResp(to_sid string, from_sid string , data string ) ([]byte,error) {
 
 	push_header_obj := PushHeader{}
 	push_header_obj.Sid = from_sid
-
-	push_obj := PushRoot{}
-	push_obj.Header =push_header_obj
-	push_obj.Data  = data
-	push_obj.Type  = "push"
 	header_buf,_ := json.Marshal( push_header_obj )
-	return  EncodePacket(  TypePush ,header_buf, data  )
+	return  EncodePacket(  TypePush ,header_buf, []byte(data)  )
 
 }
 
