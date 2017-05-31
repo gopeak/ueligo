@@ -173,7 +173,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		return
 	}
 
-	if cmd == "CreateChannel" {
+	if cmd == "CreateArea" {
 		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			golog.Error("Hub Set json err:",err_json.Error())
@@ -185,7 +185,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Set json err:",err1.Error()+err2.Error() )
 			return
 		}
-		ret:=api.CreateChannel( id, name )
+		ret:=api.CreateArea( id, name )
 		str :="0"
 		if ret{
 			str = "1"
@@ -195,8 +195,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 
 	}
 
-	if cmd == "RemoveChannel" {
-		ret :=api.RemoveChannel(data)
+	if cmd == "RemoveArea" {
+		ret :=api.RemoveArea(data)
 		str :="0"
 		if ret{
 			str = "1"
@@ -205,39 +205,39 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		return
 	}
 
-	if cmd == "GetChannels" {
-		ret :=api.GetChannels()
+	if cmd == "GetAreas" {
+		ret :=api.GetAreas()
 		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 	}
 
-	if cmd == "GetSidsByChannel" {
-		ret :=api.GetSidsByChannel( data )
+	if cmd == "GetSidsByArea" {
+		ret :=api.GetSidsByArea( data )
 		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return
 	}
 
-	if cmd == "ChannelAddSid" {
-		fmt.Println("ChannelKickSid", data )
+	if cmd == "AreaAddSid" {
+		fmt.Println("AreaKickSid", data )
 		data_buf = util.TrimX001( data_buf )
 		var map_data map[string]string
 		err_json := json.Unmarshal( data_buf ,&map_data )
 		//data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
-			golog.Error("Hub ChannelAddSid json Unmarshal err:",err_json.Error())
+			golog.Error("Hub AreaAddSid json Unmarshal err:",err_json.Error())
 			return
 		}
 		sid ,_ok1:= map_data["sid"]
 		area_id ,_ok2:= map_data["area_id"]
 		if( !_ok1 )  {
-			golog.Error("Hub ChannelAddSid json sid no found" )
+			golog.Error("Hub AreaAddSid json sid no found" )
 			return
 		}
 		if( !_ok2 )  {
-			golog.Error("Hub ChannelAddSid json area_id no found"  )
+			golog.Error("Hub AreaAddSid json area_id no found"  )
 			return
 		}
-		ret :=api.ChannelAddSid(sid, area_id )
+		ret :=api.AreaAddSid(sid, area_id )
 		str :="0"
 		if ret{
 			str = "1"
@@ -245,21 +245,21 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
 		return
 	}
-	if cmd == "ChannelKickSid" {
+	if cmd == "AreaKickSid" {
 
 		data_buf = util.TrimX001( data_buf )
 		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
-			golog.Error("Hub ChannelKickSid json err:",err_json.Error())
+			golog.Error("Hub AreaKickSid json err:",err_json.Error())
 			return
 		}
 		sid,err1 := data_json.GetString("sid")
 		area_id,err2 := data_json.GetString("area_id")
 		if( err1!=nil || err2!=nil )  {
-			golog.Error("Hub ChannelKickSid json err:",err1.Error()+err2.Error() )
+			golog.Error("Hub AreaKickSid json err:",err1.Error()+err2.Error() )
 			return
 		}
-		ret :=api.ChannelKickSid(sid, area_id )
+		ret :=api.AreaKickSid(sid, area_id )
 		str :="0"
 		if ret{
 			str = "1"
@@ -343,7 +343,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		return
 	}
 
-	if cmd == "GetUserJoinedChannel" {
+	if cmd == "GetUserJoinedAreas" {
 		data_json ,err_json:= jason.NewObjectFromBytes( data_buf )
 		if( err_json!=nil ) {
 			err_str :="Hub UpdateSession json err:"+err_json.Error()
@@ -352,7 +352,7 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			return
 		}
 		sid, _ := data_json.GetString("sid")
-		ret :=api.GetUserJoinedChannel(sid )
+		ret :=api.GetUserJoinedAreas(sid )
 
 		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
 		return

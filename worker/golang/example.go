@@ -72,11 +72,11 @@ func (this TaskType)GetUserSession(   ) interface{} {
 
 }
 
-func (this TaskType)JoinChannel(   ) interface{} {
+func (this TaskType)JoinArea(   ) interface{} {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 	//fmt.Println( "JoinChannel",this.Data  )
-	if(   sdk.ChannelAddSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
+	if(   sdk.AreaAddSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -89,7 +89,7 @@ func (this TaskType)LeaveChannel(   ) interface{} {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	if(   sdk.ChannelKickSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
+	if(   sdk.AreaKickSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"

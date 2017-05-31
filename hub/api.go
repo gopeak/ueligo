@@ -129,25 +129,25 @@ func (api *Api)Kick(sid string) bool {
 		go user_wsconn.Write( protocolJson.WrapRespErr("kicked") )
 		area.FreeWsConn( user_wsconn,sid)
 	}
-	area.UserUnSubscribeChannel(sid)
+	area.UserUnSubscribe(sid)
 	area.DeleteUserssion(sid)
 
 	return true
 }
 
-func (api *Api)CreateChannel(id string, name string) bool {
+func (api *Api)CreateArea(id string, name string) bool {
 
-	area.CreateChannel(id, name)
+	area.Create(id, name)
 	return true
 }
 
-func (api *Api)RemoveChannel(id string) bool {
+func (api *Api)RemoveArea(id string) bool {
 
-	area.RemovChannel(id)
+	area.Remove(id)
 	return true
 }
 
-func (api *Api)GetChannels() string {
+func (api *Api)GetAreas() string {
 
 	buf, err := json_orgin.Marshal(area.Areas)
 	if( err!=nil ){
@@ -157,9 +157,9 @@ func (api *Api)GetChannels() string {
 
 }
 
-func (api *Api)GetSidsByChannel(channel_id string) string {
+func (api *Api)GetSidsByArea(channel_id string) string {
 
-	buf,err:= json_orgin.Marshal(area.GetSidsByChannel(channel_id))
+	buf,err:= json_orgin.Marshal(area.GetSids(channel_id))
 	if err!=nil {
 		return string(buf)
 	}else{
@@ -169,15 +169,15 @@ func (api *Api)GetSidsByChannel(channel_id string) string {
 }
 
 
-func (api *Api)ChannelAddSid(sid string, area_id string) bool {
+func (api *Api)AreaAddSid(sid string, area_id string) bool {
 
-	return  area.ChannelAddSid( sid , area_id )
+	return  area.AddSid( sid , area_id )
 
 }
 
-func (api *Api)ChannelKickSid(sid string, area_id string) bool {
+func (api *Api)AreaKickSid(sid string, area_id string) bool {
 
-	area.UnSubscribeChannel( area_id,sid)
+	area.UnSubscribe( area_id,sid)
 	return true
 
 }
@@ -228,9 +228,9 @@ func (api *Api)BroadcastAll( msg []byte ) bool {
 
 
 
-func (api *Api)GetUserJoinedChannel( sid string ) string {
+func (api *Api)GetUserJoinedAreas( sid string ) string {
 
-	buf,err:=json_orgin.Marshal(area.GetSidsByChannel(sid))
+	buf,err:=json_orgin.Marshal(area.GetSids(sid))
 	if( err!=nil ) {
 		return  "[]"
 	}

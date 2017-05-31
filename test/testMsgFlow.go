@@ -125,13 +125,13 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 
 				// 发送点对点发送消息后 加入场景
 				time.Sleep(100 * time.Millisecond)
-				buf,_ =  protocolPack.WrapReq( "JoinChannel", req_sid, token, req_id+1, []byte("area-global") )
+				buf,_ =  protocolPack.WrapReq( "JoinArea", req_sid, token, req_id+1, []byte("area-global") )
 				conn.Write([]byte( buf ))
 				time.Sleep(5 * time.Second)
 
 			}
 
-			if resp_header_obj.Cmd=="JoinChannel"  {
+			if resp_header_obj.Cmd=="JoinArea"  {
 				push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
 				buf,_ =  protocolPack.WrapReq( "Broadcast", req_sid, token, req_id+1, []byte(push_data) )
 				conn.Write([]byte( buf ))

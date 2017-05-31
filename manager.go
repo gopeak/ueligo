@@ -61,7 +61,7 @@ func main() {
 	go hub.HubServer()
 
 	// 预创建多个场景
-	go area.InitConfigAreas()
+	go area.InitConfig()
 
 	// 启动worker
 	//go start_php_worker()

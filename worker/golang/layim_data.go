@@ -358,15 +358,15 @@ func  JoinChannel(db *sql.DB, uid int, sid string ) {
 	}
 	for rows.Next() {
 		//将行数据保存到record字典
-		var title, channel_id string
-		err = rows.Scan( &channel_id , &title)
+		var title, area_id string
+		err = rows.Scan( &area_id , &title)
 		if err != nil {
 			fmt.Println(505, "服务器错误@" + err.Error())
 			return
 		}
-		sdk:=new(Sdk).InitCmd("JoinChannel",sid,0,[]byte("") )
-		sdk.ChannelAddSid( sid ,channel_id )
-		//fmt.Println( "JoinChannel...",  sid ,channel_id )
+		sdk:=new(Sdk).InitCmd("JoinArea",sid,0,[]byte("") )
+		sdk.AreaAddSid( sid ,area_id )
+		//fmt.Println( "JoinArea...",  sid ,area_id )
 	}
 
 }

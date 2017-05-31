@@ -421,33 +421,33 @@ func (sdk *Sdk) Kick(sid string) bool {
 	return sdk.PushHub( "Kick",sid)
 }
 
-func (sdk *Sdk) CreateChannel(id string, name string) bool {
+func (sdk *Sdk) CreateArea(id string, name string) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.CreateChannel( id,name )
+		return api.CreateArea( id,name )
 	}
 	json:=fmt.Sprintf(`{"id":"%s","name":"%s","expire":%d}`,id,name)
-	return sdk.PushHub( "CreateChannel",json)
+	return sdk.PushHub( "CreateArea",json)
 
 }
 
-func (sdk *Sdk) RemoveChannel(id string) bool {
+func (sdk *Sdk) RemoveArea(id string) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.RemoveChannel( id )
+		return api.RemoveArea( id )
 	}
-	return sdk.PushHub( "RemoveChannel",id)
+	return sdk.PushHub( "RemoveArea",id)
 }
 
-func (sdk *Sdk) GetChannels() string {
+func (sdk *Sdk) GetAreas() string {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.GetChannels(  )
+		return api.GetAreas(  )
 	}
-	ret,ok := sdk.ReqHub( "GetChannels","" )
+	ret,ok := sdk.ReqHub( "GetAreas","" )
 	if( !ok ) {
 		return "{}"
 	}
@@ -456,13 +456,13 @@ func (sdk *Sdk) GetChannels() string {
 
 
 
-func (sdk *Sdk) GetSidsByChannel(channel_id string) string {
+func (sdk *Sdk) GetSidsByArea(channel_id string) string {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.GetSidsByChannel( channel_id )
+		return api.GetSidsByArea( channel_id )
 	}
-	ret,ok :=  sdk.ReqHub( "GetSidsByChannel",channel_id )
+	ret,ok :=  sdk.ReqHub( "GetSidsByArea",channel_id )
 	if( !ok ) {
 		return "{}"
 	}
@@ -470,25 +470,25 @@ func (sdk *Sdk) GetSidsByChannel(channel_id string) string {
 
 }
 
-func (sdk *Sdk) ChannelAddSid(sid string, area_id string) bool {
+func (sdk *Sdk) AreaAddSid(sid string, area_id string) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.ChannelAddSid( sid, area_id  )
+		return api.AreaAddSid( sid, area_id  )
 	}
 	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
-	return sdk.PushHub( "ChannelAddSid",json)
+	return sdk.PushHub( "AreaAddSid",json)
 
 }
 
-func (sdk *Sdk) ChannelKickSid( sid string, area_id string) bool {
+func (sdk *Sdk) AreaKickSid( sid string, area_id string) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.ChannelKickSid( sid, area_id  )
+		return api.AreaKickSid( sid, area_id  )
 	}
 	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
-	return sdk.PushHub( "ChannelKickSid",json)
+	return sdk.PushHub( "AreaKickSid",json)
 
 }
 
@@ -545,15 +545,15 @@ func (sdk *Sdk) UpdateSession( sid string, data string ) bool {
 
 }
 
-func (sdk *Sdk)GetUserJoinedChannel(sid string) string {
+func (sdk *Sdk)GetUserJoinedAreas(sid string) string {
 
 	// 单机模式直接返回内存中数据
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.GetUserJoinedChannel(sid)
+		return api.GetUserJoinedAreas(sid)
 	}
 
-	ret,ok :=sdk.ReqHub( "GetUserJoinedChannel",sid)
+	ret,ok :=sdk.ReqHub( "GetUserJoinedAreas",sid)
 	if ok {
 		return ret
 	}

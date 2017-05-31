@@ -58,7 +58,7 @@ func InitGlobalGroup(){
 			fmt.Println(505, "服务器错误@" + err.Error())
 			return
 		}
-		area.CreateChannel( channel_id,title )
+		area.Create( channel_id,title )
 	}
 }
 
@@ -475,8 +475,8 @@ func ReqAddGroupHandler(w http.ResponseWriter, r *http.Request) {
 	uid := my_record["id"]
 
 	sql_str :="SELECT title, pic, channel_id, remark  FROM `global_group` WHERE   `id`=?"
-	var  title, pic, channel_id, remark string
-	err := db.Db.QueryRow( sql_str, group_id ).Scan( &title, &pic, &channel_id, &remark )
+	var  title, pic, area_id, remark string
+	err := db.Db.QueryRow( sql_str, group_id ).Scan( &title, &pic, &area_id, &remark )
 	if err != nil {
 		root.Code = 500
 		root.Msg = "群组不存在:"+err.Error()
@@ -517,13 +517,13 @@ func ReqAddGroupHandler(w http.ResponseWriter, r *http.Request) {
 	record["id"] = group_id
 	record["pic"] = pic
 	record["title"] = title
-	record["channel_id"] = channel_id
+	record["channel_id"] = area_id
 	record["remark"] = remark
 
 	// 订阅群组消息
-	sdk:=new(Sdk).InitCmd("JoinChannel",sid,0,[]byte("") )
+	sdk:=new(Sdk).InitCmd("JoinArea",sid,0,[]byte("") )
 
-	sdk.ChannelAddSid( sid ,channel_id )
+	sdk.AreaAddSid( sid ,area_id )
 
 	root.Code = 0
 	root.Msg = "添加成功"
