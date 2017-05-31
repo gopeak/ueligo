@@ -44,16 +44,10 @@ func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
 
-	str := `{ "header":{ "cmd":"", "seq_id":0.1,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  ,"qq":["1","2"] ,"type":"req", "data":{"aa":"sss}"} }`
-	util.GetJsonChildObj( str ,"data")
-	util.GetJsonChildArray( str ,"qq")
-	util.GetJsonChildStr( str ,"type")
-
 	global.InitConfig()
-
 	golog.InitLogger()
-
 	init_global()
+
 	go connector.SocketConnector("", global.Config.Connector.SocketPort)
 	go connector.WebsocketConnector("", global.Config.Connector.WebsocketPort)
 
@@ -64,7 +58,6 @@ func main() {
 	go area.InitConfig()
 
 	// 启动worker
-	//go start_php_worker()
 	go worker.InitWorkerServer()
 
 	// 监控
