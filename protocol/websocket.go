@@ -3,7 +3,6 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/antonholmquist/jason"
 	"morego/util"
 )
 
@@ -15,7 +14,7 @@ type Json struct {
 func (this *Json) Init() *Json {
 
 	this.ProtocolObj = ProtocolType{}
-	this.ProtocolObj.ReqObj = ReqRoot{}
+	this.ProtocolObj.ReqObj  = ReqRoot{}
 	this.ProtocolObj.RespObj = ResponseRoot{}
 	this.ProtocolObj.BroatcastObj = BroatcastRoot{}
 	this.ProtocolObj.PushObj = PushRoot{}
@@ -25,24 +24,15 @@ func (this *Json) Init() *Json {
 
 
 func (this *Json) GetReqObj(data []byte) (*ReqRoot, error) {
+
 	this.Data = data
 	stb := &ReqRoot{}
-
-	json_obj,err := jason.NewObjectFromBytes( data )
-	req_header_obj := ReqHeader{}
-	req_header_obj.Cmd , _ = json_obj.GetString("header","cmd")
-	seq_id  , _ := json_obj.GetInt64("header","seq_id")
-	req_header_obj.SeqId = int( seq_id )
-	req_header_obj.Gzip ,  _ = json_obj.GetBoolean("header","gzip")
-	req_header_obj.Sid ,   _ = json_obj.GetString("header","sid")
-	req_header_obj.Token , _ = json_obj.GetString("header","token")
-	stb.Type,_ = json_obj.GetString("type")
-	data_mix ,_:= json_obj.GetInterface("data")
-	data_buf := util.Convert2Byte(data_mix)
-	fmt.Println( "ws GetReqObj data_str:",string(data_buf) )
-	stb.Header = req_header_obj
-	stb.Data = data_buf
+	err := json.Unmarshal( data, stb )
+ 	stb.Data = util.Convert2Byte( stb.WsData )
+	fmt.Println( "util.Convert2Byte( stb.WsData ):",string(stb.Data) )
 	return stb, err
+
+
 }
 
 func (this *Json) GetRespObj(data []byte) (*ResponseRoot, error) {

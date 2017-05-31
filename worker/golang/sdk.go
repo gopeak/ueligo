@@ -23,11 +23,9 @@ type Sdk struct {
 
 	HubConn *net.TCPConn
 
-	Cmd string
+	ReqType string
 
-	Sid string
-
-	Reqid int
+	ReqHeader *protocol.ReqHeader
 
 	Data []byte
 
@@ -45,16 +43,32 @@ type AfterWorkCallback func(   resp_buf string ) (string)
 
 var ReqSeqCallbacks *syncmap.SyncMap
 
-
-
 var ReqHubConns  =  make( []*net.TCPConn, 0 )
+
 var InitialCap  int
 
-func (sdk *Sdk) Init(cmd string,sid string,reqid int,data []byte) *Sdk{
 
-	sdk.Cmd = cmd
-	sdk.Sid = sid
-	sdk.Reqid = reqid
+
+func (sdk *Sdk) Init( _type string, req_header *protocol.ReqHeader, data []byte ) *Sdk{
+
+	sdk.ReqHeader = req_header
+	sdk.ReqType   = _type
+	sdk.Data = data
+	sdk.Connected = false
+	return sdk
+}
+
+func (sdk *Sdk) InitCmd(cmd string,sid string,reqid int,data []byte) *Sdk{
+
+	req_header_obj := protocol.ReqHeader{}
+	req_header_obj.Cmd = cmd
+	req_header_obj.SeqId = reqid
+	req_header_obj.Sid = sid
+
+	req_obj := &protocol.ReqRoot{}
+	req_obj.Header = req_header_obj
+	req_obj.Type = protocol.TypeReq
+	req_obj.Data = data
 	sdk.Data = data
 	sdk.Connected = false
 	return sdk
@@ -166,7 +180,7 @@ func  handleReqHubResponse(conn *net.TCPConn) {
 func (sdk *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCallback  ) (string,bool) {
 
 	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
-	req_buf := protocol.MakeHubReq( req_cmd, sdk.Sid, req_id, data )
+	req_buf := protocol.MakeHubReq( req_cmd, sdk.ReqHeader.Sid, req_id, data )
 	req_buf,_ = protocol.Packet( req_buf )
 
 	index := util.RandInt64(0, int64(len(ReqHubConns)))
@@ -193,7 +207,7 @@ func (sdk *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCall
 func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
 	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
-	req_buf := protocol.MakeHubReq( req_cmd, sdk.Sid, req_id, data )
+	req_buf := protocol.MakeHubReq( req_cmd, sdk.ReqHeader.Sid, req_id, data )
 	req_buf,_ = protocol.Packet( req_buf )
 	//fmt.Println( "req_str:", string(req_buf) )
 
@@ -242,7 +256,7 @@ func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 
 func (sdk *Sdk) PushHub( req_cmd string , data string ) bool {
 
-	req_buf := protocol.MakeHubReq( req_cmd,sdk.Sid, strconv.Itoa( int(sdk.Reqid) ), data )
+	req_buf := protocol.MakeHubReq( req_cmd,sdk.ReqHeader.Sid, strconv.Itoa( int(sdk.ReqHeader.SeqId) ), data )
 	req_buf,_ = protocol.Packet( req_buf )
 	sdk.connect()
 	_,err:=sdk.HubConn.Write( req_buf )

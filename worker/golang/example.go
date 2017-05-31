@@ -28,9 +28,9 @@ func (this TaskType)Auth(  ) ReturnType {
 
 func (this TaskType)Push(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	from_sid := this.Sid
+	from_sid := this.ReqHeader.Sid
 	json_obj ,err:= jason.NewObjectFromBytes( this.Data )
 	if err!=nil{
 		return ""
@@ -44,9 +44,9 @@ func (this TaskType)Push(   ) interface{} {
 
 func (this TaskType)Broadcast(  ) interface{}{
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	from_sid := this.Sid
+	from_sid := this.ReqHeader.Sid
 	json_obj ,err:= jason.NewObjectFromBytes( this.Data )
 	if err!=nil{
 		return ""
@@ -66,17 +66,17 @@ func (this TaskType)Broadcast(  ) interface{}{
 
 func (this TaskType)GetUserSession(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	return sdk.GetSession( this.Sid )
+	return sdk.GetSession( this.ReqHeader.Sid )
 
 }
 
 func (this TaskType)JoinChannel(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 	//fmt.Println( "JoinChannel",this.Data  )
-	if(   sdk.ChannelAddSid( this.Sid ,string(this.Data)  ) ){
+	if(   sdk.ChannelAddSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -87,9 +87,9 @@ func (this TaskType)JoinChannel(   ) interface{} {
 
 func (this TaskType)LeaveChannel(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	if(   sdk.ChannelKickSid( this.Sid ,string(this.Data)  ) ){
+	if(   sdk.ChannelKickSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -100,9 +100,9 @@ func (this TaskType)LeaveChannel(   ) interface{} {
 
 func (this TaskType)KickSelf(   ) interface{} {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	if(   sdk.Kick( this.Sid ) ){
+	if(   sdk.Kick( this.ReqHeader.Sid ) ){
 		return "ok"
 	}else{
 		return "failed"
@@ -114,7 +114,7 @@ func (this TaskType)KickSelf(   ) interface{} {
 
 func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 	return sdk.GetBase()
 
 }

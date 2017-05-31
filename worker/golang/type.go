@@ -11,15 +11,12 @@ type TaskType struct {
 
 	WsConn *websocket.Conn
 
-	Cmd string
+	ReqType string
 
-	Sid string
-
-	Reqid int
+	ReqHeader *protocol.ReqHeader
 
 	Data []byte
 
-	ReqObj *protocol.ReqRoot
 }
 
 type ReturnType struct {
@@ -32,26 +29,22 @@ type ReturnType struct {
 	Msg string `json:"msg"`
 }
 
-func (this *TaskType) Init(conn *net.TCPConn, req_obj *protocol.ReqRoot) *TaskType {
+func (this *TaskType) Init( conn *net.TCPConn, req_obj *protocol.ReqRoot ) *TaskType {
 
-	//  cmd string,sid string,reqid int,data string
-	this.Cmd = req_obj.Header.Cmd
-	this.Sid = req_obj.Header.Sid
-	this.Reqid = req_obj.Header.SeqId
-	this.Data = req_obj.Data
 	this.Conn = conn
-	this.ReqObj = req_obj
+	this.ReqType = req_obj.Type
+	this.ReqHeader = &req_obj.Header
+	this.Data   = req_obj.Data
 	return this
 }
 
+
 func (this *TaskType) WsInit(wsconn *websocket.Conn, req_obj *protocol.ReqRoot) *TaskType {
 
-	//  cmd string,sid string,reqid int,data string
-	this.Cmd = req_obj.Header.Cmd
-	this.Sid = req_obj.Header.Sid
-	this.Reqid = req_obj.Header.SeqId
-	this.Data = req_obj.Data
+
+	this.ReqType = req_obj.Type
+	this.ReqHeader = &req_obj.Header
+	this.Data   = req_obj.Data
 	this.WsConn = wsconn
-	this.ReqObj = req_obj
 	return this
 }

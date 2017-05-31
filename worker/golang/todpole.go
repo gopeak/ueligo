@@ -12,9 +12,9 @@ import (
 
 func (this TaskType)Message(   ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data  )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	data_json ,err_json:= jason.NewObjectFromBytes( this.Data.([]byte) )
+	data_json ,err_json:= jason.NewObjectFromBytes( this.Data )
 	if( err_json!=nil ) {
 		golog.Error("todpole message json err:",err_json.Error())
 		return ""
@@ -28,7 +28,7 @@ func (this TaskType)Message(   ) string {
 		return ""
 	}
 	//broatcast_msg := fmt.Sprintf(`{"type":"message","message":"%s","id":"%s" }`,message,sid)
-	sdk.Broatcast( sid,"area-global",this.Data.(string) )
+	sdk.Broatcast( sid,"area-global", this.Data   )
 	//json_ret := fmt.Sprintf(`{"type":"messageresp","id":"%s" }`,sid)
 	return "";
 
@@ -37,9 +37,9 @@ func (this TaskType)Message(   ) string {
 
 func (this TaskType)Update(   ) string {
 
-	sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data.(string) )
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
-	data_json ,err_json:= jason.NewObjectFromBytes( this.Data.([]byte) )
+	data_json ,err_json:= jason.NewObjectFromBytes( this.Data )
 	if( err_json!=nil ) {
 		golog.Error("todpole message json err:",err_json.Error())
 		return ""
@@ -62,7 +62,7 @@ func (this TaskType)Update(   ) string {
 	broatcast_data := fmt.Sprintf(`{"type":"%s","id":"%s","angle":%.3f,"momentum":%.3f,"x":%.3f,"y":%.3f,"life":1,"name":"%s","authorized":%s}`,
 		type_str,_id,float32(angle),float32(momentum),float32(x),float32(y),name,"false" )
 
-	sdk.Broatcast( this.Sid,"area-global",broatcast_data )
+	sdk.Broatcast( this.ReqHeader.Sid,"area-global",[]byte(broatcast_data) )
 	return ""
 	json_ret := fmt.Sprintf(`{"type":"%s","id":"%s" }`,"none",_id)
 	return json_ret;

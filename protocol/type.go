@@ -33,10 +33,11 @@ type BaseRoot struct {
 type ReqRoot struct {
 	Type string            	 `json:"type"`
 	Header  ReqHeader        `json:"header"`
-	_Data interface{}     	 `json:"data"`
-	Data []byte		 `json:"data"`
+	WsData interface{}	 `json:"data"`
+	Data []byte
 
 }
+
 
 type ReqHeader struct {
 	Cmd    string      	`json:"cmd"`

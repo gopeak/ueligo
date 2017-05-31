@@ -70,7 +70,8 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 	go wsHandleWorkerResponse(wsconn, req_conn)
 	last_sid := ""
 	// 监听客户端发送的数据
-
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	for {
 		var buf []byte
 		if err = websocket.Message.Receive(wsconn, &buf); err != nil {
@@ -78,8 +79,6 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 			area.FreeWsConn(wsconn, last_sid)
 			break
 		}
-		protocolJson := new(protocol.Json)
-		protocolJson.Init()
 		req_obj, err := protocolJson.GetReqObj(buf)
 		if err != nil {
 			golog.Error("1.WebsocketHandle protocolJson.GetReqObj err : " + err.Error())

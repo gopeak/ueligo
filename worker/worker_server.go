@@ -121,7 +121,7 @@ func handleWorker(conn *net.TCPConn) {
 			req_obj, _ := protocolPack.GetReqObj( _type,header_buf, data_buf)
 			Invoker(conn, req_obj)
 
-		}( header_buf, data_buf, conn)
+		}( header_buf, data_buf, conn )
 	}
 }
 

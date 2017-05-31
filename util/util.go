@@ -12,6 +12,8 @@ import (
 	"encoding/binary"
 	"encoding/json"
 	"fmt"
+	"regexp"
+	"errors"
 )
 
 func saveFile(str string, n int) {
@@ -160,3 +162,99 @@ func Convert2Byte( invoker_ret interface{}) []byte{
 	}
 	return data_buf
 }
+
+
+func GetJsonChildObj( str string ,key string) ( string, error){
+
+	reg := regexp.MustCompile(  `"`+key+`":\{([\w\W]*)\}\s*,`)
+	reg_ret := reg.FindAllStringSubmatch(str, -1)
+	if len(reg_ret)>0 {
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return "{"+reg_ret[0][1]+"}",nil
+		}
+	}else{
+		reg := regexp.MustCompile(`"`+key+`":\{([\w\W]*)\}\s*\}$`)
+		reg_ret = reg.FindAllStringSubmatch(str, -1)
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return "{"+reg_ret[0][1]+"}",nil
+		}
+	}
+	return "", errors.New("match result no found")
+}
+
+func GetJsonChildArray( str string ,key string) ( string, error){
+
+ 	reg := regexp.MustCompile(  `"`+key+`":\[([\w\W]*)\]\s*,`)
+	reg_ret := reg.FindAllStringSubmatch(str, -1)
+	if len(reg_ret)>0 {
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return "["+reg_ret[0][1]+"]",nil
+		}
+	}else{
+		reg := regexp.MustCompile(`"`+key+`":\[([\w\W]*)\]\s*\}$`)
+		reg_ret = reg.FindAllStringSubmatch(str, -1)
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return "["+reg_ret[0][1]+"]",nil
+		}
+	}
+	return "", errors.New("match result no found")
+}
+
+func GetJsonChildStr( str string ,key string) ( string, error){
+
+ 	reg := regexp.MustCompile(  `"`+key+`":"([\w\W]*)"\s*,`)
+	reg_ret := reg.FindAllStringSubmatch(str, -1)
+	if len(reg_ret)>0 {
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return `"`+reg_ret[0][1]+`"`,nil
+		}
+	}else{
+		reg := regexp.MustCompile(`"`+key+`":"([\w\W]*)"\s*\}$`)
+		reg_ret = reg.FindAllStringSubmatch(str, -1)
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			return `"`+reg_ret[0][1]+`"`,nil
+		}
+	}
+	return "", errors.New("match result no found")
+}
+
+
+func GetJsonChildBool( str string ,key string) ( bool, error){
+
+ 	reg := regexp.MustCompile(  `"`+key+`":([\w\W]*)\s*,`)
+	reg_ret := reg.FindAllStringSubmatch(str, -1)
+	if len(reg_ret)>0 {
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			if strings.ToLower(reg_ret[0][1])=="false"{
+				return false,nil
+			}else{
+				return true,nil
+			}
+		}
+	}else{
+		reg := regexp.MustCompile(`"`+key+`":([\w\W]*)\s*\}$`)
+		reg_ret = reg.FindAllStringSubmatch(str, -1)
+		if( len(reg_ret[0])>1 ) {
+			fmt.Printf("reg::::::::::::::::::%s\n",  reg_ret[0][1])
+			if strings.ToLower(reg_ret[0][1])=="false"{
+				return false,nil
+			}else{
+				return true,nil
+			}
+		}
+	}
+	return false, errors.New("match result no found")
+}
+
+
+
+
+
+

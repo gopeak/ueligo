@@ -15,6 +15,7 @@ import (
 	"morego/connector"
 	"morego/lib/syncmap"
 	"morego/worker"
+	"morego/util"
 )
 
 
@@ -42,6 +43,11 @@ func init_global() {
 func main() {
 
 	runtime.GOMAXPROCS(runtime.NumCPU())
+
+	str := `{ "header":{ "cmd":"", "seq_id":0.1,  "sid":"" , "token":"", "version":"1.0" ,"gzip":true}  ,"qq":["1","2"] ,"type":"req", "data":{"aa":"sss}"} }`
+	util.GetJsonChildObj( str ,"data")
+	util.GetJsonChildArray( str ,"qq")
+	util.GetJsonChildStr( str ,"type")
 
 	global.InitConfig()
 
