@@ -82,13 +82,14 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 		req_obj, err := protocolJson.GetReqObj(buf)
 		if err != nil {
 			golog.Error("1.WebsocketHandle protocolJson.GetReqObj err : " + err.Error())
-			fmt.Println(  string(buf)  )
+
 			continue
 		}
 		last_sid = req_obj.Header.Sid
 		fmt.Println("req_obj.Header.Cmd: " +  req_obj.Header.Cmd)
-		//_,_,_,last_sid,_,_ = protocol.ParseReqData( str )
 
+		fmt.Println( "WebsocketHandleClient Receive: ", string(buf)  )
+		//fmt.Println( "WebsocketHandleClient req_obj header: ", req_obj.Header  )
 		go func(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *net.TCPConn) {
 
 			ret, ret_err := wsDspatchMsg(req_obj, wsconn, req_conn)
@@ -206,12 +207,7 @@ func wsDspatchMsg(req_obj *protocol.ReqRoot, wsconn *websocket.Conn, req_conn *n
 
 	protocolPack := new(protocol.Pack)
 	protocolPack.Init()
-	buf,_ := protocolPack.WrapReq(
-		req_obj.Header.Cmd,
-		req_obj.Header.Sid,
-		req_obj.Header.Token,
-		req_obj.Header.SeqId,
-		req_obj.Data)
+	buf,_ := protocolPack.WrapReqWithHeader( &req_obj.Header , req_obj.Data)
 	// 提交给worker
 	if req_conn != nil {
 		go req_conn.Write(buf)

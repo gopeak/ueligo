@@ -58,7 +58,7 @@ func handleClientMsg(conn *net.TCPConn) {
 			fmt.Println("HandleConn connection error: ", err.Error())
 			break
 		}
-		resp_buf,err := protocol.EncodePacket( int32(protocol.TypeReply), header,data)
+		resp_buf,err := protocol.EncodePacket(  protocol.TypeReply , header,data)
 		if err != nil {
 			fmt.Println("HandleConn protocol.EncodePacket error: ", err.Error())
 			break
@@ -90,7 +90,7 @@ func client_side() {
 
 	header := []byte( `{"cmd":"Auth","sid":"1234516","ver":"1.2","seq":12123,"token":"sssssssssss121"}`)
 	data := []byte(`{"user":"simarui","pass":123","data":"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww122"}`)
-	buf,err := protocol.EncodePacket( int32(protocol.TypeReq), header, data)
+	buf,err := protocol.EncodePacket( protocol.TypeReq , header, data)
 	if ( err != nil ) {
 		fmt.Println("protocol.EncodePacket error: ", err.Error())
 		return

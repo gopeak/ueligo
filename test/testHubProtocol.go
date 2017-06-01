@@ -92,6 +92,7 @@ func client_hub() {
 	sid := `sid121`
 	seq := `seq001`
 	data := []byte(`{"user":"simarui","pass":123","data":"wwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwwww122"}`)
+
 	buf,err := protocol.HubPack( cmd,sid,seq, data)
 	if ( err != nil ) {
 		fmt.Println("protocol.EncodePacket error: ", err.Error())

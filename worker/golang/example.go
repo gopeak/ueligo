@@ -10,7 +10,6 @@ import (
 
 
 
-
 func (this TaskType)Auth(  ) ReturnType {
 
 	//sdk:=new(Sdk).Init(this.Cmd,this.Sid,this.Reqid,this.Data )
@@ -25,8 +24,7 @@ func (this TaskType)Auth(  ) ReturnType {
 	}
 }
 
-
-func (this TaskType)Push(   ) interface{} {
+func (this TaskType)Push(   ) string {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
@@ -41,8 +39,7 @@ func (this TaskType)Push(   ) interface{} {
 	return ""
 }
 
-
-func (this TaskType)Broadcast(  ) interface{}{
+func (this TaskType)Broadcast(  ) string{
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
@@ -62,9 +59,7 @@ func (this TaskType)Broadcast(  ) interface{}{
 	return ""
 }
 
-
-
-func (this TaskType)GetUserSession(   ) interface{} {
+func (this TaskType)GetUserSession(   ) string {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 
@@ -72,7 +67,7 @@ func (this TaskType)GetUserSession(   ) interface{} {
 
 }
 
-func (this TaskType)JoinArea(   ) interface{} {
+func (this TaskType)JoinArea(   ) string {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
 	//fmt.Println( "JoinChannel",this.Data  )
@@ -83,7 +78,6 @@ func (this TaskType)JoinArea(   ) interface{} {
 	}
 
 }
-
 
 func (this TaskType)LeaveChannel(   ) interface{} {
 
@@ -97,7 +91,6 @@ func (this TaskType)LeaveChannel(   ) interface{} {
 
 }
 
-
 func (this TaskType)KickSelf(   ) interface{} {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
@@ -109,8 +102,6 @@ func (this TaskType)KickSelf(   ) interface{} {
 	}
 
 }
-
-
 
 func (this TaskType)GetBase( conn *net.TCPConn, cmd string, req_sid string ,req_id int,req_data string ) string {
 

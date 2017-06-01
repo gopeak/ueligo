@@ -28,7 +28,7 @@ type ClientPacket struct {
 func EncodePacket(  _type string, header []byte,  payload []byte) ( []byte ,error ){
 	// len(totaol)+ len(header) + len(Checksum) == 12
 	var pkg *bytes.Buffer = new(bytes.Buffer)
-	totalsize := uint32(len(string(header)) +  len(string(payload)) )
+	totalsize := uint32(len(string(header)) +  len(string(payload)) ) +4
 
 	// set totalsize
 	err:=binary.Write( pkg , binary.LittleEndian, totalsize)
@@ -80,7 +80,7 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, []byte, error) {
 		return 0,nil, nil,nil,errors.New( fmt.Sprintf("bad packet. totalsize:%d", totalsize))
 	}
 
-	pack := make([]byte, 16+int(totalsize))
+	pack := make([]byte, int(totalsize)+4+4)
 	_, err = r.Read(pack)
 	if err != nil {
 		return 0,nil,nil,nil, err
@@ -96,7 +96,7 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, []byte, error) {
 	//fmt.Println( "headersize"  ,headersize )
 	header :=  pack[12:headersize+12]
 
-	payload := pack[(12+headersize):(totalsize+16)]
+	payload := pack[(12+headersize):(totalsize+4+4)]
 	//fmt.Println( "header:" , string(header))
 	//fmt.Println( "payload:" ,  string(payload) )
 	return _type,header,payload,pack, nil
@@ -200,7 +200,6 @@ func (this *Pack) GetPushObj(data []byte) (*PushRoot, error) {
 }
 
 func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byte, error) {
-
 	req_obj_header := &ReqHeader{}
 	req_obj_header.Cmd = cmd
 	req_obj_header.Sid = sid
@@ -209,8 +208,13 @@ func (this *Pack) WrapReq( cmd ,sid ,token string, seq int, data []byte ) ([]byt
 	header_buf ,_ := json.Marshal( req_obj_header )
 	//fmt.Println( "header_buf:", string(header_buf) )
 	return  EncodePacket( TypeReq, header_buf, data  )
+}
 
+func (this *Pack) WrapReqWithHeader( req_header *ReqHeader, data []byte ) ([]byte, error) {
 
+	header_buf ,_ := json.Marshal( req_header )
+	//fmt.Println( "header_buf:", string(header_buf) )
+	return  EncodePacket( TypeReq, header_buf, data  )
 }
 
 func (this *Pack) WrapResp( cmd, req_sid string, seq int, status int,  data []byte ) ( []byte,error ) {
@@ -270,12 +274,12 @@ func (this *Pack) WrapPushRespObj(to_sid string, from_sid string , data[]byte ) 
 	return push_obj
 }
 
-func (this *Pack) WrapPushResp(to_sid string, from_sid string , data string ) ([]byte,error) {
+func (this *Pack) WrapPushResp(to_sid string, from_sid string , data_buf []byte ) ([]byte,error) {
 
 	push_header_obj := PushHeader{}
 	push_header_obj.Sid = from_sid
 	header_buf,_ := json.Marshal( push_header_obj )
-	return  EncodePacket(  TypePush ,header_buf, []byte(data)  )
+	return  EncodePacket(  TypePush ,header_buf, data_buf )
 
 }
 

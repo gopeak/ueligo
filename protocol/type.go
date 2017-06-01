@@ -67,7 +67,7 @@ type RespHeader struct {
 type BroatcastRoot struct {
 	Type string             	`json:"type"`
 	Header  BroatcastHeader          `json:"header"`
-	Data    []byte   		`json:"data"`
+	Data    interface{}   		`json:"data"`
 }
 
 type BroatcastHeader struct {
@@ -78,7 +78,7 @@ type BroatcastHeader struct {
 type PushRoot struct {
 	Type string             `json:"type"`
 	Header  PushHeader      `json:"header"`
-	Data []byte      `json:"data"`
+	Data interface{}    	`json:"data"`
 }
 
 type PushHeader struct {

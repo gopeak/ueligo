@@ -89,7 +89,7 @@ func (this TaskType)PushMessage(   ) string {
 		fmt.Println( "GetBaseCallback:", resp )
 		return ""
 	}
-	sdk.ReqHubAsync( "GetBase", "", GetBaseCallback )
+	sdk.ReqHubAsync( "GetBase", []byte(""), GetBaseCallback )
 
 	sdk.Push(  this.ReqHeader.Sid, to_sid,  this.Data )
 	return "";

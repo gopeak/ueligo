@@ -130,7 +130,7 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	task_obj := new(golang.TaskType).Init(conn, req_obj)
 
 	invoker_ret := InvokeObjectMethod(task_obj, req_obj.Header.Cmd)
-	fmt.Println("invoker_ret", invoker_ret)
+	//fmt.Println("invoker_ret", invoker_ret)
 	// 判断是否需要响应数据
 	if req_obj.Type == protocol.TypeReq && !req_obj.Header.NoResp {
 		protocolPack := new(protocol.Pack)
@@ -158,7 +158,7 @@ func InvokeObjectMethod(object interface{}, methodName string, args ...interface
 	for i, _ := range args {
 		inputs[i] = reflect.ValueOf(args[i])
 	}
-	fmt.Println("methodName:", methodName)
+	//fmt.Println("methodName:", methodName)
 	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
 
 	switch vtype := ret.Interface().(type) {

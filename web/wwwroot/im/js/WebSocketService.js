@@ -2,9 +2,13 @@ var WebSocketService = function( webSocket) {
 	var webSocketService = this;
 	
 	var webSocket = webSocket;
-	var TypeReq  = "req";
-	var TypePush = "push";
-    var TypeBreoatcast= "broatcast";
+
+    var  TypeReq  	 = "1"
+    var  TypeResp  	 = "2"
+    var  TypeBroatcast  = "3"
+    var  TypePush 	 = "4"
+    var  TypeError  	 = "5"
+    var  TypeReply	 = "6"
 	
 	this.hasConnection = false;
 	
@@ -25,6 +29,12 @@ var WebSocketService = function( webSocket) {
 
     };
 
+    this.errorHandler = function(json_obj) {
+        console.log("errorHandler:");
+        console.log("服务器返回错误:")
+        console.log(json_obj);
+    };
+
     this.subscripeGroupfailedHandler = function(json_obj) {
         console.log(json_obj);
         console.log("加入群组失败!")
@@ -41,7 +51,6 @@ var WebSocketService = function( webSocket) {
         webSocketService.hasConnection = true;
         console.log("failedHandler:");
         console.log(json_obj);
-        alert("加入失败!")
 
     };
 	
@@ -55,18 +64,18 @@ var WebSocketService = function( webSocket) {
 	this.pushHandler = function(json_obj ) {
 		console.log( "messageHandler:" );
 
-		data  = JSON.parse(json_obj.data)
+		data  = json_obj.data
         console.log( data);
         from_info = data.from_info
-        var from_sid = data.from_sid
-
+        var from_sid = data.sid
+        /*
         for(var i=0; i<GlobalContacts.length; i++)
         {
             if  (GlobalContacts[i].sid==from_sid){
                 from_info = GlobalContacts[i];
                 break;
             }
-        }
+        }*/
 
         obj = {
             username:from_info.username
@@ -140,12 +149,42 @@ var WebSocketService = function( webSocket) {
 	this.processMessage = function( json_obj ) {
 	    console.log("processMessage:");
         var fn
-        if( json_obj.type=="response"){
-             fn = webSocketService[json_obj.data.type + 'Handler'];
-        }else{
-             fn = webSocketService[json_obj.type + 'Handler'];
+
+        if( json_obj.type==TypeError ) {
+            fn = webSocketService[ 'errorHandler'];
+            if (fn) {
+                fn(json_obj);
+            }
+            return
         }
 
+        if( json_obj.type==TypePush ) {
+            fn = webSocketService[ 'pushHandler'];
+            if (fn) {
+                fn(json_obj);
+            }
+            return
+        }
+        if( json_obj.type==TypeBroatcast ) {
+            fn = webSocketService[ 'broatcastHandler'];
+            if (fn) {
+                fn(json_obj);
+            }
+            return
+        }
+
+        if (typeof(json_obj.data) == "string") {
+            try{
+                json_obj.data = JSON.parse(json_obj.data)
+            }catch(err){
+
+            }
+        }
+
+        if (typeof(json_obj.data.type) == "undefined") {
+             return
+        }
+        fn = webSocketService[json_obj.data.type + 'Handler'];
 		if (fn) {
 			fn(json_obj);
 		}
@@ -208,7 +247,7 @@ var WebSocketService = function( webSocket) {
 				no_resp:true,
 				gzip:false
 			},
-            type:TypeBreoatcast,
+            type:TypeBroatcast,
             data: msg,
         };
         return  JSON.stringify(req_obj)

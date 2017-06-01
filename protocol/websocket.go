@@ -78,10 +78,9 @@ func (this *Json) WrapRespObj( req_obj *ReqRoot, invoker_ret []byte, status int 
 func (this *Json) WrapResp(   header []byte, data []byte, status int, msg string )  []byte  {
 
 	header = util.TrimX001( header )
-	data = util.TrimX001( data )
 	data_str := string(data)
 	if( util.TrimStr(data_str)==""){
-		data_str = "{}"
+		data_str = `""`
 	}
 	header_str := string(header)
 	if( util.TrimStr(header_str)==""){
@@ -93,28 +92,40 @@ func (this *Json) WrapResp(   header []byte, data []byte, status int, msg string
 
 }
 
-func (this *Json) WrapPushRespObj(to_sid string, from_sid string , data string ) PushRoot {
+func (this *Json) WrapPushRespObj(to_sid string, from_sid string , data []byte ) PushRoot {
 
 	push_header_obj := PushHeader{}
 	push_header_obj.Sid = from_sid
-	var map_data map[string]interface{}
-	err:=json.Unmarshal( []byte(data), map_data )
-	var to_data_buf []byte
-	if err==nil {
-		tmp ,err:=json.Marshal( map_data )
-		if err==nil {
-			to_data_buf = tmp
-		}
-	}else{
-		to_data_buf =  []byte(data)
-	}
-
 	push_obj := PushRoot{}
+	push_obj.Data  = string(data)
 	push_obj.Header =push_header_obj
-	push_obj.Data  = to_data_buf
-	push_obj.Type  = TypeResp
-
+	push_obj.Type  = TypePush
+	/*
+	var map_interface map[string]interface{}
+	var map_str map[string]string
+	err:=json.Unmarshal( data, map_interface )
+	if err==nil {
+		push_obj.Data = map_interface
+	}else{
+		err=json.Unmarshal( data, map_str )
+		if err==nil {
+			push_obj.Data = map_str
+		}
+	}
+	fmt.Println( "ws WrapPushRespObj to_data_buf:", string(data))
+	*/
 	return push_obj
+}
+
+func (this *Json) WrapPushResp(to_sid string, from_sid string , data []byte ) []byte {
+
+	data_str := string(data)
+	if( util.TrimStr(data_str)==""){
+		data_str = `""`
+	}
+	return []byte(fmt.Sprintf(`{"header":{"sid":"%s"},"type":"%s","data":%s  }`,
+		 from_sid ,TypePush, data_str ))
+
 }
 
 
@@ -126,8 +137,8 @@ func (this *Json) WrapBroatcastRespObj(channel_id string, from_sid string , data
 
 	broatcast_obj := BroatcastRoot{}
 	broatcast_obj.Header =broatcast_header_obj
-	broatcast_obj.Data  = data
-	broatcast_obj.Type  = "broatcast"
+	broatcast_obj.Data  = string(data)
+	broatcast_obj.Type  = TypeBroatcast
 
 	return broatcast_obj
 }

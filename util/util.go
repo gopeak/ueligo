@@ -56,6 +56,7 @@ func TrimStr(str string) string {
 
 
 func TrimX001(data_buf []byte) []byte {
+	return data_buf
 	for i, ch := range data_buf {
 
 		switch {

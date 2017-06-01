@@ -15,7 +15,6 @@ import (
 	"morego/connector"
 	"morego/lib/syncmap"
 	"morego/worker"
-	"morego/util"
 )
 
 

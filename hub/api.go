@@ -172,7 +172,6 @@ func (api *Api)GetSidsByArea(channel_id string) string {
 func (api *Api)AreaAddSid(sid string, area_id string) bool {
 
 	return  area.AddSid( sid , area_id )
-
 }
 
 func (api *Api)AreaKickSid(sid string, area_id string) bool {
@@ -182,17 +181,15 @@ func (api *Api)AreaKickSid(sid string, area_id string) bool {
 
 }
 
-func (api *Api)Push( from_sid string ,to_sid string , data  string  ) bool {
-
-	area.Push( to_sid, from_sid, data  )
+func (api *Api)Push( to_sid, from_sid   string , data_buf []byte ) bool {
+	area.Push( to_sid, from_sid, data_buf )
 	return true
-
 }
 
-func (api *Api)PushBySids(from_sid string,to_sids []string, msg string) bool {
+func (api *Api)PushBySids(from_sid string,to_sids []string, data_buf []byte ) bool {
 
 	for _,to_sid:=   range to_sids {
-		area.Push(to_sid, from_sid, msg)
+		area.Push( to_sid, from_sid, data_buf )
 	}
 	return true
 

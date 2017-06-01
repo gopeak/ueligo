@@ -52,30 +52,25 @@ func hubListen(listen *net.TCPListener) {
 		conn.SetNoDelay(false)
 
 		//go handleWorkerWithJson( conn  )
-		go handleHubConnWithBufferio(conn)
+		go handleHubConn(conn)
 
 	} //end for {
 
 }
 
-func handleHubConnWithBufferio(conn *net.TCPConn) {
+func handleHubConn(conn *net.TCPConn) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
 
 	for {
-		//buf, err := reader.ReadBytes('\n')
-		buf ,err := protocol.Unpack( reader )
+		cmd_buf,sid_buf,seq_buf,data_buf,err := protocol.HubUnPack( reader)
 		if err != nil {
-			//fmt.Println( "Hub handleWorker connection error: ", err.Error())
-			// 超时处理
-			if neterr, ok := err.(net.Error); ok && neterr.Timeout() {
-
-			}
+			fmt.Println( "handleHubConn protocol.Unpack error: ",string(sid_buf), err.Error())
 			closeHubConn(conn)
 			break
 		}
-		go hubWorkeDispath( buf , conn)
+		go hubWorkeDispath( string(cmd_buf) , string(sid_buf), string(seq_buf), data_buf, conn)
 
 	}
 
@@ -83,55 +78,59 @@ func handleHubConnWithBufferio(conn *net.TCPConn) {
 
 func closeHubConn(conn *net.TCPConn) {
 
-	conn.Write([]byte{'E', 'O', 'F'})
 	conn.Close()
 
 }
 
 //  Worker using REQ socket to do load-balancing
 //
-func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
+func hubWorkeDispath(  cmd, sid, seq string,  data_buf []byte, conn *net.TCPConn) {
 
 	//  Process messages as they arrive
 
-	cmd,from_sid,reqid,data_buf :=protocol.ReadHubReq( msg )
 	data := string( data_buf )
-
 	api := new(Api)
 	fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
-		flatbuf := protocol.MakeHubResp(cmd,reqid,"",api.GetBase())
-		wrote_buf,_:=protocol.Packet( flatbuf )
-		n,errw := conn.Write( wrote_buf )
-		if errw!=nil {
-			fmt.Println( "hubWorkeDispath err:", errw.Error() )
+		ret_buf := []byte( api.GetBase() )
+		write_buf,err:=protocol.HubPack( cmd,sid,seq,ret_buf )
+		if err!=nil {
+			golog.Error( "hubWorkeDispath GetBase protocol.HubPack err:", err.Error() )
+			return
 		}
-		fmt.Println( "hubWorkeDispath GetBase write:",n, api.GetBase()  )
-		//conn.Close()
+		_,errw := conn.Write( write_buf )
+		if errw!=nil {
+			fmt.Println( "hubWorkeDispath GetBase conn.Write err:", errw.Error() )
+		}
 		return
 	}
 	if cmd == "GetEnableStatus" {
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(global.AppConfig.Enable))  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( fmt.Sprintf("%d",global.AppConfig.Enable)) )
+		conn.Write( write_buf )
 		return
 	}
 	if cmd == "Enable" {
 		global.AppConfig.Enable = 1
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"","1")  )
+		//write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "1" ) )
+		//conn.Write( write_buf )
 		return
 	}
 	if cmd == "Disable" {
 		global.AppConfig.Enable = 0
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"","1")  )
+		//write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "1" ) )
+		//conn.Write( write_buf )
 		return
 	}
 	if cmd == "Get" {
 		str,err:=Get(data)
 		if( err!=nil ) {
-			conn.Write([]byte(protocol.MakeHubResp(cmd,reqid,err.Error(),"")))
+			write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "" ) )
+			conn.Write( write_buf )
 			return
 		}
-		conn.Write([]byte(protocol.MakeHubResp(cmd,  reqid, "", str)))
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -151,7 +150,11 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		_,err:=Set(key,value,expire)
 		if( err!=nil ) {
 			golog.Error("Hub Set err:",err.Error())
+			//write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "0" ) )
+			//conn.Write( write_buf )
 		}
+		//write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "1" ) )
+		//conn.Write( write_buf )
 		return
 
 	}
@@ -159,7 +162,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if cmd == "GetSession" {
 		str :=api.GetSession(data)
 		fmt.Println( "api.GetSession:",str)
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -169,7 +173,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -190,7 +195,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 
 	}
@@ -201,19 +207,22 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
 	if cmd == "GetAreas" {
-		ret :=api.GetAreas()
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
+		str :=api.GetAreas()
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
 	if cmd == "GetSidsByArea" {
-		ret :=api.GetSidsByArea( data )
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
+		str :=api.GetSidsByArea( data )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -242,7 +251,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 	if cmd == "AreaKickSid" {
@@ -264,7 +274,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -279,14 +290,15 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub Push json err:",err2.Error())
 			return
 		}
-
-		ret := api.Push( from_sid, to_sid ,string(data_buf) )
+		fmt.Println( "hub recvice push:", string(data_buf) )
+		ret := api.Push( to_sid ,sid, data_buf )
 
 		str :="0"
 		if ret {
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -296,7 +308,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -312,12 +325,13 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 			golog.Error("Hub data_json json err:",err2.Error() )
 			return
 		}
-		ret := api.Broadcast( from_sid, area_id ,data_buf )
+		ret := api.Broadcast( sid, area_id ,data_buf )
 		str := "0"
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -339,7 +353,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if ret{
 			str = "1"
 		}
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",str )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		conn.Write( write_buf )
 		return
 	}
 
@@ -348,13 +363,15 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 		if( err_json!=nil ) {
 			err_str :="Hub UpdateSession json err:"+err_json.Error()
 			golog.Error( err_str )
-			conn.Write( protocol.MakeHubResp(cmd,reqid,err_json.Error(),"" )  )
+			write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( "[]" ) )
+			conn.Write( write_buf )
 			return
 		}
 		sid, _ := data_json.GetString("sid")
 		ret :=api.GetUserJoinedAreas(sid )
 
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( ret) )
+		conn.Write( write_buf )
 		return
 
 	}
@@ -362,7 +379,8 @@ func hubWorkeDispath(msg []byte, conn *net.TCPConn) {
 	if cmd == "GetAllSession" {
 
 		ret :=api.GetAllSession()
-		conn.Write( protocol.MakeHubResp(cmd,reqid,"",string(ret) )  )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( ret) )
+		conn.Write( write_buf )
 		return
 
 	}

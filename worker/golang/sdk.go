@@ -133,7 +133,6 @@ func   InitReqHubPool() {
 
 // 侦听Hub server返回的数据，然后回调worker的函数
 func  handleReqHubResponse(conn *net.TCPConn) {
-
 	time.Sleep( 2*time.Second)
 	reader := bufio.NewReader(conn)
 	defer func() {
@@ -144,75 +143,74 @@ func  handleReqHubResponse(conn *net.TCPConn) {
 		}
 	}()
 	for {
-		buf ,err := protocol.Unpack( reader)
+		cmd_buf,sid_buf,seq_buf,data_buf,err := protocol.HubUnPack( reader)
 		if err != nil {
-			fmt.Println( "handleReqHubResponse protocol.Unpack error: ", err.Error())
+			fmt.Println( "handleReqHubResponse protocol.Unpack error: ",string(sid_buf), err.Error())
 			conn.Close()
 			break
 		}
-		resp_cmd,req_id,resp_err,msg_data := protocol.ReadHubResp(buf)
-		if resp_err!=""{
-			golog.Error( "handleReqHubResponse protocol.ReadHubResp err:",resp_err )
-			continue
-		}
-		callback_key:=resp_cmd + req_id
-		if req_id=="0"{
+
+		callback_key:=string(cmd_buf) + string(seq_buf)
+		if string(seq_buf)=="0"{
 			ReqSeqCallbacks.Delete( callback_key )
 			continue
 
 		}
-
+		/*
+		fmt.Println( "callback_sid:", string(sid_buf) )
 		fmt.Println( "callback_key:", callback_key )
-		fmt.Println( "callback data:", string(msg_data)  )
+		fmt.Println( "callback data:", string(data_buf)  )
+		*/
 		_item,ok := ReqSeqCallbacks.Get( callback_key )
 		if( ok ) {
 			callback := _item.( AfterWorkCallback )
 			fmt.Println( "callback func :", callback  )
-			callback( string(msg_data) )
+			callback( string(data_buf) )
 			ReqSeqCallbacks.Delete( callback_key )
 		}
 	}
-
 }
 
 
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
-func (sdk *Sdk) ReqHubAsync( req_cmd string , data string ,handler AfterWorkCallback  ) (string,bool) {
+func (sdk *Sdk) ReqHubAsync( req_cmd string , data []byte ,handler AfterWorkCallback  ) (string,bool) {
 
-	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
-	req_buf := protocol.MakeHubReq( req_cmd, sdk.ReqHeader.Sid, req_id, data )
-	req_buf,_ = protocol.Packet( req_buf )
-
+	seq_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
+	req_buf,err:= protocol.HubPack( req_cmd,"",seq_id, data )
+	if err != nil {
+		golog.Error( "ReqHubAsync protocol.HubPack err:" , err.Error() )
+		return err.Error(),false
+	}
 	index := util.RandInt64(0, int64(len(ReqHubConns)))
 	req_hub_conn  := ReqHubConns[index]
 
-	//req_hub_conn,err := HubConnsPool.Get()
-	//fmt.Println( "ReqHubConns:", ReqHubConns )
 	if( req_hub_conn==nil  ){
 		golog.Error( "req_hub_conn is nil "  )
 		return "", false
 	}
-	callback_key:=req_cmd+ req_id
+	callback_key:=req_cmd + seq_id
 	ReqSeqCallbacks.Set( callback_key, handler )
-	//fmt.Println( "ReqHubAsync:", callback_key )
-	_,err := req_hub_conn.Write( req_buf )
+	_,err = req_hub_conn.Write( req_buf )
 	if err!=nil {
-		golog.Error( "req_hub_conn.Write err:" , err.Error() )
+		golog.Error( "ReqHubAsync req_hub_conn.Write err:" , err.Error() )
+		return err.Error() ,false
 	}
-	return "",false
+	return "ok",true
 }
 
 
 // 向Hub请求数据并监听返回,该请求将会阻塞除非等待返回超时
-func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
+func (sdk *Sdk) ReqHub( req_cmd string , data []byte ) (string,bool) {
 
-	req_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
-	req_buf := protocol.MakeHubReq( req_cmd, sdk.ReqHeader.Sid, req_id, data )
-	req_buf,_ = protocol.Packet( req_buf )
-	//fmt.Println( "req_str:", string(req_buf) )
+	seq_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
+	req_buf,err:= protocol.HubPack( req_cmd, "", seq_id, data )
+	if err != nil {
+		golog.Error( "ReqHub protocol.HubPack err:" , err.Error() )
+		return err.Error(),false
+	}
 
 	sdk.connect()
-	_,err:=sdk.HubConn.Write( req_buf )
+	_,err=sdk.HubConn.Write( req_buf )
 	if( err!=nil ) {
 		return "sdk.HubConn.Write err",false
 	}
@@ -225,28 +223,24 @@ func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 		}
 	}()
 	for {
-		buf ,err := protocol.Unpack( reader)
+
+		cmd_buf,sid_buf,seq_buf,data_buf,err := protocol.HubUnPack( reader)
+		if err != nil {
+			fmt.Println( "ReqHub protocol.Unpack error: ", string(sid_buf), err.Error() )
+			sdk.HubConn.Close()
+			break
+		}
+
 		select {
 
 		case <- time.After(5 * time.Second):
-			return "time 5 second",false
+			return "timeout 5 second ",false
 
 		default:
-			if err != nil {
-				fmt.Println( "handleReqHubResponse protocol.Unpack error: ", err.Error())
-				sdk.HubConn.Close()
-				return err.Error(),false
-			}
-			resp_cmd,resp_req_id,resp_err,ret_buf := protocol.ReadHubResp(buf)
-
-			if resp_cmd+resp_req_id == req_cmd+req_id{
+			if string(cmd_buf)+string(seq_buf) == req_cmd+seq_id{
 				// 如果服务返回错误
-				if( resp_err!=""  ){
-					golog.Error( "ReqHub resp err:",resp_err)
-					return resp_err,false
-				}
 				sdk.HubConn.Close()
-				return string(ret_buf),true
+				return string(data_buf),true
 			}
 		}
 	}
@@ -254,16 +248,18 @@ func (sdk *Sdk) ReqHub( req_cmd string , data string ) (string,bool) {
 	return "",false
 }
 
-func (sdk *Sdk) PushHub( req_cmd string , data string ) bool {
+func (sdk *Sdk) PushHub( req_cmd string , data []byte ) bool {
 
-	req_buf := protocol.MakeHubReq( req_cmd,sdk.ReqHeader.Sid, strconv.Itoa( int(sdk.ReqHeader.SeqId) ), data )
-	req_buf,_ = protocol.Packet( req_buf )
+	req_buf,err:= protocol.HubPack( req_cmd, "", "", data )
+	if err != nil {
+		golog.Error( "ReqHub protocol.HubPack err:" , err.Error() )
+		return false
+	}
 	sdk.connect()
-	_,err:=sdk.HubConn.Write( req_buf )
+	_,err=sdk.HubConn.Write( req_buf )
 	if( err!=nil ) {
 		return false
 	}
-
 	return true
 }
 
@@ -278,7 +274,7 @@ func (sdk *Sdk)  GetBase() string {
 		return api.GetBase()
 	}
 
-	ret,ok :=sdk.ReqHub( "GetBase","" )
+	ret,ok :=sdk.ReqHub( "GetBase",[]byte("")  )
 	if ok {
 		return ret
 	}
@@ -293,8 +289,7 @@ func (sdk *Sdk) GetEnableStatus() bool {
 		api := new(hub.Api)
 		return api.GetEnableStatus()
 	}
-
-	ret,ok:= sdk.ReqHub( "GetEnableStatus","" )
+	ret,ok:= sdk.ReqHub( "GetEnableStatus",[]byte("")  )
 	if( !ok ){
 		return false
 	}
@@ -303,18 +298,14 @@ func (sdk *Sdk) GetEnableStatus() bool {
 	}else{
 		return false
 	}
-
 }
 
 func (sdk *Sdk) Enable() bool {
-
 	if( global.SingleMode ) {
 		global.AppConfig.Enable = 1
 		return true
 	}
-	return sdk.PushHub( "Enable","")
-
-
+	return sdk.PushHub( "Enable", []byte("") )
 }
 
 func (sdk *Sdk) Disable() bool {
@@ -323,8 +314,7 @@ func (sdk *Sdk) Disable() bool {
 		global.AppConfig.Enable = 0
 		return true
 	}
-	return sdk.PushHub( "Disable","")
-
+	return sdk.PushHub( "Disable",[]byte("") )
 }
 
 func (sdk *Sdk) AddCron(expression string, exefnc func()) bool {
@@ -349,13 +339,10 @@ func (sdk *Sdk) RemoveCron(expression string) bool {
 	} else {
 		return false
 	}
-
 	return true
-
 }
 
 func (sdk *Sdk) Get(key string) string {
-
 	if( global.SingleMode ) {
 		str,err:=hub.Get(key)
 		if err!=nil {
@@ -364,13 +351,11 @@ func (sdk *Sdk) Get(key string) string {
 		}
 		return str
 	}
-
-	ret,ok := sdk.ReqHub( "Get",key )
+	ret,ok := sdk.ReqHub( "Get",[]byte(key) )
 	if( !ok ) {
 		return ""
 	}
 	return ret
-
 }
 
 func (sdk *Sdk) Set(key string, value string,expire int) bool {
@@ -384,7 +369,7 @@ func (sdk *Sdk) Set(key string, value string,expire int) bool {
 		return ret
 	}
 	json:=fmt.Sprintf(`{"key":"%s","value":"%s","expire":%d}`,key,value,expire)
-	ret:= sdk.PushHub( "Set",json )
+	ret:= sdk.PushHub( "Set",[]byte(json) )
 	return ret
 }
 
@@ -404,7 +389,7 @@ func (sdk *Sdk) GetSession(sid string)  string {
 		api := new(hub.Api)
 		return api.GetSession( sid )
 	}
-	ret,ok := sdk.ReqHub( "GetSession",sid  )
+	ret,ok := sdk.ReqHub( "GetSession",[]byte(sid)   )
 	if !ok{
 		return ""
 	}
@@ -418,7 +403,7 @@ func (sdk *Sdk) Kick(sid string) bool {
 		api := new(hub.Api)
 		return api.Kick( sid )
 	}
-	return sdk.PushHub( "Kick",sid)
+	return sdk.PushHub( "Kick",[]byte(sid) )
 }
 
 func (sdk *Sdk) CreateArea(id string, name string) bool {
@@ -428,7 +413,7 @@ func (sdk *Sdk) CreateArea(id string, name string) bool {
 		return api.CreateArea( id,name )
 	}
 	json:=fmt.Sprintf(`{"id":"%s","name":"%s","expire":%d}`,id,name)
-	return sdk.PushHub( "CreateArea",json)
+	return sdk.PushHub( "CreateArea",[]byte(json)  )
 
 }
 
@@ -438,7 +423,7 @@ func (sdk *Sdk) RemoveArea(id string) bool {
 		api := new(hub.Api)
 		return api.RemoveArea( id )
 	}
-	return sdk.PushHub( "RemoveArea",id)
+	return sdk.PushHub( "RemoveArea",[]byte(id) )
 }
 
 func (sdk *Sdk) GetAreas() string {
@@ -447,7 +432,7 @@ func (sdk *Sdk) GetAreas() string {
 		api := new(hub.Api)
 		return api.GetAreas(  )
 	}
-	ret,ok := sdk.ReqHub( "GetAreas","" )
+	ret,ok := sdk.ReqHub( "GetAreas",[]byte("")  )
 	if( !ok ) {
 		return "{}"
 	}
@@ -462,7 +447,7 @@ func (sdk *Sdk) GetSidsByArea(channel_id string) string {
 		api := new(hub.Api)
 		return api.GetSidsByArea( channel_id )
 	}
-	ret,ok :=  sdk.ReqHub( "GetSidsByArea",channel_id )
+	ret,ok :=  sdk.ReqHub( "GetSidsByArea",[]byte(channel_id)  )
 	if( !ok ) {
 		return "{}"
 	}
@@ -477,7 +462,7 @@ func (sdk *Sdk) AreaAddSid(sid string, area_id string) bool {
 		return api.AreaAddSid( sid, area_id  )
 	}
 	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
-	return sdk.PushHub( "AreaAddSid",json)
+	return sdk.PushHub( "AreaAddSid",[]byte(json) )
 
 }
 
@@ -488,18 +473,18 @@ func (sdk *Sdk) AreaKickSid( sid string, area_id string) bool {
 		return api.AreaKickSid( sid, area_id  )
 	}
 	json:=fmt.Sprintf(`{"sid":"%s","area_id":"%s"}`,sid, area_id )
-	return sdk.PushHub( "AreaKickSid",json)
+	return sdk.PushHub( "AreaKickSid",[]byte(json))
 
 }
 
-func (sdk *Sdk) Push( from_sid string ,to_sid string , data  []byte ) bool {
+func (sdk *Sdk) Push( from_sid string ,to_sid string , to_data  []byte ) bool {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
-		return api.Push ( from_sid,to_sid, string(data)  )
+		return api.Push ( from_sid,to_sid, to_data  )
 	}
 
-	return sdk.PushHub( "Push",string(data) )
+	return sdk.PushHub( "Push",to_data )
 
 }
 
@@ -518,7 +503,7 @@ func (sdk *Sdk) Broatcast(sid string ,area_id string,  data []byte ) bool {
 		api := new(hub.Api)
 		return api.Broadcast( sid,area_id, data  )
 	}
-	return sdk.PushHub( "Broatcast",string(data) )
+	return sdk.PushHub( "Broatcast",data )
 
 }
 
@@ -529,7 +514,7 @@ func (sdk *Sdk) BroadcastAll( msg []byte ) bool {
 		api := new(hub.Api)
 		return api.BroadcastAll( msg )
 	}
-	return sdk.PushHub( "BroadcastAll", string(msg) )
+	return sdk.PushHub( "BroadcastAll", msg )
 
 }
 
@@ -541,7 +526,7 @@ func (sdk *Sdk) UpdateSession( sid string, data string ) bool {
 		return api.UpdateSession( sid, data )
 	}
 	json:=fmt.Sprintf(`{"sid":"%s","data":"%s"}`,sid, data )
-	return sdk.PushHub( "UpdateSession",json)
+	return sdk.PushHub( "UpdateSession",[]byte(json) )
 
 }
 
@@ -553,7 +538,7 @@ func (sdk *Sdk)GetUserJoinedAreas(sid string) string {
 		return api.GetUserJoinedAreas(sid)
 	}
 
-	ret,ok :=sdk.ReqHub( "GetUserJoinedAreas",sid)
+	ret,ok :=sdk.ReqHub( "GetUserJoinedAreas",[]byte(sid) )
 	if ok {
 		return ret
 	}
@@ -569,7 +554,7 @@ func (sdk *Sdk)GetAllSession( ) string {
 		return api.GetAllSession()
 	}
 
-	ret,ok :=sdk.ReqHub( "GetAllSession","")
+	ret,ok :=sdk.ReqHub( "GetAllSession",[]byte(""))
 	if ok {
 		return ret
 	}

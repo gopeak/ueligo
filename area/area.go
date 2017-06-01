@@ -333,7 +333,7 @@ func UnSubGlobal( sid string ) {
 /**
  *  点对点发送消息
  */
-func Push(  to_sid string ,from_sid string,to_data string ) {
+func Push(  to_sid string ,from_sid string,to_data []byte ) {
 	conn :=  GetConn(to_sid)
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
@@ -353,7 +353,7 @@ func Push(  to_sid string ,from_sid string,to_data string ) {
 	ws:=GetWsConn(to_sid)
 
 	if( ws!=nil ) {
-		buf, _ := json.Marshal(protocolJson.WrapPushRespObj( to_sid, from_sid, to_data ) )
+		buf  :=  protocolJson.WrapPushResp( to_sid, from_sid, to_data )
 		fmt.Println( "push, to_sid:", to_sid , string(buf))
 		_,err:=ws.Write( buf )
 		if err!=nil {
