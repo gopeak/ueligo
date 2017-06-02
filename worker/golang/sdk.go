@@ -2,18 +2,18 @@ package golang
 
 import (
 	"morego/golog"
-	"github.com/robfig/cron"
 	"morego/global"
-	z_type "morego/type"
+	"morego/area"
+	"morego/lib/syncmap"
+	"morego/util"
+	"morego/protocol"
+	"morego/hub"
 	"fmt"
 	"time"
 	"net"
-	"morego/protocol"
-	"morego/hub"
 	"bufio"
-	"morego/lib/syncmap"
-	"morego/util"
 	"strconv"
+	"github.com/robfig/cron"
 )
 
 
@@ -32,11 +32,9 @@ type Sdk struct {
 }
 
 type PushReqHub struct {
-
 	Sid bool
 	Msg string
 	Info map[string]string
-
 }
 
 type AfterWorkCallback func(   resp_buf string ) (string)
@@ -47,6 +45,7 @@ var ReqHubConns  =  make( []*net.TCPConn, 0 )
 
 var InitialCap  int
 
+var ToHub []string
 
 
 func (sdk *Sdk) Init( _type string, req_header *protocol.ReqHeader, data []byte ) *Sdk{
@@ -75,14 +74,13 @@ func (sdk *Sdk) InitCmd(cmd string,sid string,reqid int,data []byte) *Sdk{
 }
 
 // 数据连接
-func (sdk *Sdk) connect() bool{
+func (sdk *Sdk) connect( ) bool{
 
 	if sdk.HubConn!=nil {
 		return true
 	}
-	data :=  global.Config.WorkerServer.ToHub
-	hub_host := data[0]
-	hub_port_str := data[1]
+	hub_host := ToHub[0]
+	hub_port_str := ToHub[1]
 	ip_port := hub_host + ":" + hub_port_str
 
 	tcpAddr, _ := net.ResolveTCPAddr("tcp4", ip_port)
@@ -97,19 +95,17 @@ func (sdk *Sdk) connect() bool{
 }
 
 
-func   InitReqHubPool() {
+func   InitReqHubPool( to_hub []string  ) {
 
 	// create a factory() to be used with channel based pool
 	ReqSeqCallbacks = syncmap.New()
 
 	InitialCap  = 10
-	fmt.Println( "global.Config.WorkerServer",global.Config.WorkerServer.Servers)
-
+	fmt.Println( "global.Config.ToWorker",global.Config.ToWorker.Servers)
+	ToHub = to_hub
 	factory    := func() (*net.TCPConn, error) {
-		data :=  global.Config.WorkerServer.ToHub
-		hub_host := data[0]
-		hub_port_str := data[1]
-		ip_port := hub_host + ":" + hub_port_str
+
+		ip_port := to_hub[0] + ":" + to_hub[1]
 
 		tcpAddr, _ := net.ResolveTCPAddr("tcp4", ip_port)
 		hubconn, err_req := net.DialTCP("tcp", nil, tcpAddr)
@@ -203,7 +199,7 @@ func (sdk *Sdk) ReqHubAsync( req_cmd string , data []byte ,handler AfterWorkCall
 func (sdk *Sdk) ReqHub( req_cmd string , data []byte ) (string,bool) {
 
 	seq_id := strconv.FormatInt( time.Now().UTC().UnixNano(), 10)
-	req_buf,err:= protocol.HubPack( req_cmd, "", seq_id, data )
+	req_buf,err:= protocol.HubPack( req_cmd, sdk.ReqHeader.Sid, seq_id, data )
 	if err != nil {
 		golog.Error( "ReqHub protocol.HubPack err:" , err.Error() )
 		return err.Error(),false
@@ -250,7 +246,7 @@ func (sdk *Sdk) ReqHub( req_cmd string , data []byte ) (string,bool) {
 
 func (sdk *Sdk) PushHub( req_cmd string , data []byte ) bool {
 
-	req_buf,err:= protocol.HubPack( req_cmd, "", "", data )
+	req_buf,err:= protocol.HubPack( req_cmd, sdk.ReqHeader.Sid, "", data )
 	if err != nil {
 		golog.Error( "ReqHub protocol.HubPack err:" , err.Error() )
 		return false
@@ -374,13 +370,13 @@ func (sdk *Sdk) Set(key string, value string,expire int) bool {
 }
 
 // 该方法仅在单机模式下调用
-func (sdk *Sdk) GetSessionType(sid string) *z_type.Session  {
+func (sdk *Sdk) GetSessionType(sid string) *area.Session  {
 
-	session,exist := global.SyncUserSessions.Get(sid)
+	session,exist := global.UserSessions.Get(sid)
 	if !exist {
 		return nil
 	}
-	return session.(*z_type.Session)
+	return session.(*area.Session)
 }
 
 func (sdk *Sdk) GetSession(sid string)  string {

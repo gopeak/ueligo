@@ -6,6 +6,7 @@ import (
 	"morego/area"
 	"morego/golog"
 	"github.com/antonholmquist/jason"
+	"fmt"
 )
 
 
@@ -82,7 +83,7 @@ func (this TaskType)JoinArea(   ) string {
 func (this TaskType)LeaveChannel(   ) interface{} {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
-
+	fmt.Println( "LeaveChannel header:",this.ReqHeader  )
 	if(   sdk.AreaKickSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{

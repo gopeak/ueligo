@@ -10,19 +10,16 @@ import (
 	"fmt"
 	"net"
 	"time"
-	//"strings"
 	"sync/atomic"
+	"encoding/json"
 	"math/rand"
 	"morego/global"
 	"morego/golog"
 	"morego/lib/websocket"
 	"morego/lib/syncmap"
 	"morego/protocol"
-	z_type "morego/type"
-	"encoding/json"
 	"morego/util"
 )
-
 
 // 所有的场景名称列表
 var Areas = make([]string, 0, 1000)
@@ -33,11 +30,23 @@ var AreasMap *syncmap.SyncMap
 // 一个全局的场景
 var GlobalArea   *AreaType
 
-
 // 所有的用户连接对象
 var AllConns *syncmap.SyncMap
 var AllWsConns *syncmap.SyncMap
 
+// 用户加入过的场景列表
+var UserJoinedAreas *syncmap.SyncMap
+
+// 用户结构
+type Session struct {
+	IP string
+	User string
+	LoggedIn bool
+	KickOut  bool
+	Sid string
+	ConnectTime int64
+	PacketTime  int64
+}
 
 type AreaType struct {
 	// 唯一标识符
@@ -48,6 +57,8 @@ type AreaType struct {
 	Conns *syncmap.SyncMap
 	// 当前场景包含的websocket连接对象
 	WsConns *syncmap.SyncMap
+
+	CreateTime int64
 
 }
 
@@ -64,9 +75,10 @@ func InitConfig() {
 	}
 	GlobalArea = new(AreaType)
 	GlobalArea.Id = "global"
-	GlobalArea.Name = "global"
+	GlobalArea.Name = "全局场景"
 	GlobalArea.Conns = syncmap.New()
 	GlobalArea.WsConns = syncmap.New()
+	GlobalArea.CreateTime = time.Now().Unix()
 	AreasMap.Set("global",GlobalArea)
 }
 
@@ -79,9 +91,18 @@ func Create(area_id string, name string) {
 	area.Name = name
 	area.WsConns = syncmap.New()
 	area.Conns = syncmap.New()
+	area.CreateTime = time.Now().Unix()
 	AreasMap.Set( area_id,area)
 }
 
+// 创建一个场景
+func Get( area_id string ) *AreaType{
+	v,ok := AreasMap.Get(area_id)
+	if ok {
+		return v.(*AreaType)
+	}
+	return nil
+}
 // 删除一个场景
 func Remove(id string) {
 	golog.Info(id)
@@ -98,9 +119,7 @@ func Remove(id string) {
 
 // 检查是否已经创建了场景
 func CheckExist(area_id string) bool {
-
 	return AreasMap.Has(area_id)
-
 }
 
 func AddSid(sid string, area_id string) bool {
@@ -112,7 +131,6 @@ func AddSid(sid string, area_id string) bool {
 	if !exist {
 		return false
 	}
-
 	user_conn := GetConn( sid )
 	user_wsconn :=  GetWsConn( sid )
 	fmt.Println( "AreaAddSid user_conn:",sid, user_conn )
@@ -126,12 +144,12 @@ func AddSid(sid string, area_id string) bool {
 	}
 	// 该用户加入过的场景列表
 	var userJoinedChannels = make([]string, 0, 1000)
-	tmp, ok := global.SyncUserJoinedChannels.Get(sid)
+	tmp, ok := UserJoinedAreas.Get(sid)
 	if ok {
 		userJoinedChannels = tmp.([]string)
 	}
 	userJoinedChannels = append(userJoinedChannels, area_id)
-	global.SyncUserJoinedChannels.Set(sid, userJoinedChannels)
+	UserJoinedAreas.Set(sid, userJoinedChannels)
 	//}
 	return true
 
@@ -142,14 +160,11 @@ func AddSid(sid string, area_id string) bool {
  */
 func Subscribe(area_id string, conn *net.TCPConn, sid string) {
 
-	// tcp部分
-	var area  *AreaType
-	_item,ok := AreasMap.Get(area_id)
-	if( !ok ) {
+	area := Get( area_id )
+	if( area==nil  ) {
 		golog.Error( "Area  ",area_id," no exist! "  )
 		return
 	}else{
-		area = _item.(*AreaType)
 		if( area.Conns.Size()<=0 ){
 			area.Conns = syncmap.New()
 		}
@@ -165,13 +180,11 @@ func Subscribe(area_id string, conn *net.TCPConn, sid string) {
  */
 func WsSubscribe(area_id string, ws *websocket.Conn, sid string) {
 
-	var area  *AreaType
-	_item,ok := AreasMap.Get(area_id)
-	if( !ok ) {
+	area := Get( area_id )
+	if( area==nil ) {
 		golog.Error( "Area  ",area_id," no exist! "  )
 		return
 	}else{
-		area = _item.(*AreaType)
 		if( area.WsConns.Size()<=0 ){
 			area.WsConns = syncmap.New()
 		}
@@ -184,12 +197,9 @@ func WsSubscribe(area_id string, ws *websocket.Conn, sid string) {
 
 
 func GetSids( area_id string) []string {
-
 	ret := make([]string,0)
-	var area  AreaType
-	item,ok:= AreasMap.Get( area_id )
-	if( ok ){
-		area = item.(AreaType)
+	area := Get( area_id )
+	if( area!=nil ){
 		for tmp := range area.Conns.IterItems(){
 			ret=append(ret,tmp.Key)
 		}
@@ -198,7 +208,6 @@ func GetSids( area_id string) []string {
 		}
 	}
 	return ret
-
 }
 
 
@@ -208,10 +217,8 @@ func GetSids( area_id string) []string {
  */
 func CheckUserJoined(area_id string, sid string) bool {
 
-	var area  *AreaType
-	_item,ok:= AreasMap.Get(area_id)
-	if( ok ) {
-		area = _item.(*AreaType)
+	area := Get( area_id )
+	if( area!=nil ) {
 		if  area.Conns.Has(sid) {
 			return true
 		}
@@ -229,10 +236,8 @@ func CheckUserJoined(area_id string, sid string) bool {
  */
 func UnSubscribe(area_id string, sid string) {
 
-	var area  *AreaType
-	_item,ok:= AreasMap.Get(area_id)
-	if( ok ) {
-		area = _item.(*AreaType)
+	area := Get( area_id )
+	if( area!=nil ) {
 		area.Conns.Delete( sid )
 		area.WsConns.Delete( sid )
 		AreasMap.Set( area_id, area )
@@ -256,32 +261,34 @@ func Broatcast( sid string,area_id string, msg []byte ) {
 
 	fmt.Println("Broatcast:", sid, area_id, string(msg) )
 
-	var area *AreaType
-	_item,ok := AreasMap.Get(area_id)
-	if( !ok ) {
+	area := Get( area_id )
+	if( area==nil ) {
 		golog.Error("AreasMap no found :",area_id)
 		return
 	}
-	area = _item.( *AreaType )
 	var conn *net.TCPConn
 	fmt.Println("场景里有:", area.Conns.Size(),"个连接")
-	protocolJson := new(protocol.Json)
-	protocolJson.Init()
+	protocolPacket := new(protocol.Pack)
+	protocolPacket.Init()
 	// socket部分
 	for item := range area.Conns.IterItems() {
 		//fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
 		//fmt.Println( protocol.WrapBroatcastRespStr(sid,area_id,msg) )
 
-		protocolPacket := new(protocol.Pack)
-		protocolPacket.Init()
 		buf,_ := protocolPacket.WrapBroatcastResp( area_id, sid, msg  )
-		conn.Write( buf )
+		fmt.Println( "Broatcast:",  string(buf) )
+		n,err:=conn.Write( buf )
+		if err!=nil {
+			golog.Error("Broatcast conn.Write err :",err.Error()," expect ", len(buf),", but only write:",n )
+		}
 	}
 
 	// websocket部分
 	fmt.Println("WS场景里有:", area.WsConns.Size(),"个连接")
 	var wsconn *websocket.Conn
+	protocolJson := new(protocol.Json)
+	protocolJson.Init()
 	for item := range area.WsConns.IterItems() {
 
 		wsconn = item.Value.(*websocket.Conn)
@@ -399,7 +406,7 @@ func DeleteWsConn(sid string) {
 
 func DeleteUserssion(sid string) {
 
-	global.SyncUserSessions.Delete(sid)
+	global.UserSessions.Delete(sid)
 
 }
 
@@ -409,9 +416,9 @@ func ConnRegister(conn *net.TCPConn, sid string) {
 
 	AllConns.Set( sid, conn )
 
-	_, ok := global.SyncUserSessions.Get(sid)
+	_, ok := global.UserSessions.Get(sid)
 	if !ok {
-		data := &z_type.Session{
+		data := &Session{
 			conn.RemoteAddr().String(),
 			"{}",
 			true,  // 登录成功
@@ -420,7 +427,7 @@ func ConnRegister(conn *net.TCPConn, sid string) {
 			time.Now().Unix(), //加入时间
 			time.Now().Unix(),
 		}
-		global.SyncUserSessions.Set(sid, data)
+		global.UserSessions.Set(sid, data)
 	}
 
 }
@@ -432,9 +439,9 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 
 	AllWsConns.Set( user_sid, ws )
 
-	_, ok := global.SyncUserSessions.Get(user_sid)
+	_, ok := global.UserSessions.Get(user_sid)
 	if !ok {
-		data := &z_type.Session{
+		data := &Session{
 			ws.RemoteAddr().String(),
 			"{}",
 			true,  // 登录成功
@@ -443,7 +450,7 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 			time.Now().Unix(), //加入时间
 			time.Now().Unix(),
 		}
-		global.SyncUserSessions.Set(user_sid, data)
+		global.UserSessions.Set(user_sid, data)
 	}
 
 }
@@ -451,16 +458,12 @@ func WsConnRegister(ws *websocket.Conn, user_sid string) {
 
 func DeleteSession(sid string) {
 
-	//_, session_exist := global.SyncUserSessions.Get(sid)
-	//if session_exist {
-		global.SyncUserSessions.Delete(sid)
-	//}
-
+	global.UserSessions.Delete(sid)
 }
 
-func DeleteUserChannel(sid string) {
+func DeleteUserJoinedAreas(sid string) {
 
-	global.SyncUserJoinedChannels.Delete(sid)
+	UserJoinedAreas.Delete(sid)
 
 }
 
@@ -470,11 +473,10 @@ func FreeConn(conn *net.TCPConn, sid string) {
 	golog.Warn("Sid closing:", sid)
 	DeleteConn(sid)
 	DeleteSession(sid)
-	DeleteUserChannel(sid)
+	DeleteUserJoinedAreas(sid)
 	atomic.AddInt32(&global.SumConnections, -1)
 	UserUnSubscribe(sid)
-	global.SyncUserConns.Delete(sid)
-
+	AllConns.Delete( sid )
 }
 
 func FreeWsConn(ws *websocket.Conn, sid string) {
@@ -484,10 +486,9 @@ func FreeWsConn(ws *websocket.Conn, sid string) {
 	golog.Warn("Sid closing:", sid)
 	DeleteWsConn(sid)
 	DeleteSession(sid)
-	DeleteUserChannel(sid)
+	DeleteUserJoinedAreas(sid)
 	atomic.AddInt32(&global.SumConnections, -1)
 	UserUnSubscribe(sid)
-
 }
 
 /**
@@ -496,7 +497,7 @@ func FreeWsConn(ws *websocket.Conn, sid string) {
 func CheckSid(sid string) bool {
 
 	return true
-	_, exist := global.SyncUserSessions.Get(sid)
+	_, exist := global.UserSessions.Get(sid)
 	return exist
 }
 

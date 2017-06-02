@@ -4,7 +4,15 @@ import (
 	"fmt"
 	"math/rand"
 	"morego/lib/BurntSushi/toml"
+	"flag"
 )
+
+
+type Appconfig struct {
+	Enable int64 //  Listen to clients
+	Status string
+}
+
 
 type configType struct {
 	Name         string
@@ -12,14 +20,12 @@ type configType struct {
 	Status       string
 	Version      string
 	Loglevel     string
-	RpcType      string
-	PackType     string       `toml:"pack_type"`
 	SingleMode   bool	  `toml:"single_mode"`
 	Log          log          `toml:"log"`
 	Admin        admin        `toml:"admin"`
 	Connector    connector    `toml:"connector"`
 	Object       object       `toml:"object"`
-	WorkerServer workerServer `toml:"worker"`
+	ToWorker     toWorker 	  `toml:"worker"`
 	Hub          hub          `toml:"hub"`
 	Area         area         `toml:"area"`
 }
@@ -53,9 +59,8 @@ type object struct {
 	MonogoPort    int    `toml:"3306"`
 }
 
-type workerServer struct {
-	Servers [][]string `toml:"servers"`
-	ToHub []string 		 `toml:"to_hub"`
+type toWorker struct {
+	Servers [][]string `toml:"to_servers"`
 }
 
 type hub struct {
@@ -67,25 +72,16 @@ type area struct {
 	Init_area []string
 }
 
-var Config configType
-
-var WorkerConfig     WorkerConfigType
 
 func InitConfig() {
 
-	if _, err := toml.DecodeFile("config.toml", &Config); err != nil {
+	var filepath string
+	flag.StringVar(&filepath,"c", "config.toml", "config.toml's file path")
+	fmt.Println( "filepath:", filepath )
+	if _, err := toml.DecodeFile( filepath, &Config); err != nil {
 		fmt.Println("toml.DecodeFile error:", err)
 		return
 	}
-	_, err := toml.DecodeFile("worker.toml", &WorkerConfig )
-	if  err != nil {
-		fmt.Println("toml.DecodeFile error:", err.Error())
-		return
-	}
-	Config.WorkerServer.Servers = WorkerConfig.Servers
-	Config.WorkerServer.ToHub = WorkerConfig.ToHub
-
-
 }
 
 func GetRandWorkerAddr() string  {
@@ -93,16 +89,9 @@ func GetRandWorkerAddr() string  {
 	return  WorkerServers[rand_index]
 }
 
-type WorkerConfigType struct {
-
-	Servers [][]string       	`toml:"servers"`
-	ToHub []string  		`toml:"connect_to_hub"`
-
-}
-
 func InitWorkerAddr()   {
 
-	for _,data := range WorkerConfig.Servers {
+	for _,data := range Config.ToWorker.Servers {
 		worker_host  := data[0]
 		worker_port_str  := data[1]
 		WorkerServers = append( WorkerServers ,worker_host + ":" + worker_port_str )

@@ -49,7 +49,7 @@ func createReqConns(num int64)  {
 		r := bufio.NewReader(conn)
 		for {
 			_, _,resp_data,_,err :=  protocol.DecodePacket( r )
-			fmt.Println( "Auth:",   string(resp_data) )
+			//fmt.Println( "Auth:",   string(resp_data) )
 			json,_ := jason.NewObjectFromBytes( resp_data )
 
 			sid ,err:= json.GetString("sid")
@@ -63,7 +63,7 @@ func createReqConns(num int64)  {
 				continue
 			}
 
-			fmt.Println( "Auth ret_obj sid:", sid  )
+			//fmt.Println( "", sid  )
 			Sids  = append(  Sids, sid )
 			Tokens =  append(  Tokens,token )
 			break
@@ -80,6 +80,7 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 	var success int64
 	success = 0
 	req_sid := Sids[i]
+	fmt.Println("req_sid:",req_sid)
 	token := Tokens[i]
 	//data :=  protocol.WrapReqStr("GetUserSession",req_sid,0,req_sid )
 	protocolPack:= new(protocol.Pack)
@@ -92,14 +93,16 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 	if( err!=nil ) {
 		fmt.Println( " GetUserSession write err:",err.Error() )
 	}
-
+	have_lava_area :=false
+	recvice_br_msg:=0
 	for {
 
 		ptype, resp_header,resp_data,_,err :=  protocol.DecodePacket( reader )
 		//fmt.Println( "protocol.DecodePacket:",ptype,  string(resp_header), string(resp_data) )
 		if err != nil {
-			fmt.Println("HandleConn connection error: ", err.Error())
-			break
+			//fmt.Println("HandleConn connection error: ", err.Error())
+			conn.Close()
+			return
 		}
 		_type := fmt.Sprintf("%d",ptype)
 		success++
@@ -114,6 +117,9 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 			req_id := resp_header_obj.SeqId
 			// 获取当前信息后 发送点对点信息
 			if resp_header_obj.Cmd=="GetUserSession"  {
+
+				fmt.Println("GetUserSession:",string(resp_data))
+
 				to_sid_index := i-1
 				if to_sid_index<0 {
 					to_sid_index = 0
@@ -149,15 +155,14 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 
 		// 发送广播
 		if _type==protocol.TypeBroatcast  {
-			fmt.Println("Broadcast:",string(resp_data))
-			resp_broatcast_obj,msg_err  := protocolPack.GetBroatcastHeaderObj( resp_header )
-			if msg_err != nil {
-				fmt.Println("broadcast reply error: ", msg_err.Error(),resp_broatcast_obj)
-				continue
+			recvice_br_msg++
+			fmt.Println("Broadcast:",recvice_br_msg)
+		 	if !have_lava_area {
+				have_lava_area = true
+				buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
+				conn.Write([]byte( buf ))
 			}
-			 //fmt.Println( "broadcast recvice:",resp_broatcast_obj, string(resp_data)  )
-			buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
-			conn.Write([]byte( buf ))
+
 		}
 	}
 }

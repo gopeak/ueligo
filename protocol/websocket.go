@@ -129,11 +129,11 @@ func (this *Json) WrapPushResp(to_sid string, from_sid string , data []byte ) []
 }
 
 
-func (this *Json) WrapBroatcastRespObj(channel_id string, from_sid string , data []byte) BroatcastRoot {
+func (this *Json) WrapBroatcastRespObj(area_id string, from_sid string , data []byte) BroatcastRoot {
 
 	broatcast_header_obj := BroatcastHeader{}
 	broatcast_header_obj.Sid = from_sid
-	broatcast_header_obj.ChannelId = channel_id
+	broatcast_header_obj.AreaId = area_id
 
 	broatcast_obj := BroatcastRoot{}
 	broatcast_obj.Header =broatcast_header_obj

@@ -72,6 +72,7 @@ func WebsocketHandleClient(wsconn *websocket.Conn) {
 	// 监听客户端发送的数据
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
+	defer wsconn.Close()
 	for {
 		var buf []byte
 		if err = websocket.Message.Receive(wsconn, &buf); err != nil {

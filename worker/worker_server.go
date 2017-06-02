@@ -3,6 +3,7 @@ package worker
 import (
 	"bufio"
 	"fmt"
+	"flag"
 	"net"
 	"reflect"
 	"strconv"
@@ -22,7 +23,6 @@ import (
 type WorkerConfigType struct {
 
 	Loglevel     string		`toml:"loglevel"`
-	RpcType      string		`toml:"rpc_type"`
 	SingleMode   bool	  	`toml:"single_mode"`
 	Servers [][]string       	`toml:"servers"`
 	ToHub []string  		`toml:"connect_to_hub"`
@@ -36,9 +36,12 @@ var WorkerConfig   WorkerConfigType
 func InitWorkerServer() {
 
 	var err error
-	_, err = toml.DecodeFile("worker.toml", &WorkerConfig )
+	var filepath string
+	flag.StringVar(&filepath,"worker", "worker.toml", "worker.toml's file path")
+	_, err = toml.DecodeFile( filepath, &WorkerConfig )
+
 	if  err != nil {
-		fmt.Println("toml.DecodeFile error:", err.Error())
+		fmt.Println("worker.toml.DecodeFile error:", err.Error())
 		return
 	}
 	for _, data := range WorkerConfig.Servers {
@@ -56,7 +59,7 @@ func InitWorkerServer() {
 		}
 	}
 	time.Sleep( 1*time.Second)
-	golang.InitReqHubPool()
+	golang.InitReqHubPool( WorkerConfig.ToHub )
 }
 
 
@@ -95,7 +98,13 @@ func handleWorker(conn *net.TCPConn) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
-
+	defer func() {
+		err := recover()
+		if err != nil {
+			conn.Close()
+			fmt.Println( "handleWorker err :", err)
+		}
+	}()
 	for {
 		_type,header_buf,data_buf,_, err :=protocol.DecodePacket( reader )
 		if err != nil {
@@ -152,14 +161,20 @@ func Invoker(conn *net.TCPConn, req_obj *protocol.ReqRoot) interface{} {
 	return invoker_ret
 }
 
-func InvokeObjectMethod(object interface{}, methodName string, args ...interface{}) interface{} {
 
-	inputs := make([]reflect.Value, len(args))
-	for i, _ := range args {
-		inputs[i] = reflect.ValueOf(args[i])
+
+func InvokeObjectMethod(object interface{}, methodName string ) interface{} {
+
+	inputs := make([]reflect.Value, 0)
+
+	fnc := reflect.ValueOf(object).MethodByName(methodName)
+	empty:=reflect.Value{}
+	if fnc==empty{
+		fmt.Println( " reflect MethodByName " ,methodName ," no found!" )
+		//golog.Error( " reflect MethodByName " ,methodName ," no found!" )
+		return ""
 	}
-	//fmt.Println("methodName:", methodName)
-	ret := reflect.ValueOf(object).MethodByName(methodName).Call(inputs)[0]
+	ret := fnc.Call( inputs )[0]
 
 	switch vtype := ret.Interface().(type) {
 

@@ -27,12 +27,10 @@ func init_global() {
 
 	// 先在global声明,再使用make函数创建一个非nil的map，nil map不能赋值
 	global.AuthCmds = make([]string,0)
-	global.SyncUserConns = syncmap.New()
-	global.SyncUserSessions = syncmap.New()
-	global.SyncUserJoinedChannels = syncmap.New()
+	global.UserSessions = syncmap.New()
 	global.SingleMode = global.Config.SingleMode
 	global.AuthCmds = global.Config.Connector.AuthCcmds
-
+	area.UserJoinedAreas = syncmap.New()
 	global.InitWorkerAddr()
 }
 

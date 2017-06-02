@@ -3,7 +3,7 @@ package hub
 import (
 	"fmt"
 	"morego/global"
-	z_type "morego/type"
+	"morego/area"
 	"time"
 
 	"github.com/garyburd/redigo/redis"
@@ -27,7 +27,7 @@ func RedisInit() {
 	//n, err := RedisConn.Do("Set", "aaa", "vvvvvvvvv")
 	//fmt.Println(n, err)
 
-	data := &z_type.Session{
+	data := &area.Session{
 		``,
 		"{}",
 		true,  // 登录成功

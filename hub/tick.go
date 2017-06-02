@@ -4,16 +4,13 @@ package hub
 
 import (
 	"fmt"
+	"time"
+	"net"
 	"morego/global"
 	"morego/lib/syncmap"
-	"time"
-	//json2 "encoding/json"
 	"morego/golog"
-	z_type "morego/type"
-	"net"
-
+	"morego/area"
 	"github.com/garyburd/redigo/redis"
-	//"morego/protocol"
 )
 
 func tick() {
@@ -40,16 +37,16 @@ func TickSyncSession() {
 
 	for _ = range timer {
 		//ping := fmt.Sprintf(`{"cmd":"ping","ret":200,"time":%d }` , time.Now().Unix() );
-		/*var UserSessions = map[string]*z_type.Session{}
+		/*var UserSessions = map[string]*area.Session{}
 		for item := range global.SyncUserSessions.IterItems() {
-			UserSessions[item.Key] = item.Value.(*z_type.Session)
+			UserSessions[item.Key] = item.Value.(*area.Session)
 		}
 		js1, _ := json2.Marshal(UserSessions)
 		*/
-		if LastSessions != global.SyncUserSessions {
-			redisc.Do("Set", "morego/user_session", global.SyncUserSessions)
+		if LastSessions != global.UserSessions {
+			redisc.Do("Set", "morego/user_session", global.UserSessions)
 			redisc.Flush()
-			LastSessions = global.SyncUserSessions
+			LastSessions = global.UserSessions
 		}
 
 	}
@@ -70,10 +67,10 @@ func LoadSessionFromRedis() {
 	}
 	fmt.Println("GET morego/user_session ", reply)
 	if reply != nil {
-		global.SyncUserSessions = reply.(*syncmap.SyncMap)
-		var UserSessions = map[string]*z_type.Session{}
-		for item := range global.SyncUserSessions.IterItems() {
-			UserSessions[item.Key] = item.Value.(*z_type.Session)
+		global.UserSessions = reply.(*syncmap.SyncMap)
+		var UserSessions = map[string]*area.Session{}
+		for item := range global.UserSessions.IterItems() {
+			UserSessions[item.Key] = item.Value.(*area.Session)
 			fmt.Println(UserSessions[item.Key].Sid)
 		}
 	}
@@ -86,7 +83,7 @@ func TickWorkerServer() {
 	for now := range timer {
 		//fmt.Println("now", now)
 		ch_success := make(chan string, 0)
-		for _, data := range global.Config.WorkerServer.Servers {
+		for _, data := range global.Config.ToWorker.Servers {
 			go func(data []string) {
 				worker_host := data[0]
 				worker_port_str := data[1]
@@ -122,12 +119,12 @@ func TickWorkerServer() {
 			}(data)
 		}
 		sum := 0
-		for i := 0; i < len(global.Config.WorkerServer.Servers)+1; i++ {
+		for i := 0; i < len(global.Config.ToWorker.Servers)+1; i++ {
 			select {
 			case <-ch_success:
 				//fmt.Println("recv_result:", r)
 				sum++
-				if sum == len(global.Config.WorkerServer.Servers) {
+				if sum == len(global.Config.ToWorker.Servers) {
 					break
 				}
 

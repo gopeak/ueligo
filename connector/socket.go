@@ -125,9 +125,11 @@ func handleClientMsgSingle(conn *net.TCPConn, sid string) {
 
 	//声明一个管道用于接收解包的数据
 	qps := 0 // make(chan int64, 0)
+
 	reader := bufio.NewReader(conn)
 	protocolPacket := new(protocol.Pack)
 	protocolPacket.Init()
+	//defer conn.Close()
 	for {
 		if !global.Config.Enable {
 			buf,_ := protocolPacket.WrapResp( "Info", "", 0 , 200, []byte(global.DISBALE_RESPONSE) )
@@ -171,9 +173,9 @@ func handleClient(conn *net.TCPConn, req_conn *net.TCPConn, sid string) {
 		}
 		_type,header,data,all_buf,err := protocol.DecodePacket( reader )
 		if err!=nil {
-			golog.Error("SocketHandle protocol.DecodePacket err : "  + err.Error())
+			//golog.Error("SocketHandle protocol.DecodePacket err : "  + err.Error())
 			area.FreeConn(conn, last_sid)
-			break
+			return
 		}
 		req_obj ,err := protocolPacket.GetReqObj( _type,header,data )
 		if err != nil {

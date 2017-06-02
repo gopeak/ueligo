@@ -10,7 +10,6 @@ import (
 	"strings"
 	_"morego/lib/websocket"
 	"morego/protocol"
-	z_type "morego/type"
 )
 
 type Api struct {
@@ -95,7 +94,7 @@ func (api *Api)Set(key string, value string) bool {
 }
 
 func (api *Api)GetSession(sid string) string {
-	session,exist := global.SyncUserSessions.Get(sid)
+	session,exist := global.UserSessions.Get(sid)
 	if !exist {
 		return "{}"
 	}
@@ -204,12 +203,12 @@ func (this *Api) Broadcast( sid string, area_id string, msg []byte) bool {
 
 func (this *Api) UpdateSession( sid string, data string ) bool {
 
-	tmp, user_session_exist := global.SyncUserSessions.Get(sid)
-	var user_session *z_type.Session
+	tmp, user_session_exist := global.UserSessions.Get(sid)
+	var user_session *area.Session
 	if user_session_exist {
-		user_session = tmp.(*z_type.Session)
+		user_session = tmp.(*area.Session)
 		user_session.User = data
-		global.SyncUserSessions.Set(sid, user_session)
+		global.UserSessions.Set(sid, user_session)
 	}
 	return true
 
@@ -237,9 +236,9 @@ func (api *Api)GetUserJoinedAreas( sid string ) string {
 
 func (api *Api)GetAllSession( ) string {
 
-	var UserSessions = map[string]*z_type.Session{}
-	for item := range global.SyncUserSessions.IterItems() {
-		UserSessions[item.Key] = item.Value.(*z_type.Session)
+	var UserSessions = map[string]*area.Session{}
+	for item := range global.UserSessions.IterItems() {
+		UserSessions[item.Key] = item.Value.(*area.Session)
 	}
 	ret, _ := json_orgin.Marshal(UserSessions)
 	return  string(ret)

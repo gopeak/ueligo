@@ -182,7 +182,7 @@ func GetJsonChildObj( str string ,key string) ( string, error){
 			return "{"+reg_ret[0][1]+"}",nil
 		}
 	}
-	return "", errors.New("match result no found")
+	return "{}", errors.New("match result no found")
 }
 
 func GetJsonChildArray( str string ,key string) ( string, error){
@@ -222,7 +222,7 @@ func GetJsonChildStr( str string ,key string) ( string, error){
 			return `"`+reg_ret[0][1]+`"`,nil
 		}
 	}
-	return "", errors.New("match result no found")
+	return "[]", errors.New("match result no found")
 }
 
 

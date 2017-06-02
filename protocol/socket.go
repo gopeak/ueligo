@@ -11,6 +11,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"strconv"
+	"morego/util"
 )
 
 
@@ -140,7 +141,7 @@ func (this *Pack) GetReqObj( _type uint32 ,header []byte, data []byte ) (*ReqRoo
 
 	var req_header ReqHeader
 	stb := &ReqRoot{}
-
+	header = util.TrimX001(header)
 	stb.Type = fmt.Sprintf( "%d", _type )
 	err :=json.Unmarshal(header, &req_header)
 	if err!=nil {
@@ -284,11 +285,11 @@ func (this *Pack) WrapPushResp(to_sid string, from_sid string , data_buf []byte 
 }
 
 
-func (this *Pack) WrapBroatcastRespObj(channel_id , from_sid string , data []byte ) BroatcastRoot {
+func (this *Pack) WrapBroatcastRespObj( area_id , from_sid string , data []byte ) BroatcastRoot {
 
 	broatcast_header_obj := BroatcastHeader{}
 	broatcast_header_obj.Sid = from_sid
-	broatcast_header_obj.ChannelId = channel_id
+	broatcast_header_obj.AreaId = area_id
 
 	broatcast_obj := BroatcastRoot{}
 	broatcast_obj.Header =broatcast_header_obj
@@ -298,11 +299,11 @@ func (this *Pack) WrapBroatcastRespObj(channel_id , from_sid string , data []byt
 	return broatcast_obj
 }
 
-func (this *Pack) WrapBroatcastResp( channel_id, from_sid string,  data []byte ) ( []byte,error ) {
+func (this *Pack) WrapBroatcastResp( area_id, from_sid string,  data []byte ) ( []byte,error ) {
 
 	broatcast_header_obj := BroatcastHeader{}
 	broatcast_header_obj.Sid = from_sid
-	broatcast_header_obj.ChannelId = channel_id
+	broatcast_header_obj.AreaId = area_id
 
 	header_buf ,_ := json.Marshal( broatcast_header_obj )
 	return  EncodePacket(  TypeBroatcast ,header_buf, data  )

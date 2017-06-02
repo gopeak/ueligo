@@ -62,13 +62,18 @@ func handleHubConn(conn *net.TCPConn) {
 
 	//声明一个管道用于接收解包的数据
 	reader := bufio.NewReader(conn)
-
+	defer conn.Close()
 	for {
 		cmd_buf,sid_buf,seq_buf,data_buf,err := protocol.HubUnPack( reader)
 		if err != nil {
-			fmt.Println( "handleHubConn protocol.Unpack error: ",string(sid_buf), err.Error())
-			closeHubConn(conn)
-			break
+			//fmt.Println( "handleHubConn protocol.Unpack error: ",string(sid_buf), err.Error())
+			conn.Close()
+			return
+		}
+		if  util.TrimStr(string(cmd_buf))==""{
+			fmt.Println( "handleHubConn cmd empty" )
+			conn.Close()
+			return
 		}
 		go hubWorkeDispath( string(cmd_buf) , string(sid_buf), string(seq_buf), data_buf, conn)
 
@@ -76,11 +81,6 @@ func handleHubConn(conn *net.TCPConn) {
 
 }
 
-func closeHubConn(conn *net.TCPConn) {
-
-	conn.Close()
-
-}
 
 //  Worker using REQ socket to do load-balancing
 //

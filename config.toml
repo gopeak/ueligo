@@ -10,8 +10,6 @@
     status 		= 	"dev"
     version		=	"1.0"
     loglevel	=	"error"
-    rpc_type	=	"go"  # string | flatbuffer 
-    pack_type	=	"bufferio"
     single_mode	=	false
 	
 	[log]
@@ -44,12 +42,12 @@
 		mysql_password = ""
 
 	[worker]
-        servers = [
+	    #  在分布式模式下 连接到worker servers的ip和端口
+        to_servers = [
                 ["127.0.0.1","8001" ,"go"],
                 ["127.0.0.1","8002" ,"go"] ,
                 ["127.0.0.1","8003" ,"go"] ]
                 #["192.168.3.254", "8002","php"]
-        to_hub = ["127.0.0.1" ,"7302"]
 
 	[hub] 
     	hub_host = "127.0.0.1" 
@@ -58,6 +56,3 @@
 	[area]
 		init_area = ["area-global", "area-global2", "area-global3"]
 		
-		
-		
-      
