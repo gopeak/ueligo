@@ -6,7 +6,6 @@ import (
 	"morego/area"
 	"morego/golog"
 	"github.com/antonholmquist/jason"
-	"fmt"
 )
 
 
@@ -68,6 +67,16 @@ func (this TaskType)GetUserSession(   ) string {
 
 }
 
+func (this TaskType)GetAreas(   ) string {
+
+	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
+
+	return  sdk.GetAreasStr(  )
+
+}
+
+
+
 func (this TaskType)JoinArea(   ) string {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
@@ -83,7 +92,7 @@ func (this TaskType)JoinArea(   ) string {
 func (this TaskType)LeaveChannel(   ) interface{} {
 
 	sdk:=new(Sdk).Init( this.ReqType,this.ReqHeader,this.Data   )
-	fmt.Println( "LeaveChannel header:",this.ReqHeader  )
+	//fmt.Println( "LeaveChannel header:",this.ReqHeader  )
 	if(   sdk.AreaKickSid( this.ReqHeader.Sid ,string(this.Data)  ) ){
 		return "ok"
 	}else{

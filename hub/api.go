@@ -146,13 +146,15 @@ func (api *Api)RemoveArea(id string) bool {
 	return true
 }
 
-func (api *Api)GetAreas() string {
+func (api *Api)GetAreas() map[string]string {
 
-	buf, err := json_orgin.Marshal(area.Areas)
-	if( err!=nil ){
-		return "[]"
-	}
-	return string(buf)
+	return area.Gets()
+
+}
+
+func (api *Api)GetAreasKey() []string {
+
+	return area.Areas
 
 }
 

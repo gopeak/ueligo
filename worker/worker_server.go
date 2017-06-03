@@ -108,9 +108,7 @@ func handleWorker(conn *net.TCPConn) {
 	for {
 		_type,header_buf,data_buf,_, err :=protocol.DecodePacket( reader )
 		if err != nil {
-			if err.Error() != "EOF" {
-				fmt.Println("HandleWork connection error: ", err.Error())
-			}
+			golog.Error("handleWorker protocol.DecodePacket err:",err.Error() )
 			conn.Close()
 			break
 		}
@@ -122,7 +120,7 @@ func handleWorker(conn *net.TCPConn) {
 			conn.Close()
 			break
 		}
-		fmt.Println( "HandleWorkerStr str: ",string(header_buf), string(data_buf) )
+		//fmt.Println( "HandleWorkerStr str: ",string(header_buf), string(data_buf) )
 		go func(header_buf []byte, data_buf []byte,conn *net.TCPConn) {
 
 			protocolPack := new(protocol.Pack)

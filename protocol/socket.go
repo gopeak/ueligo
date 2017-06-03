@@ -95,6 +95,10 @@ func DecodePacket(r *bufio.Reader) ( uint32, []byte,  []byte, []byte, error) {
 
 	headersize =   uint32(pack[8] )
 	//fmt.Println( "headersize"  ,headersize )
+	if len(pack)< int(headersize+12) {
+		fmt.Println( "pack:"  ,string(pack) )
+		return 0,nil,nil,nil, errors.New("headersize error")
+	}
 	header :=  pack[12:headersize+12]
 
 	payload := pack[(12+headersize):(totalsize+4+4)]

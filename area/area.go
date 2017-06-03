@@ -82,9 +82,23 @@ func InitConfig() {
 	AreasMap.Set("global",GlobalArea)
 }
 
+// 获取场景列表
+func Gets(  ) map[string]string{
+
+	var areas_map map[string]string
+	areas_map = make(map[string]string)  //字典的创建
+	var area *AreaType
+	for item := range AreasMap.IterItems(){
+		area = item.Value.((*AreaType))
+		areas_map[item.Key] = area.Name
+	}
+	fmt.Println( "area Gets:", areas_map )
+	return areas_map
+}
+
 // 创建一个场景
 func Create(area_id string, name string) {
-	golog.Info(area_id, name)
+
 	Areas = append(Areas, area_id)
 	area := new(AreaType)
 	area.Id = area_id
@@ -97,6 +111,7 @@ func Create(area_id string, name string) {
 
 // 创建一个场景
 func Get( area_id string ) *AreaType{
+
 	v,ok := AreasMap.Get(area_id)
 	if ok {
 		return v.(*AreaType)
@@ -105,7 +120,6 @@ func Get( area_id string ) *AreaType{
 }
 // 删除一个场景
 func Remove(id string) {
-	golog.Info(id)
 	// 1.删除名称
 	for index, elem := range Areas {
 		if elem==id {
@@ -127,7 +141,7 @@ func AddSid(sid string, area_id string) bool {
 	area_id = util.TrimStr( area_id )
 	sid = util.TrimStr( sid )
 	exist := CheckExist(area_id)
-	fmt.Println( area_id," CheckChannelExist:", exist )
+	//fmt.Println( area_id," CheckChannelExist:", exist )
 	if !exist {
 		return false
 	}
@@ -259,46 +273,35 @@ func UserUnSubscribe(user_sid string) {
  */
 func Broatcast( sid string,area_id string, msg []byte ) {
 
-	fmt.Println("Broatcast:", sid, area_id, string(msg) )
-
 	area := Get( area_id )
 	if( area==nil ) {
 		golog.Error("AreasMap no found :",area_id)
 		return
 	}
 	var conn *net.TCPConn
-	fmt.Println("场景里有:", area.Conns.Size(),"个连接")
 	protocolPacket := new(protocol.Pack)
 	protocolPacket.Init()
 	// socket部分
 	for item := range area.Conns.IterItems() {
-		//fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
-		//fmt.Println( protocol.WrapBroatcastRespStr(sid,area_id,msg) )
-
 		buf,_ := protocolPacket.WrapBroatcastResp( area_id, sid, msg  )
-		fmt.Println( "Broatcast:",  string(buf) )
+		//fmt.Println( "Broatcast:",  string(buf) )
 		n,err:=conn.Write( buf )
 		if err!=nil {
 			golog.Error("Broatcast conn.Write err :",err.Error()," expect ", len(buf),", but only write:",n )
 		}
 	}
 
-	// websocket部分
-	fmt.Println("WS场景里有:", area.WsConns.Size(),"个连接")
 	var wsconn *websocket.Conn
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
 	for item := range area.WsConns.IterItems() {
-
 		wsconn = item.Value.(*websocket.Conn)
 		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( area_id, sid, msg) )
-		fmt.Println( "WrapBroatcastRespObj:", string(buf) )
-		write_len,err:= wsconn.Write( buf )
+		_,err:= wsconn.Write( buf )
 		if err!=nil {
-			fmt.Println("广播 err:", err.Error())
+			golog.Error("Broatcast wsconn.Write err: ", err.Error() )
 		}
-		fmt.Println( "write_len:", write_len )
 	}
 }
 
@@ -308,21 +311,19 @@ func Broatcast( sid string,area_id string, msg []byte ) {
 func BroatcastGlobal( sid string, msg []byte ) {
 
 	var conn *net.TCPConn
-	fmt.Println("场景里有:", GlobalArea.Conns.Size(),"个conn连接")
+	//fmt.Println("场景里有:", GlobalArea.Conns.Size(),"个conn连接")
 	protocolJson := new(protocol.Json)
 	protocolJson.Init()
 	for item := range GlobalArea.Conns.IterItems() {
-		fmt.Println("key:", item.Key, "value:", item.Value)
 		conn = item.Value.(*net.TCPConn)
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
 		buf,_ := protocolPacket.WrapBroatcastResp( "global", sid, msg  )
 		conn.Write( buf )
 	}
-	fmt.Println("广播里有:", GlobalArea.Conns.Size(),"个ws连接")
+	//fmt.Println("广播里有:", GlobalArea.Conns.Size(),"个ws连接")
 	var wsconn *websocket.Conn
 	for item := range GlobalArea.WsConns.IterItems() {
-		fmt.Println("key:", item.Key, "value:", item.Value)
 		wsconn = item.Value.(*websocket.Conn)
 		buf, _ := json.Marshal(protocolJson.WrapBroatcastRespObj( "global", sid, msg) )
 		go wsconn.Write( buf )
@@ -334,16 +335,14 @@ func UnSubGlobal( sid string ) {
 	GlobalArea.Conns.Delete( sid )
 	GlobalArea.WsConns.Delete( sid )
 
-
 }
 
 /**
  *  点对点发送消息
  */
 func Push(  to_sid string ,from_sid string,to_data []byte ) {
+
 	conn :=  GetConn(to_sid)
-	protocolJson := new(protocol.Json)
-	protocolJson.Init()
 	if( conn!=nil ) {
 		protocolPacket := new(protocol.Pack)
 		protocolPacket.Init()
@@ -357,9 +356,11 @@ func Push(  to_sid string ,from_sid string,to_data []byte ) {
 		}
 		return
 	}
-	ws:=GetWsConn(to_sid)
 
+	ws:=GetWsConn(to_sid)
 	if( ws!=nil ) {
+		protocolJson := new(protocol.Json)
+		protocolJson.Init()
 		buf  :=  protocolJson.WrapPushResp( to_sid, from_sid, to_data )
 		fmt.Println( "push, to_sid:", to_sid , string(buf))
 		_,err:=ws.Write( buf )

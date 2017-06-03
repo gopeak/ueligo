@@ -71,7 +71,8 @@ func handleHubConn(conn *net.TCPConn) {
 			return
 		}
 		if  util.TrimStr(string(cmd_buf))==""{
-			fmt.Println( "handleHubConn cmd empty" )
+			//fmt.Println( "handleHubConn cmd empty" )
+			golog.Error( "handleHubConn protocol.HubUnPack err: ","handleHubConn cmd empty"  )
 			conn.Close()
 			return
 		}
@@ -90,7 +91,7 @@ func hubWorkeDispath(  cmd, sid, seq string,  data_buf []byte, conn *net.TCPConn
 
 	data := string( data_buf )
 	api := new(Api)
-	fmt.Println( "hubWorkeDispath cmd:", cmd )
+	//fmt.Println( "hubWorkeDispath cmd:", cmd )
 
 	if cmd == "GetBase" {
 		ret_buf := []byte( api.GetBase() )
@@ -213,8 +214,16 @@ func hubWorkeDispath(  cmd, sid, seq string,  data_buf []byte, conn *net.TCPConn
 	}
 
 	if cmd == "GetAreas" {
-		str :=api.GetAreas()
-		write_buf,_:=protocol.HubPack( cmd,sid,seq,[]byte( str ) )
+		areas_map :=api.GetAreas()
+		areas_buf,_ := json.Marshal( areas_map )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq, areas_buf )
+		conn.Write( write_buf )
+		return
+	}
+	if cmd == "GetAreasKey" {
+		areas_key :=api.GetAreasKey()
+		areas_buf,_ := json.Marshal( areas_key )
+		write_buf,_:=protocol.HubPack( cmd,sid,seq, areas_buf )
 		conn.Write( write_buf )
 		return
 	}

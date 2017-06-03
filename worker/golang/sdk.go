@@ -14,6 +14,7 @@ import (
 	"bufio"
 	"strconv"
 	"github.com/robfig/cron"
+	"encoding/json"
 )
 
 
@@ -234,6 +235,7 @@ func (sdk *Sdk) ReqHub( req_cmd string , data []byte ) (string,bool) {
 
 		default:
 			if string(cmd_buf)+string(seq_buf) == req_cmd+seq_id{
+				//fmt.Println( "ReqHub:",string(data_buf))
 				// 如果服务返回错误
 				sdk.HubConn.Close()
 				return string(data_buf),true
@@ -422,17 +424,53 @@ func (sdk *Sdk) RemoveArea(id string) bool {
 	return sdk.PushHub( "RemoveArea",[]byte(id) )
 }
 
-func (sdk *Sdk) GetAreas() string {
+func (sdk *Sdk) GetAreas() map[string]string {
 
 	if( global.SingleMode ) {
 		api := new(hub.Api)
 		return api.GetAreas(  )
 	}
-	ret,ok := sdk.ReqHub( "GetAreas",[]byte("")  )
-	if( !ok ) {
+	var areas map[string]string
+	ret,ok:= sdk.ReqHub( "GetAreas",[]byte("")  )
+	//fmt.Println( "sdk ReqHub:",ret )
+	if !ok {
+		return areas
+	}
+	err:=json.Unmarshal( []byte(ret), &areas )
+	if err!=nil {
+		fmt.Println( "sdk GetAreas err :",err.Error() )
+	}
+	return areas
+}
+
+func (sdk *Sdk) GetAreasStr() string {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		buf,err := json.Marshal(  api.GetAreas(  ) )
+		if err!=nil {
+			return "{}"
+		}
+		return string(buf)
+	}
+	ret,ok:= sdk.ReqHub( "GetAreas",[]byte("")  )
+	if !ok {
 		return "{}"
 	}
 	return ret
+}
+
+func (sdk *Sdk) GetAreasKey()  []string {
+
+	if( global.SingleMode ) {
+		api := new(hub.Api)
+		return api.GetAreasKey(  )
+	}
+	var areas = make([]string,0 )
+	ret,_ := sdk.ReqHub( "GetAreasKey",[]byte("")  )
+	json.Unmarshal( []byte(ret), areas )
+
+	return areas
 }
 
 

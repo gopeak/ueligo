@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	"morego/protocol"
-	//"morego/worker/golang"
 	"net"
 	"os"
 	"runtime"
@@ -63,9 +62,14 @@ func createReqConns(num int64)  {
 				continue
 			}
 
+			buf,_ =  protocolPack.WrapReq( "JoinArea", sid, token, 0, []byte("area-global") )
+			conn.Write([]byte( buf ))
+
 			//fmt.Println( "", sid  )
 			Sids  = append(  Sids, sid )
 			Tokens =  append(  Tokens,token )
+
+
 			break
 		}
 	}
@@ -95,8 +99,8 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 	}
 	have_lava_area :=false
 	recvice_br_msg:=0
+	defer conn.Close()
 	for {
-
 		ptype, resp_header,resp_data,_,err :=  protocol.DecodePacket( reader )
 		//fmt.Println( "protocol.DecodePacket:",ptype,  string(resp_header), string(resp_data) )
 		if err != nil {
@@ -119,28 +123,35 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 			if resp_header_obj.Cmd=="GetUserSession"  {
 
 				fmt.Println("GetUserSession:",string(resp_data))
+				// 发送点对点消息
+				go func() {
+					to_sid_index := i - 1
+					if to_sid_index < 0 {
+						to_sid_index = 0
+					}
+					to_sid := Sids[to_sid_index]
+					push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`, to_sid, "md55555555555")
+					buf, _ := protocolPack.WrapReq("Push", req_sid, token, 0, []byte(push_data))
+					conn.Write([]byte( buf ))
+				}()
+				// 获取场景列表
+				//go func() {
+					buf, _ := protocolPack.WrapReq("GetAreas", req_sid, token, 0, []byte(""))
+					conn.Write([]byte( buf ))
+				//}()
 
-				to_sid_index := i-1
-				if to_sid_index<0 {
-					to_sid_index = 0
-				}
-				to_sid:= Sids[to_sid_index]
-				push_data := fmt.Sprintf(`{"sid":"%s","data":"%s"}`,to_sid,"md55555555555")
-				buf,_ :=  protocolPack.WrapReq( "Push", req_sid, token, 0, []byte(push_data) )
-				conn.Write([]byte( buf ))
 
-				// 发送点对点发送消息后 加入场景
-				time.Sleep(100 * time.Millisecond)
-				buf,_ =  protocolPack.WrapReq( "JoinArea", req_sid, token, req_id+1, []byte("area-global") )
-				conn.Write([]byte( buf ))
-				time.Sleep(5 * time.Second)
-
+			}
+			if resp_header_obj.Cmd=="GetAreas"  {
+				fmt.Println("GetAreas Revcie:",string(resp_data))
 			}
 
 			if resp_header_obj.Cmd=="JoinArea"  {
+				//time.Sleep(time.Duration(rand.Intn(1000)) * time.Millisecond)
 				push_data := fmt.Sprintf(`{"area_id":"area-global","data":"%s"}`,"md56666666666")
 				buf,_ =  protocolPack.WrapReq( "Broadcast", req_sid, token, req_id+1, []byte(push_data) )
 				conn.Write([]byte( buf ))
+				fmt.Println("Broadcast sended:",i , string(buf))
 			}
 
 			if resp_header_obj.Cmd=="LeaveChannel"  {
@@ -151,17 +162,26 @@ func hanleConnResp( conn *net.TCPConn ,times int64, conn_num int64 ,i int ){
 				conn.Close()
 				return
 			}
+
+		}
+		if _type==protocol.TypePush  {
+			fmt.Println("Push Revcie:",string(resp_data))
 		}
 
 		// 发送广播
 		if _type==protocol.TypeBroatcast  {
 			recvice_br_msg++
-			fmt.Println("Broadcast:",recvice_br_msg)
-		 	if !have_lava_area {
-				have_lava_area = true
-				buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
-				conn.Write([]byte( buf ))
+			if(  recvice_br_msg>=int(conn_num) ){
+				fmt.Println("Broadcast Revcie:",recvice_br_msg)
+				if !have_lava_area {
+					time.Sleep(200 * time.Millisecond)
+					have_lava_area = true
+					buf,_ =  protocolPack.WrapReq( "LeaveChannel", req_sid, token, 0, []byte("area-global") )
+					conn.Write([]byte( buf ))
+				}
 			}
+
+
 
 		}
 	}
@@ -177,12 +197,6 @@ func main() {
 		fmt.Fprintf(os.Stderr, "Usage:%s  host:port connections send_times packet_type ", os.Args[0])
 		os.Exit(1)
 	}
-	//go end_hook( start )
-	packet_type := "str"
-	if len(os.Args) > 4 {
-		packet_type = string(os.Args[4])
-	}
-	fmt.Println(" packet_type : ", packet_type)
 
 	times, _ := strconv.ParseInt(os.Args[3], 10, 32)
 	conn_num, _ := strconv.ParseInt(os.Args[2], 10, 32)
@@ -190,7 +204,7 @@ func main() {
 
 	createReqConns(conn_num)
 	//ch_success := make(chan int64, 0)
-
+	time.Sleep(2 * time.Second)
 	var i int64
 	for i = 0; i < conn_num; i++ {
 		conn := Conns[i]
