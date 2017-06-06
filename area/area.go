@@ -13,12 +13,12 @@ import (
 	"sync/atomic"
 	"encoding/json"
 	"math/rand"
-	"morego/global"
-	"morego/golog"
-	"morego/lib/websocket"
-	"morego/lib/syncmap"
-	"morego/protocol"
-	"morego/util"
+	"ueligo/global"
+	"ueligo/golog"
+	"ueligo/lib/websocket"
+	"ueligo/lib/syncmap"
+	"ueligo/protocol"
+	"ueligo/util"
 )
 
 // 所有的场景名称列表

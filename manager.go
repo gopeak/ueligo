@@ -6,15 +6,15 @@ package main
 
 import (
 
-	"morego/global"
-	"morego/golog"
-	"morego/hub"
+	"ueligo/global"
+	"ueligo/golog"
+	"ueligo/hub"
 	_ "net/http/pprof"
 	"runtime"
-	"morego/area"
-	"morego/connector"
-	"morego/lib/syncmap"
-	"morego/worker"
+	"ueligo/area"
+	"ueligo/connector"
+	"ueligo/lib/syncmap"
+	"ueligo/worker"
 )
 
 

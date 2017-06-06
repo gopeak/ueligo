@@ -9,14 +9,14 @@ import (
 	"bufio"
 	"fmt"
 	"net"
-	"morego/global"
-	"morego/golog"
+	"ueligo/global"
+	"ueligo/golog"
 	"github.com/antonholmquist/jason"
-	"morego/protocol"
+	"ueligo/protocol"
 	"strconv"
 	"time"
 	"encoding/json"
-	"morego/util"
+	"ueligo/util"
 )
 
 /**

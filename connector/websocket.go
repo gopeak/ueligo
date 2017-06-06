@@ -11,14 +11,14 @@ import (
 	"os"
 	"sync/atomic"
 	"encoding/json"
-	"morego/area"
-	"morego/global"
-	"morego/golog"
-	"morego/lib/websocket"
-	"morego/protocol"
-	"morego/worker/golang"
-	"morego/worker"
-	"morego/util"
+	"ueligo/area"
+	"ueligo/global"
+	"ueligo/golog"
+	"ueligo/lib/websocket"
+	"ueligo/protocol"
+	"ueligo/worker/golang"
+	"ueligo/worker"
+	"ueligo/util"
 )
 
 func WebsocketConnector(ip string, port int) {

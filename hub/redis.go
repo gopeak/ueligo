@@ -2,8 +2,8 @@ package hub
 
 import (
 	"fmt"
-	"morego/global"
-	"morego/area"
+	"ueligo/global"
+	"ueligo/area"
 	"time"
 
 	"github.com/garyburd/redigo/redis"

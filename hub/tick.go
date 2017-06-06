@@ -6,10 +6,10 @@ import (
 	"fmt"
 	"time"
 	"net"
-	"morego/global"
-	"morego/lib/syncmap"
-	"morego/golog"
-	"morego/area"
+	"ueligo/global"
+	"ueligo/lib/syncmap"
+	"ueligo/golog"
+	"ueligo/area"
 	"github.com/garyburd/redigo/redis"
 )
 
@@ -44,7 +44,7 @@ func TickSyncSession() {
 		js1, _ := json2.Marshal(UserSessions)
 		*/
 		if LastSessions != global.UserSessions {
-			redisc.Do("Set", "morego/user_session", global.UserSessions)
+			redisc.Do("Set", "ueligo/user_session", global.UserSessions)
 			redisc.Flush()
 			LastSessions = global.UserSessions
 		}
@@ -60,7 +60,7 @@ func LoadSessionFromRedis() {
 		fmt.Println(err)
 		return
 	}
-	reply, err_get := redisc.Do("Get", "morego/user_session")
+	reply, err_get := redisc.Do("Get", "ueligo/user_session")
 	if err_get != nil {
 		fmt.Println(err_get)
 		return

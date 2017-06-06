@@ -1,15 +1,15 @@
 package hub
 
 import (
-	"morego/golog"
+	"ueligo/golog"
 	"github.com/robfig/cron"
 	json_orgin "encoding/json"
-	"morego/area"
-	"morego/global"
+	"ueligo/area"
+	"ueligo/global"
 	"os"
 	"strings"
-	_"morego/lib/websocket"
-	"morego/protocol"
+	_"ueligo/lib/websocket"
+	"ueligo/protocol"
 )
 
 type Api struct {

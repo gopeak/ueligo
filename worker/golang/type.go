@@ -1,8 +1,8 @@
 package golang
 
 import (
-	"morego/protocol"
-	"morego/lib/websocket"
+	"ueligo/protocol"
+	"ueligo/lib/websocket"
 	"net"
 )
 

@@ -4,7 +4,7 @@ import (
 	"bufio"
 	"strconv"
 	"os"
-	"morego/golog"
+	"ueligo/golog"
 	"strings"
 	"crypto/rand"
 	"math/big"

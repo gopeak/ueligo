@@ -7,7 +7,7 @@ package global
 
 import (
 	"github.com/robfig/cron"
-	"morego/lib/syncmap"
+	"ueligo/lib/syncmap"
 )
 
 const (

@@ -2,7 +2,7 @@ package golang
 
 import (
 	"github.com/antonholmquist/jason"
-	"morego/golog"
+	"ueligo/golog"
 	"fmt" 
 	"strconv"
 )

@@ -3,7 +3,7 @@ package admin
 import (
 	"encoding/json"
 	"fmt"
-	"morego/global"
+	"ueligo/global"
 	"net/http"
 	"os"
 	"time"

@@ -3,7 +3,7 @@ package protocol
 import (
 	"encoding/json"
 	"fmt"
-	"morego/util"
+	"ueligo/util"
 )
 
 type Json struct {

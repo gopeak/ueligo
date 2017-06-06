@@ -9,12 +9,12 @@ import (
 	"strconv"
 	"time"
 	"encoding/json"
-	"morego/util"
-	"morego/area"
-	"morego/global"
-	"morego/golog"
-	"morego/protocol"
-	"morego/worker/golang"
+	"ueligo/util"
+	"ueligo/area"
+	"ueligo/global"
+	"ueligo/golog"
+	"ueligo/protocol"
+	"ueligo/worker/golang"
 	"github.com/BurntSushi/toml"
 )
 

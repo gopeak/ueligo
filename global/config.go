@@ -3,7 +3,7 @@ package global
 import (
 	"fmt"
 	"math/rand"
-	"morego/lib/BurntSushi/toml"
+	"ueligo/lib/BurntSushi/toml"
 	"flag"
 )
 

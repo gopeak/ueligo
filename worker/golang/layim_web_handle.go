@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"time"
 	"github.com/go-sql-driver/mysql"
-	"morego/lib"
-	"morego/area"
+	"ueligo/lib"
+	"ueligo/area"
 
 )
 

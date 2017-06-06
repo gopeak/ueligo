@@ -3,7 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
-	"morego/protocol"
+	"ueligo/protocol"
 	"net"
 	"time"
 )

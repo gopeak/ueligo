@@ -3,8 +3,8 @@ package golang
 import (
 	"net"
 	_"fmt"
-	"morego/area"
-	"morego/golog"
+	"ueligo/area"
+	"ueligo/golog"
 	"github.com/antonholmquist/jason"
 )
 

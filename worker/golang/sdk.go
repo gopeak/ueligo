@@ -1,13 +1,13 @@
 package golang
 
 import (
-	"morego/golog"
-	"morego/global"
-	"morego/area"
-	"morego/lib/syncmap"
-	"morego/util"
-	"morego/protocol"
-	"morego/hub"
+	"ueligo/golog"
+	"ueligo/global"
+	"ueligo/area"
+	"ueligo/lib/syncmap"
+	"ueligo/util"
+	"ueligo/protocol"
+	"ueligo/hub"
 	"fmt"
 	"time"
 	"net"

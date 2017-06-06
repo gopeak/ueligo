@@ -4,7 +4,7 @@ package golog
 
 import (
 	"fmt"
-	"morego/global"
+	"ueligo/global"
 	"os"
 	"runtime"
 	"time"
